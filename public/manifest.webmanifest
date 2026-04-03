@@ -8,9 +8,9 @@
   "description": "Premium Fitness and Gym Routine Tracker",
   "icons": [
     {
-      "src": "/assets/icon/icon.svg",
+      "src": "/assets/icon/apple-touch-icon.png",
       "sizes": "any",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "maskable any"
     }
   ]
