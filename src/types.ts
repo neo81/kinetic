@@ -28,6 +28,7 @@ export interface Exercise {
   sets: ExerciseSet[];
   measureUnit?: 'kg' | 'min' | 'sec';
   notes?: string;
+  equipment?: string;
 }
 
 export interface RoutineDayExercise {

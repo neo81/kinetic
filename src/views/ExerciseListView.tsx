@@ -4,6 +4,7 @@ import { ArrowLeft, Search, Loader2, Star } from 'lucide-react';
 import { PageShell } from '../components/layout/PageShell';
 import type { Exercise, View } from '../types';
 import { supabase, isSupabaseConfigured } from '../lib/supabase/client';
+import { fallbackExerciseLibrary } from '../app/initialData';
 
 type ExerciseLibraryItem = Exercise & {
   type?: string;
@@ -42,8 +43,17 @@ export const ExerciseListView = ({
 
   const fetchExercises = useCallback(async () => {
     setLoading(true);
+    
     if (!isSupabaseConfigured || !supabase) {
-      console.warn('Supabase no está configurado');
+      console.warn('Supabase no está configurado. Usando biblioteca de respaldo.');
+      const fallback = fallbackExerciseLibrary
+        .filter(ex => ex.muscleGroupCode === muscle.toLowerCase())
+        .map(ex => ({
+          ...ex,
+          muscleGroup: ex.muscleGroup || muscle,
+          notes: '',
+        }));
+      setAllExercises(fallback);
       setLoading(false);
       return;
     }
@@ -77,6 +87,11 @@ export const ExerciseListView = ({
       }
     } catch (err) {
       console.error('Error al descargar ejercicios:', err);
+      // Fallback on error too
+      const fallback = fallbackExerciseLibrary
+        .filter(ex => ex.muscleGroupCode === muscle.toLowerCase())
+        .map(ex => ({ ...ex, muscleGroup: ex.muscleGroup || muscle, notes: '' }));
+      setAllExercises(fallback);
     } finally {
       setLoading(false);
     }
@@ -154,6 +169,27 @@ export const ExerciseListView = ({
       </section>
 
       <div className="space-y-10">
+        {!isSupabaseConfigured && (
+          <motion.div 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-[1.5rem] border border-primary/20 bg-primary/5 p-6 backdrop-blur-xl"
+          >
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-lg shadow-primary/5">
+                <Loader2 size={24} className="animate-pulse" />
+              </div>
+              <div className="flex-1">
+                <p className="font-headline text-[0.8rem] font-black uppercase tracking-[0.25em] text-primary">Modo Respaldo Activo</p>
+                <p className="mt-1 text-[0.7rem] font-medium leading-relaxed text-on-surface-variant/80">
+                  Supabase no está configurado en Vercel. Se está cargando la biblioteca de ejercicios local. 
+                  <span className="block mt-1 text-primary/60 italic font-bold">Las rutinas nuevas no se sincronizarán en la nube.</span>
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
         <div className="group relative">
           <div className="pointer-events-none absolute inset-y-0 left-8 flex items-center text-primary transition-transform group-focus-within:scale-110">
             <Search size={22} strokeWidth={3} />

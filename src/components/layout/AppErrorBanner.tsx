@@ -1,3 +1,5 @@
+import { motion } from 'motion/react';
+
 type AppErrorBannerProps = {
   level?: 'error' | 'warning';
   title: string;
@@ -11,9 +13,14 @@ export const AppErrorBanner = ({ level = 'error', title, message, onDismiss }: A
   const dismissLabel = level === 'warning' ? 'Cerrar aviso' : 'Cerrar mensaje de error';
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 top-3 z-50 flex justify-center px-3 sm:top-4 sm:px-4">
+    <motion.div
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      className="pointer-events-none fixed inset-x-0 top-20 z-[100] flex justify-center px-3 sm:top-24 sm:px-4"
+    >
       <div
-        className={`pointer-events-auto w-full max-w-screen-md rounded-xl border bg-surface-container-high/95 px-3 py-2 text-on-surface shadow-lg backdrop-blur sm:px-4 sm:py-3 ${borderClassName}`}
+        className={`pointer-events-auto w-full max-w-screen-md rounded-xl border bg-surface-container-high/98 px-3 py-2 text-on-surface shadow-2xl backdrop-blur sm:px-4 sm:py-3 ${borderClassName}`}
       >
         <div className="flex items-start gap-3">
           <div className="min-w-0 flex-1">
@@ -30,6 +37,6 @@ export const AppErrorBanner = ({ level = 'error', title, message, onDismiss }: A
           </button>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };
