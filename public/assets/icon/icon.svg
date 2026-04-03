@@ -1,0 +1,24 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background is solid charcoal, filling the entire square for maskable support -->
+  <rect width="512" height="512" fill="#090B0E"/>
+  
+  <g transform="translate(256, 220) rotate(-45)">
+    <!-- Dumbbell Handle -->
+    <rect x="-80" y="-10" width="160" height="20" rx="4" fill="#D4FF00"/>
+    
+    <!-- Plates Left (Small then Large) -->
+    <rect x="-100" y="-30" width="15" height="60" rx="3" fill="#D4FF00"/>
+    <rect x="-125" y="-50" width="20" height="100" rx="4" fill="#D4FF00"/>
+    
+    <!-- Plates Right (Small then Large) -->
+    <rect x="85" y="-30" width="15" height="60" rx="3" fill="#D4FF00"/>
+    <rect x="105" y="-50" width="20" height="100" rx="4" fill="#D4FF00"/>
+    
+    <!-- Motion trails coming from the bottom-left of the tilted dumbbell -->
+    <!-- (Since it's rotated -45, x negative is 'bottom-left' in orientation '/') -->
+    <path d="M -135 0 L -180 -15 M -135 15 L -170 25 M -135 -15 L -165 -30" stroke="#D4FF00" stroke-width="4" stroke-linecap="round" opacity="0.6"/>
+  </g>
+  
+  <!-- KINETIC Text centered at bottom -->
+  <text x="256" y="420" text-anchor="middle" font-family="Lexend, sans-serif" font-weight="900" font-size="64" fill="#D4FF00" style="font-style: italic; letter-spacing: 0.1em;">KINETIC</text>
+</svg>
