@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
+import type { User } from '@supabase/supabase-js';
+import { supabase } from '../lib/supabase/client';
 import { initialRoutines } from './initialData';
 import { consumeRoutinesRepositoryNotice, routinesRepository } from '../features/routines/repository';
 import { RoutineRepositoryError } from '../features/routines/errors';
@@ -39,6 +41,7 @@ const getDefaultRoutineDayId = (routine: Routine | null) =>
 export const useAppState = () => {
   const [view, setView] = useState<View>('login');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
   const [routines, setRoutines] = useState<Routine[]>(initialRoutines);
   const [currentRoutine, setCurrentRoutine] = useState<Routine | null>(null);
   const [selectedRoutineDayId, setSelectedRoutineDayId] = useState<string | null>(null);
@@ -49,43 +52,122 @@ export const useAppState = () => {
   const [appBanner, setAppBanner] = useState<AppBannerState | null>(null);
   const [openDayId, setOpenDayId] = useState<string | null>(null);
 
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [view]);
-
-  useEffect(() => {
-    const syncRoutines = async () => {
+  const syncRoutines = useCallback(async () => {
+    try {
       const routines = await routinesRepository.list();
       setRoutines(routines);
       const repositoryNotice = consumeRoutinesRepositoryNotice();
       if (repositoryNotice) {
         setAppBanner(repositoryNotice);
       }
-    };
-
-    syncRoutines().catch((error) => {
-      console.error('No se pudieron sincronizar las rutinas iniciales:', error);
+    } catch (error) {
+      console.error('No se pudieron sincronizar las rutinas:', error);
       setAppBanner({
         level: 'error',
         title: 'No se pudo sincronizar',
         message: getErrorMessage(error, 'Revisa tu conexion e intentalo nuevamente.'),
       });
-    });
+    }
   }, []);
 
   useEffect(() => {
-    if (isLoggedIn && view === 'login') {
-      setView('dashboard');
-    }
-  }, [isLoggedIn, view]);
+    window.scrollTo(0, 0);
+  }, [view]);
 
-  const handleLogin = () => {
-    setIsLoggedIn(true);
-    setView('dashboard');
+  useEffect(() => {
+    if (!supabase) return;
+
+    // Listen to auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      const isNowLoggedIn = !!session;
+      setIsLoggedIn(isNowLoggedIn);
+      setUser(session?.user ?? null);
+
+      if (isNowLoggedIn) {
+        await syncRoutines();
+        if (view === 'login') {
+          setView('dashboard');
+        }
+      } else {
+        setRoutines(initialRoutines);
+        setView('login');
+      }
+    });
+
+    // Check initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        setIsLoggedIn(true);
+        setUser(session.user);
+        syncRoutines();
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [syncRoutines]);
+
+  const handleLoginWithGoogle = async () => {
+    if (!supabase) return;
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin,
+      },
+    });
+    if (error) {
+      setAppBanner({
+        level: 'error',
+        title: 'Error de autenticacion',
+        message: error.message,
+      });
+    }
   };
 
-  const handleLogout = () => {
+  const handleLoginWithEmail = async (email: string, pass: string) => {
+    if (!supabase) return;
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password: pass,
+    });
+    if (error) {
+      setAppBanner({
+        level: 'error',
+        title: 'Acceso denegado',
+        message: 'Credenciales invalidas o error de servidor.',
+      });
+    }
+  };
+
+  const handleRegisterWithEmail = async (email: string, pass: string) => {
+    if (!supabase) return;
+    const { error, data } = await supabase.auth.signUp({
+      email,
+      password: pass,
+    });
+    if (error) {
+      setAppBanner({
+        level: 'error',
+        title: 'Error de registro',
+        message: error.message,
+      });
+    } else if (data.session || data.user) {
+      setAppBanner({
+        level: 'warning',
+        title: 'Confirma tu cuenta',
+        message: 'Te hemos enviado un correo. Confirmalo para activar tu perfil.',
+      });
+    }
+  };
+
+  const handleLogout = async () => {
+    if (supabase) {
+      await supabase.auth.signOut();
+    }
     setIsLoggedIn(false);
+    setUser(null);
+    setRoutines(initialRoutines);
     setView('login');
   };
 
@@ -239,6 +321,8 @@ export const useAppState = () => {
   return {
     view,
     setView,
+    isLoggedIn,
+    user,
     routines,
     currentRoutine,
     setCurrentRoutine,
@@ -248,7 +332,9 @@ export const useAppState = () => {
     selectedExercise,
     appBanner,
     clearAppBanner: () => setAppBanner(null),
-    handleLogin,
+    handleLoginWithGoogle,
+    handleLoginWithEmail,
+    handleRegisterWithEmail,
     handleLogout,
     handleStartNewRoutine,
     handleSaveRoutine,

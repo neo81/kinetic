@@ -19,7 +19,9 @@ type AppRouterProps = {
   setSelectedRoutineDayId: (dayId: string | null) => void;
   selectedMuscle: string;
   selectedExercise: Exercise | null;
-  onLogin: () => void;
+  onLoginWithGoogle: () => void;
+  onLoginWithEmail: (email: string, pass: string) => void;
+  onRegisterWithEmail: (email: string, pass: string) => void;
   onLogout: () => void;
   onNewRoutine: () => void;
   onSaveRoutine: (routineData: Partial<Routine>) => void;
@@ -45,7 +47,9 @@ export const AppRouter = ({
   setSelectedRoutineDayId,
   selectedMuscle,
   selectedExercise,
-  onLogin,
+  onLoginWithGoogle,
+  onLoginWithEmail,
+  onRegisterWithEmail,
   onLogout,
   onNewRoutine,
   onSaveRoutine,
@@ -62,7 +66,13 @@ export const AppRouter = ({
 }: AppRouterProps) => {
   switch (view) {
     case 'login':
-      return <KineticLoginView onLogin={onLogin} />;
+      return (
+        <KineticLoginView
+          onLoginWithGoogle={onLoginWithGoogle}
+          onLoginWithEmail={onLoginWithEmail}
+          onRegisterWithEmail={onRegisterWithEmail}
+        />
+      );
     case 'dashboard':
       return (
         <DashboardView
