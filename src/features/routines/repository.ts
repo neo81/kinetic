@@ -99,6 +99,56 @@ const buildFrequencyLabel = (days: number[]) =>
 const flattenRoutineExercises = (routine: Routine) =>
   (routine.dayEntries ?? []).flatMap((day) => day.exercises.map((entry) => entry.exercise));
 
+const normalizeDayExercises = (exercises: Routine['dayEntries'][number]['exercises']) =>
+  exercises.map((item, index) => ({
+    ...item,
+    position: index + 1,
+  }));
+
+const normalizeRoutineDayEntries = (dayEntries: Routine['dayEntries'] = []) => {
+  const sorted = [...dayEntries].sort((left, right) => left.position - right.position);
+  const coreDays = sorted
+    .filter((day) => day.dayType === 'core')
+    .map((day) => ({
+      ...day,
+      position: 0,
+      title: day.title || 'Core',
+      exercises: normalizeDayExercises(day.exercises),
+    }));
+
+  const weekdayDays = sorted
+    .filter((day) => day.dayType === 'weekday')
+    .sort((left, right) => (left.dayNumber ?? 0) - (right.dayNumber ?? 0))
+    .map((day, index) => ({
+      ...day,
+      position: index + 1,
+      title: day.title || `Dia ${day.dayNumber}`,
+      exercises: normalizeDayExercises(day.exercises),
+    }));
+
+  return [...coreDays, ...weekdayDays];
+};
+
+const applyRoutineDerivedFields = (routine: Routine): Routine => {
+  const dayEntries = normalizeRoutineDayEntries(routine.dayEntries);
+  const weekdayDays = dayEntries.filter((day) => day.dayType === 'weekday');
+
+  return {
+    ...routine,
+    dayEntries,
+    days: weekdayDays
+      .map((day) => day.dayNumber)
+      .filter((dayNumber): dayNumber is number => typeof dayNumber === 'number'),
+    frequency: buildFrequencyLabel(
+      weekdayDays
+        .map((day) => day.dayNumber)
+        .filter((dayNumber): dayNumber is number => typeof dayNumber === 'number'),
+    ),
+    focus: dayEntries.find((day) => day.dayType === 'core')?.title || weekdayDays[0]?.title || '',
+    exercises: dayEntries.flatMap((day) => day.exercises.map((entry) => entry.exercise)),
+  };
+};
+
 const buildRoutineDayInputs = (
   currentRoutine: Routine | null,
   input: SaveRoutineInput,
@@ -177,8 +227,7 @@ const buildRoutineFallback = (
         updatedAt: new Date().toISOString(),
       };
 
-  routine.exercises = flattenRoutineExercises(routine);
-  return routine;
+  return applyRoutineDerivedFields(routine);
 };
 
 const mapExercise = (
@@ -667,12 +716,12 @@ export const routinesRepository = {
     const updatedRoutine: Routine = {
       ...currentRoutine,
       dayEntries: updatedDayEntries,
-      exercises: updatedDayEntries.flatMap((day) => day.exercises.map((entry) => entry.exercise)),
       updatedAt: new Date().toISOString(),
     };
+    const normalizedRoutine = applyRoutineDerivedFields(updatedRoutine);
 
-    if (supabase && !updatedRoutine.syncPending) {
-      const targetDay = updatedDayEntries.find((day) => day.id === routineDayId);
+    if (supabase && !normalizedRoutine.syncPending) {
+      const targetDay = normalizedRoutine.dayEntries?.find((day) => day.id === routineDayId);
       if (targetDay) {
         const targetItem = instanceId
           ? targetDay.exercises.find((item) => item.id === instanceId)
@@ -709,11 +758,11 @@ export const routinesRepository = {
 
     commitLocalRoutines(
       localRoutines.map((routine) =>
-        routine.id === updatedRoutine.id ? updatedRoutine : routine,
+        routine.id === normalizedRoutine.id ? normalizedRoutine : routine,
       ),
     );
 
-    return updatedRoutine;
+    return normalizedRoutine;
   },
 
   async deleteRoutine(routineId: string): Promise<void> {
@@ -751,12 +800,11 @@ export const routinesRepository = {
     }
 
     const nextDays = (targetRoutine.dayEntries ?? []).filter((d) => d.id !== routineDayId);
-    const updatedRoutine: Routine = {
+    const updatedRoutine = applyRoutineDerivedFields({
       ...targetRoutine,
       dayEntries: nextDays,
-      exercises: nextDays.flatMap((day) => day.exercises.map((entry) => entry.exercise)),
       updatedAt: new Date().toISOString(),
-    };
+    });
 
     commitLocalRoutines(localRoutines.map((r) => (r.id === routineId ? updatedRoutine : r)));
     return updatedRoutine;
@@ -784,16 +832,15 @@ export const routinesRepository = {
       if (day.id !== dayId) return day;
       return {
         ...day,
-        exercises: day.exercises.filter((ex) => ex.id !== exerciseId),
+        exercises: normalizeDayExercises(day.exercises.filter((ex) => ex.id !== exerciseId)),
       };
     });
 
-    const updatedRoutine: Routine = {
+    const updatedRoutine = applyRoutineDerivedFields({
       ...targetRoutine,
       dayEntries: updatedDayEntries,
-      exercises: updatedDayEntries.flatMap((day) => day.exercises.map((entry) => entry.exercise)),
       updatedAt: new Date().toISOString(),
-    };
+    });
 
     commitLocalRoutines(localRoutines.map((r) => (r.id === routineId ? updatedRoutine : r)));
     return updatedRoutine;

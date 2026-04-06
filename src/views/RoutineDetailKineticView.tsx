@@ -331,8 +331,8 @@ export const RoutineDetailKineticView = ({
   routine: Routine | null;
   onDeleteRoutine: (id: string) => void;
   onDeleteRoutineDay: (dayId: string) => void;
-  onDeleteExercise: (exerciseId: string) => void;
-  onEditExercise: (ex: any, dayId: string) => void;
+  onDeleteExercise: (exerciseId: string, dayId?: string) => void;
+  onEditExercise: (exercise: Exercise, instanceId: string, dayId: string) => void;
   onEditRoutine: (routine: Routine) => void;
   onSelectRoutineDay: (dayId: string | null) => void;
   openDayId: string | null;
@@ -534,11 +534,8 @@ export const RoutineDetailKineticView = ({
                             <div className="flex items-center gap-1">
                               <button
                                 onClick={() => {
-                                  // @ts-ignore - Accediendo a setNavigationSource inyectado
                                   onSelectRoutineDay(day.id);
-                                  // @ts-ignore
-                                  setView('exercise-editor');
-                                  onEditExercise(dayEx.exercise, dayEx.id);
+                                  onEditExercise(dayEx.exercise, dayEx.id, day.id);
                                 }}
                                 className="flex h-8 w-8 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:bg-white/10"
                               >
@@ -678,8 +675,7 @@ export const RoutineDetailKineticView = ({
         message="¿Estás seguro de que quieres quitar este ejercicio de la rutina?"
         onConfirm={() => {
           if (confirmExerciseDelete) {
-            onSelectRoutineDay(confirmExerciseDelete.dayId);
-            onDeleteExercise(confirmExerciseDelete.exId);
+            onDeleteExercise(confirmExerciseDelete.exId, confirmExerciseDelete.dayId);
             setConfirmExerciseDelete(null);
           }
         }}

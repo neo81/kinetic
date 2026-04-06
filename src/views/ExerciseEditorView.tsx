@@ -24,20 +24,46 @@ export const ExerciseEditorView = ({
   onBack: () => void;
 }) => {
   const normalizeInput = (value: string) => value.replace(',', '.');
-  const createSetState = (index: number, base?: { reps?: number | string; weight?: number | string }): EditableSet => ({
+  const getSetMetricValue = (
+    measureUnit: 'kg' | 'min' | 'sec',
+    base?: {
+      weight?: number | string;
+      durationMinutes?: number | string;
+      durationSeconds?: number | string;
+    },
+  ) => {
+    if (measureUnit === 'min') {
+      return base?.durationMinutes !== undefined ? String(base.durationMinutes) : '';
+    }
+    if (measureUnit === 'sec') {
+      return base?.durationSeconds !== undefined ? String(base.durationSeconds) : '';
+    }
+    return base?.weight !== undefined ? String(base.weight) : '';
+  };
+  const createSetState = (
+    index: number,
+    measureUnit: 'kg' | 'min' | 'sec',
+    base?: {
+      reps?: number | string;
+      weight?: number | string;
+      durationMinutes?: number | string;
+      durationSeconds?: number | string;
+    },
+  ): EditableSet => ({
     id: String(index + 1),
     reps: base?.reps !== undefined ? String(base.reps) : '',
-    value: base?.weight !== undefined ? String(base.weight) : '',
+    value: getSetMetricValue(measureUnit, base),
     syncReps: index !== 0,
     syncValue: index !== 0,
   });
 
+  const initialUnit = exercise?.measureUnit || 'kg';
   const initialSets = exercise?.sets?.length
-    ? exercise.sets.map((set, index) => createSetState(index, set))
-    : [createSetState(0), createSetState(1), createSetState(2)];
+    ? exercise.sets.map((set, index) => createSetState(index, initialUnit, set))
+    : [createSetState(0, initialUnit), createSetState(1, initialUnit), createSetState(2, initialUnit)];
 
   const [sets, setSets] = useState<EditableSet[]>(initialSets);
-  const [unit, setUnit] = useState<'kg' | 'min' | 'sec'>(exercise?.measureUnit || 'kg');
+  const [unit, setUnit] = useState<'kg' | 'min' | 'sec'>(initialUnit);
   const [localNotes, setLocalNotes] = useState(exercise?.sets?.[0]?.notes || exercise?.notes || '');
   const [showDescription, setShowDescription] = useState(false);
 
@@ -100,7 +126,9 @@ export const ExerciseEditorView = ({
 
     const parsedSets = sets.map((set) => ({
       reps: parseFloat(set.reps || '0') || 0,
-      weight: parseFloat(set.value || '0') || 0,
+      weight: unit === 'kg' ? parseFloat(set.value || '0') || 0 : 0,
+      durationMinutes: unit === 'min' ? parseFloat(set.value || '0') || 0 : 0,
+      durationSeconds: unit === 'sec' ? parseFloat(set.value || '0') || 0 : 0,
       notes: localNotes,
     }));
 

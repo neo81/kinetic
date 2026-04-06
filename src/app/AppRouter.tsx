@@ -19,7 +19,7 @@ type AppRouterProps = {
   setSelectedRoutineDayId: (dayId: string | null) => void;
   selectedMuscle: string;
   selectedExercise: Exercise | null;
-  onLoginWithGoogle: () => void;
+  onLoginWithGoogle: () => Promise<{ started: boolean; error?: string }>;
   onLoginWithEmail: (email: string, pass: string) => void;
   onRegisterWithEmail: (email: string, pass: string) => void;
   onLogout: () => void;
@@ -30,7 +30,7 @@ type AppRouterProps = {
   onSaveExercise: (exercise: Exercise) => void;
   onDeleteRoutine: (routineId: string) => void;
   onDeleteRoutineDay: (routineDayId: string) => void;
-  onDeleteExercise: (exerciseId: string) => void;
+  onDeleteExercise: (exerciseId: string, dayId?: string) => void;
   navigationSource: View;
   setNavigationSource: (view: View) => void;
   openDayId: string | null;
@@ -141,8 +141,9 @@ export const AppRouter = ({
           onDeleteRoutine={onDeleteRoutine}
           onDeleteRoutineDay={onDeleteRoutineDay}
           onDeleteExercise={onDeleteExercise}
-          onEditExercise={(ex, instanceId) => {
+          onEditExercise={(ex, instanceId, dayId) => {
             setNavigationSource('routine-detail');
+            setSelectedRoutineDayId(dayId);
             onSelectExercise(ex, instanceId);
             setView('exercise-editor');
           }}

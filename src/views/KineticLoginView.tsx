@@ -6,7 +6,7 @@ export const KineticLoginView = ({
   onLoginWithEmail,
   onRegisterWithEmail,
 }: {
-  onLoginWithGoogle: () => void;
+  onLoginWithGoogle: () => Promise<{ started: boolean; error?: string }>;
   onLoginWithEmail: (email: string, pass: string) => void;
   onRegisterWithEmail: (email: string, pass: string) => void;
 }) => {
@@ -30,9 +30,16 @@ export const KineticLoginView = ({
     }
   };
 
-  const handleGoogleClick = () => {
+  const handleGoogleClick = async () => {
     setIsLoading(true);
-    onLoginWithGoogle();
+    try {
+      const result = await onLoginWithGoogle();
+      if (!result.started) {
+        setIsLoading(false);
+      }
+    } catch {
+      setIsLoading(false);
+    }
   };
 
   return (

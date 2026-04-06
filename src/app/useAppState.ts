@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import type { User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase/client';
+import type { Database } from '../lib/supabase/database.types';
 import { initialRoutines } from './initialData';
 import { consumeRoutinesRepositoryNotice, routinesRepository } from '../features/routines/repository';
 import { RoutineRepositoryError } from '../features/routines/errors';
@@ -38,6 +39,18 @@ const getDefaultRoutineDayId = (routine: Routine | null) =>
   routine?.dayEntries?.[0]?.id ||
   null;
 
+const getUserProfilePayload = (user: User): Database['public']['Tables']['profiles']['Insert'] => ({
+  id: user.id,
+  full_name:
+    user.user_metadata?.full_name ||
+    user.user_metadata?.name ||
+    null,
+  avatar_url:
+    user.user_metadata?.avatar_url ||
+    user.user_metadata?.picture ||
+    null,
+});
+
 export const useAppState = () => {
   const [view, setView] = useState<View>('login');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -70,6 +83,35 @@ export const useAppState = () => {
     }
   }, []);
 
+  const ensureProfileExists = useCallback(async (user: User) => {
+    if (!supabase) {
+      return;
+    }
+
+    const { data: existingProfile, error: profileQueryError } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    if (profileQueryError) {
+      throw profileQueryError;
+    }
+
+    if (existingProfile) {
+      return;
+    }
+
+    const payload = getUserProfilePayload(user);
+    const { error: insertError } = await supabase
+      .from('profiles')
+      .insert(payload);
+
+    if (insertError) {
+      throw insertError;
+    }
+  }, []);
+
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [view]);
@@ -84,6 +126,17 @@ export const useAppState = () => {
       setUser(session?.user ?? null);
 
       if (isNowLoggedIn) {
+        try {
+          await ensureProfileExists(session.user);
+        } catch (error) {
+          console.error('No se pudo garantizar el perfil del usuario:', error);
+          setAppBanner({
+            level: 'warning',
+            title: 'Perfil incompleto',
+            message: 'Tu sesion esta activa, pero no se pudo preparar tu perfil. Intenta recargar.',
+          });
+        }
+
         await syncRoutines();
         if (view === 'login') {
           setView('dashboard');
@@ -99,6 +152,9 @@ export const useAppState = () => {
       if (session) {
         setIsLoggedIn(true);
         setUser(session.user);
+        ensureProfileExists(session.user).catch((error) => {
+          console.error('No se pudo preparar el perfil en la carga inicial:', error);
+        });
         syncRoutines();
       }
     });
@@ -106,23 +162,36 @@ export const useAppState = () => {
     return () => {
       subscription.unsubscribe();
     };
-  }, [syncRoutines]);
+  }, [ensureProfileExists, syncRoutines, view]);
 
-  const handleLoginWithGoogle = async () => {
-    if (!supabase) return;
+  const handleLoginWithGoogle = async (): Promise<{ started: boolean; error?: string }> => {
+    if (!supabase) {
+      const message = 'Configura VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY para usar Google.';
+      setAppBanner({
+        level: 'error',
+        title: 'Supabase no configurado',
+        message,
+      });
+      return { started: false, error: message };
+    }
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: window.location.origin,
       },
     });
+
     if (error) {
       setAppBanner({
         level: 'error',
         title: 'Error de autenticacion',
         message: error.message,
       });
+      return { started: false, error: error.message };
     }
+
+    return { started: true };
   };
 
   const handleLoginWithEmail = async (email: string, pass: string) => {
@@ -162,13 +231,23 @@ export const useAppState = () => {
   };
 
   const handleLogout = async () => {
-    if (supabase) {
-      await supabase.auth.signOut();
-    }
     setIsLoggedIn(false);
     setUser(null);
     setRoutines(initialRoutines);
+    setCurrentRoutine(null);
+    setSelectedRoutineDayId(null);
+    setSelectedExercise(null);
+    setEditingInstanceId(null);
+    setNavigationSource('dashboard');
+    setOpenDayId(null);
+    setAppBanner(null);
     setView('login');
+
+    if (supabase) {
+      supabase.auth.signOut().catch((error) => {
+        console.error('No se pudo cerrar la sesion remotamente:', error);
+      });
+    }
   };
 
   const handleStartNewRoutine = () => {
@@ -301,12 +380,16 @@ export const useAppState = () => {
     }
   };
 
-  const handleDeleteExercise = async (exerciseId: string) => {
-    if (!currentRoutine || !selectedRoutineDayId) return;
+  const handleDeleteExercise = async (exerciseId: string, dayId?: string) => {
+    const targetDayId = dayId || selectedRoutineDayId;
+    if (!currentRoutine || !targetDayId) return;
     try {
-      const updatedRoutine = await routinesRepository.deleteExercise(currentRoutine.id, selectedRoutineDayId, exerciseId);
+      const updatedRoutine = await routinesRepository.deleteExercise(currentRoutine.id, targetDayId, exerciseId);
       setCurrentRoutine(updatedRoutine);
       setRoutines((prev) => prev.map((r) => r.id === updatedRoutine.id ? updatedRoutine : r));
+      if (dayId && selectedRoutineDayId !== dayId) {
+        setSelectedRoutineDayId(dayId);
+      }
       setAppBanner(null);
     } catch (error) {
       console.error('No se pudo borrar el ejercicio:', error);

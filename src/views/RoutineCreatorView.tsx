@@ -25,7 +25,7 @@ export const RoutineCreatorView = ({
   onSelectRoutineDay: (dayId: string | null) => void;
   onDeleteRoutineDay: (dayId: string) => void;
   onSelectMuscle: (muscle: string) => void;
-  onDeleteExercise: (exId: string) => void;
+  onDeleteExercise: (exId: string, dayId?: string) => void;
   onEditExercise: (ex: Exercise, instanceId?: string) => void;
   navigationSource?: View;
   setNavigationSource: (view: View) => void;
@@ -321,7 +321,7 @@ export const RoutineCreatorView = ({
                             <button 
                               onClick={(e) => {
                                 e.stopPropagation();
-                                onEditExercise(item.exercise);
+                                onEditExercise(item.exercise, item.id);
                               }}
                               className="flex h-9 w-9 items-center justify-center rounded-xl bg-surface-container-highest text-on-surface-variant transition-all hover:bg-primary hover:text-black active:scale-90"
                               title="Editar"
@@ -406,7 +406,7 @@ export const RoutineCreatorView = ({
           onConfirm={() => {
             if (itemToTrash) {
               if (itemToTrash.type === 'day') onDeleteRoutineDay(itemToTrash.id);
-              else onDeleteExercise(itemToTrash.id);
+              else onDeleteExercise(itemToTrash.id, activeDayEntry?.id);
             }
             setItemToTrash(null);
           }}

@@ -18,6 +18,8 @@ export type Database = {
           unit_system: 'kg' | 'lb';
           created_at: string;
           updated_at: string;
+          bio: string | null;
+          fitness_level: string | null;
         };
         Insert: {
           id: string;
@@ -27,6 +29,8 @@ export type Database = {
           unit_system?: 'kg' | 'lb';
           created_at?: string;
           updated_at?: string;
+          bio?: string | null;
+          fitness_level?: string | null;
         };
         Update: {
           full_name?: string | null;
@@ -34,6 +38,8 @@ export type Database = {
           avatar_url?: string | null;
           unit_system?: 'kg' | 'lb';
           updated_at?: string;
+          bio?: string | null;
+          fitness_level?: string | null;
         };
         Relationships: [];
       };

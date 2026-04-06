@@ -6,6 +6,7 @@ import type { View } from '../types';
 export const SettingsView = ({ setView, onLogout }: { setView: (v: View) => void; onLogout: () => void }) => {
   const [units, setUnits] = useState<'KG' | 'LB'>('KG');
   const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [fullName, setFullName] = useState('');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -15,6 +16,20 @@ export const SettingsView = ({ setView, onLogout }: { setView: (v: View) => void
   const fitnessLevels = ['Principiante', 'Intermedio', 'Atleta elite', 'Competidor pro'];
   const displayName = fullName.trim() || 'Perfil sin configurar';
   const displayLevel = fitnessLevel || 'Sin nivel asignado';
+
+  const handleLogoutClick = async () => {
+    if (isLoggingOut) {
+      return;
+    }
+
+    setIsLoggingOut(true);
+    try {
+      await Promise.resolve(onLogout());
+    } finally {
+      setIsLoggingOut(false);
+      setView('login');
+    }
+  };
 
   return (
     <PageShell
@@ -141,7 +156,7 @@ export const SettingsView = ({ setView, onLogout }: { setView: (v: View) => void
             <div className="space-y-1">
               <h2 className="text-4xl font-extrabold tracking-tight text-on-surface">{displayName}</h2>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-secondary">•</span>
+                <span className="text-xs text-secondary">â€¢</span>
                 <span className="text-[0.72rem] font-medium uppercase tracking-[0.24em] text-on-surface-variant">{displayLevel}</span>
               </div>
             </div>
@@ -205,11 +220,15 @@ export const SettingsView = ({ setView, onLogout }: { setView: (v: View) => void
 
           <section className="pt-4">
             <button
-              onClick={onLogout}
-              className="flex w-full items-center justify-center gap-3 rounded-[0.95rem] bg-surface-container-high px-4 py-4 text-on-surface transition-all hover:bg-error-container/10 hover:text-error active:scale-[0.985]"
+              type="button"
+              onClick={handleLogoutClick}
+              disabled={isLoggingOut}
+              className="flex w-full items-center justify-center gap-3 rounded-[0.95rem] bg-surface-container-high px-4 py-4 text-on-surface transition-all hover:bg-error-container/10 hover:text-error active:scale-[0.985] disabled:opacity-60"
             >
               <LogOut size={18} />
-              <span className="text-sm font-bold uppercase tracking-[0.18em]">Cerrar sesion</span>
+              <span className="text-sm font-bold uppercase tracking-[0.18em]">
+                {isLoggingOut ? 'Cerrando...' : 'Cerrar sesion'}
+              </span>
             </button>
             <p className="mt-6 text-center text-[10px] font-medium uppercase tracking-[0.4em] text-on-surface-variant/40">Kinetic Engine</p>
           </section>
