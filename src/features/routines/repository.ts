@@ -33,6 +33,15 @@ type SaveRoutineInput = {
   notes?: string;
 };
 
+type RoutineDayInput = {
+  id?: string;
+  dayType: 'core' | 'weekday';
+  dayNumber: number | null;
+  title: string;
+  position: number;
+  exercises: Routine['dayEntries'][number]['exercises'];
+};
+
 type RepositoryNotice = {
   level: 'warning';
   title: string;
@@ -89,6 +98,88 @@ const buildFrequencyLabel = (days: number[]) =>
 
 const flattenRoutineExercises = (routine: Routine) =>
   (routine.dayEntries ?? []).flatMap((day) => day.exercises.map((entry) => entry.exercise));
+
+const buildRoutineDayInputs = (
+  currentRoutine: Routine | null,
+  input: SaveRoutineInput,
+): RoutineDayInput[] => {
+  const sortedDays = [...input.days].sort((left, right) => left - right);
+  const currentDayEntries = currentRoutine?.dayEntries ?? [];
+  const currentCoreDay = currentDayEntries.find((day) => day.dayType === 'core');
+  const shouldIncludeCore = input.focus?.toLowerCase() === 'dia core';
+
+  return [
+    ...(shouldIncludeCore
+      ? [
+          {
+            id: currentCoreDay?.id,
+            dayType: 'core' as const,
+            dayNumber: null,
+            title: 'Core',
+            position: 0,
+            exercises: currentCoreDay?.exercises ?? [],
+          },
+        ]
+      : []),
+    ...sortedDays.map((dayNumber, index) => {
+      const existingDay = currentDayEntries.find(
+        (day) => day.dayType === 'weekday' && day.dayNumber === dayNumber,
+      );
+
+      return {
+        id: existingDay?.id,
+        dayType: 'weekday' as const,
+        dayNumber,
+        title: `Dia ${dayNumber}`,
+        position: index + 1,
+        exercises: existingDay?.exercises ?? [],
+      };
+    }),
+  ];
+};
+
+const buildRoutineFallback = (
+  currentRoutine: Routine | null,
+  input: SaveRoutineInput,
+): Routine => {
+  const dayEntries = buildRoutineDayInputs(currentRoutine, input).map((day) => ({
+    id: day.id ?? crypto.randomUUID(),
+    dayType: day.dayType,
+    dayNumber: day.dayNumber,
+    title: day.title,
+    position: day.position,
+    exercises: day.exercises,
+  }));
+
+  const routine: Routine = currentRoutine
+    ? {
+        ...currentRoutine,
+        name: input.name,
+        days: [...input.days].sort((left, right) => left - right),
+        focus: input.focus || currentRoutine.focus,
+        frequency: buildFrequencyLabel(input.days),
+        notes: input.notes,
+        syncPending: true,
+        dayEntries,
+        updatedAt: new Date().toISOString(),
+      }
+    : {
+        id: crypto.randomUUID(),
+        name: input.name,
+        frequency: buildFrequencyLabel(input.days),
+        days: [...input.days].sort((left, right) => left - right),
+        focus: input.focus || '',
+        exercises: [],
+        notes: input.notes,
+        syncPending: true,
+        dayEntries,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+  routine.exercises = flattenRoutineExercises(routine);
+  return routine;
+};
 
 const mapExercise = (
   routineExercise: RoutineDayExerciseRow & {
@@ -158,6 +249,120 @@ const mapRoutine = (row: RoutineQueryRow): Routine => {
     })),
     syncPending: false,
   };
+};
+
+const syncExerciseSets = async (
+  routineDayExerciseId: string,
+  sets: Exercise['sets'],
+) => {
+  if (!supabase) {
+    return;
+  }
+
+  const { error: deleteSetsError } = await supabase
+    .from('exercise_sets')
+    .delete()
+    .eq('routine_day_exercise_id', routineDayExerciseId);
+
+  if (deleteSetsError) {
+    throw new RoutineRepositoryError(
+      mapSupabaseErrorCode(deleteSetsError.message),
+      'No se pudieron actualizar las series del ejercicio.',
+      { cause: deleteSetsError },
+    );
+  }
+
+  if (sets.length === 0) {
+    return;
+  }
+
+  const setRows: Database['public']['Tables']['exercise_sets']['Insert'][] = sets.map((set, index) => ({
+    routine_day_exercise_id: routineDayExerciseId,
+    set_number: set.setNumber ?? index + 1,
+    reps: set.reps,
+    weight: set.weight,
+    duration_minutes: set.durationMinutes ?? null,
+    duration_seconds: set.durationSeconds ?? null,
+    notes: set.notes ?? null,
+  }));
+
+  const { error: insertSetsError } = await supabase.from('exercise_sets').insert(setRows);
+  if (insertSetsError) {
+    throw new RoutineRepositoryError(
+      mapSupabaseErrorCode(insertSetsError.message),
+      'No se pudieron guardar las series del ejercicio.',
+      { cause: insertSetsError },
+    );
+  }
+};
+
+const syncRoutineDayExercises = async (
+  routineDayId: string,
+  exercises: Routine['dayEntries'][number]['exercises'],
+) => {
+  if (!supabase) {
+    return;
+  }
+
+  const { data: existingRows, error: existingRowsError } = await supabase
+    .from('routine_day_exercises')
+    .select('id')
+    .eq('routine_day_id', routineDayId);
+
+  if (existingRowsError) {
+    throw new RoutineRepositoryError(
+      mapSupabaseErrorCode(existingRowsError.message),
+      'No se pudieron cargar los ejercicios del dia.',
+      { cause: existingRowsError },
+    );
+  }
+
+  const desiredIds = new Set(exercises.map((item) => item.id));
+  const removableIds = (existingRows ?? [])
+    .map((row) => row.id)
+    .filter((id) => !desiredIds.has(id));
+
+  if (removableIds.length > 0) {
+    const { error: deleteRowsError } = await supabase
+      .from('routine_day_exercises')
+      .delete()
+      .in('id', removableIds);
+
+    if (deleteRowsError) {
+      throw new RoutineRepositoryError(
+        mapSupabaseErrorCode(deleteRowsError.message),
+        'No se pudieron quitar ejercicios eliminados del dia.',
+        { cause: deleteRowsError },
+      );
+    }
+  }
+
+  for (const [index, item] of exercises.entries()) {
+    const payload: Database['public']['Tables']['routine_day_exercises']['Insert'] = {
+      id: item.id,
+      routine_day_id: routineDayId,
+      exercise_id: item.exerciseId,
+      position: index + 1,
+      rest_seconds: item.restSeconds ?? null,
+      notes: item.notes ?? item.exercise.notes ?? null,
+    };
+
+    const { data: savedRow, error: upsertRowError } = await supabase
+      .from('routine_day_exercises')
+      .upsert(payload)
+      .select('id')
+      .single();
+
+    if (upsertRowError || !savedRow) {
+      throw new RoutineRepositoryError(
+        mapSupabaseErrorCode(upsertRowError?.message),
+        'No se pudo guardar un ejercicio del dia.',
+        { cause: upsertRowError ?? undefined },
+      );
+    }
+
+    await syncExerciseSets(savedRow.id, item.exercise.sets);
+  }
 };
 
 const listSupabaseRoutines = async (): Promise<Routine[] | null> => {
@@ -305,38 +510,62 @@ const saveSupabaseRoutine = async (
   }
 
   const routineId = routineRow.id;
+  const desiredDays = buildRoutineDayInputs(currentRoutine, input);
 
-  await supabase.from('routine_days').delete().eq('routine_id', routineId);
+  const { data: existingDays, error: existingDaysError } = await supabase
+    .from('routine_days')
+    .select('id')
+    .eq('routine_id', routineId);
 
-  const sortedDays = [...input.days].sort((left, right) => left - right);
-  const dayRows: Database['public']['Tables']['routine_days']['Insert'][] = sortedDays.map((dayNumber, index) => ({
-    routine_id: routineId,
-    day_type: 'weekday',
-    day_number: dayNumber,
-    title: `Dia ${dayNumber}`,
-    position: index + 1,
-  }));
-
-  if (input.focus?.toLowerCase() === 'dia core') {
-    dayRows.unshift({
-      routine_id: routineId,
-      day_type: 'core',
-      day_number: null,
-      title: 'Core',
-      position: 0,
-    });
+  if (existingDaysError) {
+    throw new RoutineRepositoryError(
+      mapSupabaseErrorCode(existingDaysError.message),
+      'No se pudieron cargar los dias actuales de la rutina.',
+      { cause: existingDaysError },
+    );
   }
 
-  if (dayRows.length > 0) {
-    const { error: daysError } = await supabase.from('routine_days').insert(dayRows);
-    if (daysError) {
-      console.error('Error al guardar dias de rutina en Supabase:', daysError.message);
+  const desiredDayIds = new Set(desiredDays.flatMap((day) => (day.id ? [day.id] : [])));
+  const removableDayIds = (existingDays ?? [])
+    .map((day) => day.id)
+    .filter((id) => !desiredDayIds.has(id));
+
+  if (removableDayIds.length > 0) {
+    const { error: deleteDaysError } = await supabase.from('routine_days').delete().in('id', removableDayIds);
+    if (deleteDaysError) {
       throw new RoutineRepositoryError(
-        mapSupabaseErrorCode(daysError.message),
-        'No se pudieron guardar los dias de la rutina en el servidor.',
-        { cause: daysError },
+        mapSupabaseErrorCode(deleteDaysError.message),
+        'No se pudieron eliminar dias removidos de la rutina.',
+        { cause: deleteDaysError },
       );
     }
+  }
+
+  for (const day of desiredDays) {
+    const dayPayload: Database['public']['Tables']['routine_days']['Insert'] = {
+      id: day.id,
+      routine_id: routineId,
+      day_type: day.dayType,
+      day_number: day.dayNumber,
+      title: day.title,
+      position: day.position,
+    };
+
+    const { data: savedDay, error: upsertDayError } = await supabase
+      .from('routine_days')
+      .upsert(dayPayload)
+      .select('id')
+      .single();
+
+    if (upsertDayError || !savedDay) {
+      throw new RoutineRepositoryError(
+        mapSupabaseErrorCode(upsertDayError?.message),
+        'No se pudo guardar un dia de la rutina.',
+        { cause: upsertDayError ?? undefined },
+      );
+    }
+
+    await syncRoutineDayExercises(savedDay.id, day.exercises);
   }
 
   const routines = await listSupabaseRoutines();
@@ -375,14 +604,14 @@ export const routinesRepository = {
       if (shouldSync) {
         const savedRoutine = await saveSupabaseRoutine(currentRoutine, input);
         if (savedRoutine) {
-        const next = localRoutines.some((routine) => routine.id === savedRoutine.id)
-          ? localRoutines.map((routine) => (routine.id === savedRoutine.id ? savedRoutine : routine))
-          : [savedRoutine, ...localRoutines];
-        commitLocalRoutines(next);
-        return savedRoutine;
+          const next = localRoutines.some((routine) => routine.id === savedRoutine.id)
+            ? localRoutines.map((routine) => (routine.id === savedRoutine.id ? savedRoutine : routine))
+            : [savedRoutine, ...localRoutines];
+          commitLocalRoutines(next);
+          return savedRoutine;
+        }
       }
-    }
-  } catch (error) {
+    } catch (error) {
       console.error('Fallo el guardado remoto, usando almacenamiento local:', error);
       setRepositoryNotice({
         level: 'warning',
@@ -391,85 +620,7 @@ export const routinesRepository = {
       });
     }
 
-    const fallbackRoutine: Routine = currentRoutine
-      ? {
-          ...currentRoutine,
-          name: input.name,
-          days: [...input.days].sort((left, right) => left - right),
-          focus: input.focus || currentRoutine.focus,
-          frequency: buildFrequencyLabel(input.days),
-          notes: input.notes,
-          syncPending: true,
-          dayEntries: [
-            ...(input.focus?.toLowerCase() === 'dia core'
-              ? [
-                  {
-                    id: currentRoutine.dayEntries?.find((day) => day.dayType === 'core')?.id || crypto.randomUUID(),
-                    dayType: 'core' as const,
-                    dayNumber: null,
-                    title: 'Core',
-                    position: 0,
-                    exercises: currentRoutine.dayEntries?.find((day) => day.dayType === 'core')?.exercises || [],
-                  },
-                ]
-              : []),
-            ...[...input.days]
-              .sort((left, right) => left - right)
-              .map((dayNumber, index) => {
-                const existingDay = currentRoutine.dayEntries?.find(
-                  (day) => day.dayType === 'weekday' && day.dayNumber === dayNumber,
-                );
-
-                return {
-                  id: existingDay?.id || crypto.randomUUID(),
-                  dayType: 'weekday' as const,
-                  dayNumber,
-                  title: `Dia ${dayNumber}`,
-                  position: index + 1,
-                  exercises: existingDay?.exercises || [],
-                };
-              }),
-          ],
-          updatedAt: new Date().toISOString(),
-        }
-      : {
-          id: crypto.randomUUID(),
-          name: input.name,
-          frequency: buildFrequencyLabel(input.days),
-          days: [...input.days].sort((left, right) => left - right),
-          focus: input.focus || '',
-          exercises: [],
-          notes: input.notes,
-          syncPending: true,
-          dayEntries: [
-            ...(input.focus?.toLowerCase() === 'dia core'
-              ? [
-                  {
-                    id: crypto.randomUUID(),
-                    dayType: 'core' as const,
-                    dayNumber: null,
-                    title: 'Core',
-                    position: 0,
-                    exercises: [],
-                  },
-                ]
-              : []),
-            ...[...input.days]
-              .sort((left, right) => left - right)
-              .map((dayNumber, index) => ({
-                id: crypto.randomUUID(),
-                dayType: 'weekday' as const,
-                dayNumber,
-                title: `Dia ${dayNumber}`,
-                position: index + 1,
-                exercises: [],
-              })),
-          ],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-
-    fallbackRoutine.exercises = flattenRoutineExercises(fallbackRoutine);
+    const fallbackRoutine = buildRoutineFallback(currentRoutine, input);
 
     const nextLocal = currentRoutine
       ? localRoutines.map((routine) => (routine.id === fallbackRoutine.id ? fallbackRoutine : routine))
@@ -519,6 +670,42 @@ export const routinesRepository = {
       exercises: updatedDayEntries.flatMap((day) => day.exercises.map((entry) => entry.exercise)),
       updatedAt: new Date().toISOString(),
     };
+
+    if (supabase && !updatedRoutine.syncPending) {
+      const targetDay = updatedDayEntries.find((day) => day.id === routineDayId);
+      if (targetDay) {
+        const targetItem = instanceId
+          ? targetDay.exercises.find((item) => item.id === instanceId)
+          : targetDay.exercises[targetDay.exercises.length - 1];
+
+        if (targetItem) {
+          const payload: Database['public']['Tables']['routine_day_exercises']['Insert'] = {
+            id: targetItem.id,
+            routine_day_id: routineDayId,
+            exercise_id: targetItem.exerciseId,
+            position: targetItem.position,
+            rest_seconds: targetItem.restSeconds ?? null,
+            notes: targetItem.notes ?? targetItem.exercise.notes ?? null,
+          };
+
+          const { data: savedRow, error: upsertRowError } = await supabase
+            .from('routine_day_exercises')
+            .upsert(payload)
+            .select('id')
+            .single();
+
+          if (upsertRowError || !savedRow) {
+            throw new RoutineRepositoryError(
+              mapSupabaseErrorCode(upsertRowError?.message),
+              'No se pudo guardar el ejercicio en el servidor.',
+              { cause: upsertRowError ?? undefined },
+            );
+          }
+
+          await syncExerciseSets(savedRow.id, targetItem.exercise.sets);
+        }
+      }
+    }
 
     commitLocalRoutines(
       localRoutines.map((routine) =>
@@ -577,7 +764,7 @@ export const routinesRepository = {
 
   async deleteExercise(routineId: string, dayId: string, exerciseId: string): Promise<Routine> {
     if (supabase) {
-      const { error } = await supabase.from('routine_exercises').delete().eq('id', exerciseId);
+      const { error } = await supabase.from('routine_day_exercises').delete().eq('id', exerciseId);
       if (error) {
         console.error('Error al borrar ejercicio de rutina:', error);
         throw new RoutineRepositoryError(
