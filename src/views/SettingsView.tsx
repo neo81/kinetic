@@ -1,21 +1,97 @@
-import { useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { ArrowLeft, ChevronRight, Edit2, LogOut, Ruler, User } from 'lucide-react';
 import { PageShell } from '../components/layout/PageShell';
-import type { View } from '../types';
+import type { UserProfile, View } from '../types';
 
-export const SettingsView = ({ setView, onLogout }: { setView: (v: View) => void; onLogout: () => void }) => {
-  const [units, setUnits] = useState<'KG' | 'LB'>('KG');
+type SettingsViewProps = {
+  setView: (view: View) => void;
+  profile: UserProfile | null;
+  userEmail: string | null;
+  onLogout: () => void;
+  onSaveProfile: (input: {
+    fullName: string;
+    username: string;
+    bio: string;
+    fitnessLevel: string;
+    unitSystem: 'kg' | 'lb';
+  }) => Promise<unknown>;
+};
+
+const fitnessLevels = ['Principiante', 'Intermedio', 'Avanzado', 'Competidor'];
+
+export const SettingsView = ({
+  setView,
+  profile,
+  userEmail,
+  onLogout,
+  onSaveProfile,
+}: SettingsViewProps) => {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [fullName, setFullName] = useState('');
   const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
   const [bio, setBio] = useState('');
   const [fitnessLevel, setFitnessLevel] = useState('');
+  const [units, setUnits] = useState<'kg' | 'lb'>('kg');
 
-  const fitnessLevels = ['Principiante', 'Intermedio', 'Atleta elite', 'Competidor pro'];
-  const displayName = fullName.trim() || 'Perfil sin configurar';
-  const displayLevel = fitnessLevel || 'Sin nivel asignado';
+  useEffect(() => {
+    setFullName(profile?.fullName ?? '');
+    setUsername(profile?.username ?? '');
+    setBio(profile?.bio ?? '');
+    setFitnessLevel(profile?.fitnessLevel ?? '');
+    setUnits(profile?.unitSystem ?? 'kg');
+  }, [profile]);
+
+  const saveProfile = async (
+    overrides?: Partial<{
+      fullName: string;
+      username: string;
+      bio: string;
+      fitnessLevel: string;
+      unitSystem: 'kg' | 'lb';
+    }>,
+  ) => {
+    await onSaveProfile({
+      fullName: overrides?.fullName ?? fullName,
+      username: overrides?.username ?? username,
+      bio: overrides?.bio ?? bio,
+      fitnessLevel: overrides?.fitnessLevel ?? fitnessLevel,
+      unitSystem: overrides?.unitSystem ?? units,
+    });
+  };
+
+  const handleProfileSave = async () => {
+    if (isSavingProfile) {
+      return;
+    }
+
+    setIsSavingProfile(true);
+    try {
+      await saveProfile();
+      setIsEditingProfile(false);
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
+  const handleUnitsChange = async (nextUnits: 'kg' | 'lb') => {
+    if (units === nextUnits || isSavingProfile) {
+      return;
+    }
+
+    const previousUnits = units;
+    setUnits(nextUnits);
+    setIsSavingProfile(true);
+    try {
+      await saveProfile({ unitSystem: nextUnits });
+    } catch (error) {
+      console.error('No se pudo actualizar el sistema de unidades:', error);
+      setUnits(previousUnits);
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
 
   const handleLogoutClick = async () => {
     if (isLoggingOut) {
@@ -31,9 +107,13 @@ export const SettingsView = ({ setView, onLogout }: { setView: (v: View) => void
     }
   };
 
+  const displayName = fullName.trim() || profile?.fullName?.trim() || 'Perfil sin configurar';
+  const displayLevel = fitnessLevel || profile?.fitnessLevel || 'Sin nivel asignado';
+  const displayUnits = units.toUpperCase();
+
   return (
     <PageShell
-      activeView="dashboard"
+      activeView="settings"
       setView={setView}
       showHeader={false}
       contentClassName="max-w-md px-4 pt-0 pb-24 sm:px-6"
@@ -41,7 +121,10 @@ export const SettingsView = ({ setView, onLogout }: { setView: (v: View) => void
       <div className="sticky top-0 z-50 -mx-4 bg-background/95 backdrop-blur-xl sm:-mx-6">
         <div className="mx-auto flex max-w-md items-center justify-between px-4 py-4 sm:px-6">
           <div className="flex items-center gap-4">
-            <button onClick={() => (isEditingProfile ? setIsEditingProfile(false) : setView('dashboard'))} className="text-on-surface-variant transition-colors hover:text-primary">
+            <button
+              onClick={() => (isEditingProfile ? setIsEditingProfile(false) : setView('dashboard'))}
+              className="text-on-surface-variant transition-colors hover:text-primary"
+            >
               <ArrowLeft size={20} strokeWidth={2.5} />
             </button>
             <h1 className={`font-sans text-sm font-bold uppercase tracking-[0.28em] ${isEditingProfile ? 'text-on-surface' : 'text-primary'}`}>
@@ -50,8 +133,12 @@ export const SettingsView = ({ setView, onLogout }: { setView: (v: View) => void
           </div>
 
           {isEditingProfile ? (
-            <button onClick={() => setIsEditingProfile(false)} className="font-sans text-sm font-bold uppercase tracking-[0.18em] text-primary transition-colors hover:text-primary/80">
-              Guardar
+            <button
+              onClick={handleProfileSave}
+              disabled={isSavingProfile}
+              className="font-sans text-sm font-bold uppercase tracking-[0.18em] text-primary transition-colors hover:text-primary/80 disabled:opacity-50"
+            >
+              {isSavingProfile ? 'Guardando...' : 'Guardar'}
             </button>
           ) : (
             <div className="font-headline text-[1.9rem] font-semibold uppercase tracking-[0.14em] text-primary">KINETIC</div>
@@ -69,39 +156,65 @@ export const SettingsView = ({ setView, onLogout }: { setView: (v: View) => void
                   <User size={44} strokeWidth={1.8} />
                 </div>
               </div>
-              <button className="absolute bottom-1 right-1 flex h-9 w-9 items-center justify-center rounded-full bg-primary text-black shadow-xl">
+              <button
+                type="button"
+                className="absolute bottom-1 right-1 flex h-9 w-9 items-center justify-center rounded-full bg-primary text-black shadow-xl"
+              >
                 <Edit2 size={16} strokeWidth={2.5} />
               </button>
             </div>
-            <p className="mt-4 text-[0.75rem] font-bold uppercase tracking-[0.22em] text-on-surface-variant">Sincronizacion de perfil pendiente</p>
+            <p className="mt-4 text-[0.75rem] font-bold uppercase tracking-[0.22em] text-on-surface-variant">
+              Perfil sincronizado con Supabase
+            </p>
           </div>
 
-          <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
+          <form className="space-y-6" onSubmit={(event) => event.preventDefault()}>
             <div className="space-y-2">
               <label className="block text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">Nombre completo</label>
               <div className="control-shell rounded-[0.95rem]">
-                <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Ingresa tu nombre" className="h-14 w-full rounded-[0.95rem] bg-transparent px-4 text-on-surface outline-none" />
+                <input
+                  value={fullName}
+                  onChange={(event) => setFullName(event.target.value)}
+                  placeholder="Ingresa tu nombre"
+                  className="h-14 w-full rounded-[0.95rem] bg-transparent px-4 text-on-surface outline-none"
+                />
               </div>
             </div>
 
             <div className="space-y-2">
               <label className="block text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">Usuario</label>
               <div className="control-shell rounded-[0.95rem]">
-                <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="@usuario" className="h-14 w-full rounded-[0.95rem] bg-transparent px-4 text-on-surface outline-none" />
+                <input
+                  value={username}
+                  onChange={(event) => setUsername(event.target.value)}
+                  placeholder="@usuario"
+                  className="h-14 w-full rounded-[0.95rem] bg-transparent px-4 text-on-surface outline-none"
+                />
               </div>
             </div>
 
             <div className="space-y-2">
               <label className="block text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">Correo electronico</label>
               <div className="control-shell rounded-[0.95rem]">
-                <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="correo@dominio.com" className="h-14 w-full rounded-[0.95rem] bg-transparent px-4 text-on-surface outline-none" type="email" />
+                <input
+                  value={userEmail ?? ''}
+                  readOnly
+                  className="h-14 w-full rounded-[0.95rem] bg-transparent px-4 text-on-surface/70 outline-none"
+                  type="email"
+                />
               </div>
             </div>
 
             <div className="space-y-2">
               <label className="block text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">Bio</label>
               <div className="control-shell rounded-[0.95rem]">
-                <textarea value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Agrega una descripcion breve de tu perfil." rows={4} className="w-full resize-none rounded-[0.95rem] bg-transparent px-4 py-4 text-on-surface outline-none" />
+                <textarea
+                  value={bio}
+                  onChange={(event) => setBio(event.target.value)}
+                  placeholder="Agrega una descripcion breve de tu perfil."
+                  rows={4}
+                  className="w-full resize-none rounded-[0.95rem] bg-transparent px-4 py-4 text-on-surface outline-none"
+                />
               </div>
             </div>
 
@@ -123,21 +236,13 @@ export const SettingsView = ({ setView, onLogout }: { setView: (v: View) => void
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-3 pt-2">
-              {['Potencia', 'Resistencia', 'Agilidad'].map((label, index) => (
-                <div key={label} className={`rounded-[1rem] bg-surface-container-low p-4 ${index === 0 ? 'border-l-2 border-primary' : index === 1 ? 'border-l-2 border-secondary' : 'border-l-2 border-tertiary'}`}>
-                  <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-on-surface-variant">{label}</p>
-                  <p className="mt-1 text-xl font-bold text-on-surface">--</p>
-                </div>
-              ))}
-            </div>
-
             <button
               type="button"
-              onClick={() => setIsEditingProfile(false)}
-              className="neon-button w-full rounded-[0.95rem] py-4 font-sans text-sm font-bold uppercase tracking-[0.22em] transition-all active:scale-[0.985]"
+              onClick={handleProfileSave}
+              disabled={isSavingProfile}
+              className="neon-button w-full rounded-[0.95rem] py-4 font-sans text-sm font-bold uppercase tracking-[0.22em] transition-all active:scale-[0.985] disabled:opacity-60"
             >
-              Guardar cambios
+              {isSavingProfile ? 'Guardando cambios...' : 'Guardar cambios'}
             </button>
           </form>
         </section>
@@ -150,7 +255,9 @@ export const SettingsView = ({ setView, onLogout }: { setView: (v: View) => void
                   <User size={34} strokeWidth={1.9} />
                 </div>
               </div>
-              <div className="absolute -bottom-1 -right-1 rounded-full bg-primary px-2 py-0.5 text-[10px] font-black uppercase text-black shadow-lg">Sin lvl</div>
+              <div className="absolute -bottom-1 -right-1 rounded-full bg-primary px-2 py-0.5 text-[10px] font-black uppercase text-black shadow-lg">
+                {displayUnits}
+              </div>
             </div>
 
             <div className="space-y-1">
@@ -159,6 +266,7 @@ export const SettingsView = ({ setView, onLogout }: { setView: (v: View) => void
                 <span className="text-xs text-secondary">•</span>
                 <span className="text-[0.72rem] font-medium uppercase tracking-[0.24em] text-on-surface-variant">{displayLevel}</span>
               </div>
+              <p className="text-sm text-on-surface-variant">{userEmail ?? 'Sin correo disponible'}</p>
             </div>
           </div>
 
@@ -186,14 +294,16 @@ export const SettingsView = ({ setView, onLogout }: { setView: (v: View) => void
                 </div>
                 <div className="flex rounded-[0.6rem] bg-surface-container-highest p-1">
                   <button
-                    onClick={() => setUnits('KG')}
-                    className={`rounded-[0.45rem] px-4 py-1.5 text-[10px] font-bold uppercase transition-all ${units === 'KG' ? 'bg-primary text-black' : 'text-on-surface-variant'}`}
+                    type="button"
+                    onClick={() => void handleUnitsChange('kg')}
+                    className={`rounded-[0.45rem] px-4 py-1.5 text-[10px] font-bold uppercase transition-all ${units === 'kg' ? 'bg-primary text-black' : 'text-on-surface-variant'}`}
                   >
                     KG
                   </button>
                   <button
-                    onClick={() => setUnits('LB')}
-                    className={`rounded-[0.45rem] px-4 py-1.5 text-[10px] font-bold uppercase transition-all ${units === 'LB' ? 'bg-primary text-black' : 'text-on-surface-variant'}`}
+                    type="button"
+                    onClick={() => void handleUnitsChange('lb')}
+                    className={`rounded-[0.45rem] px-4 py-1.5 text-[10px] font-bold uppercase transition-all ${units === 'lb' ? 'bg-primary text-black' : 'text-on-surface-variant'}`}
                   >
                     LB
                   </button>
@@ -215,6 +325,13 @@ export const SettingsView = ({ setView, onLogout }: { setView: (v: View) => void
                 <p className="mt-2 text-2xl font-black text-on-surface">0</p>
                 <p className="text-[11px] text-on-surface-variant">PR registrados</p>
               </div>
+            </div>
+          </section>
+
+          <section className="space-y-3">
+            <h3 className="px-1 text-[10px] font-bold uppercase tracking-[0.3em] text-on-surface-variant">Perfil</h3>
+            <div className="rounded-[0.95rem] bg-surface-container-low px-4 py-4 text-sm text-on-surface-variant">
+              {bio?.trim() ? bio : 'Aun no agregaste una bio a tu perfil.'}
             </div>
           </section>
 

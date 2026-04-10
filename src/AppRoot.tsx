@@ -32,12 +32,15 @@ export default function AppRoot() {
             setCurrentRoutine={app.setCurrentRoutine}
             selectedRoutineDayId={app.selectedRoutineDayId}
             setSelectedRoutineDayId={app.setSelectedRoutineDayId}
+            userEmail={app.user?.email ?? null}
             selectedMuscle={app.selectedMuscle}
             selectedExercise={app.selectedExercise}
+            profile={app.profile}
             onLoginWithGoogle={app.handleLoginWithGoogle}
             onLoginWithEmail={app.handleLoginWithEmail}
             onRegisterWithEmail={app.handleRegisterWithEmail}
             onLogout={app.handleLogout}
+            onSaveProfile={app.handleSaveProfile}
             onNewRoutine={app.handleStartNewRoutine}
             onSaveRoutine={app.handleSaveRoutine}
             onSelectMuscle={app.handleSelectMuscle}

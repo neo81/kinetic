@@ -7,7 +7,7 @@ import { KineticLoginView } from '../views/KineticLoginView';
 import { RoutineCreatorView } from '../views/RoutineCreatorView';
 import { RoutineDetailKineticView } from '../views/RoutineDetailKineticView';
 import { SettingsView } from '../views/SettingsView';
-import type { Exercise, Routine, View } from '../types';
+import type { Exercise, Routine, UserProfile, View } from '../types';
 
 type AppRouterProps = {
   view: View;
@@ -17,12 +17,21 @@ type AppRouterProps = {
   setCurrentRoutine: (routine: Routine | null) => void;
   selectedRoutineDayId: string | null;
   setSelectedRoutineDayId: (dayId: string | null) => void;
+  userEmail: string | null;
   selectedMuscle: string;
   selectedExercise: Exercise | null;
+  profile: UserProfile | null;
   onLoginWithGoogle: () => Promise<{ started: boolean; error?: string }>;
   onLoginWithEmail: (email: string, pass: string) => void;
   onRegisterWithEmail: (email: string, pass: string) => void;
   onLogout: () => void;
+  onSaveProfile: (input: {
+    fullName: string;
+    username: string;
+    bio: string;
+    fitnessLevel: string;
+    unitSystem: 'kg' | 'lb';
+  }) => Promise<unknown>;
   onNewRoutine: () => void;
   onSaveRoutine: (routineData: Partial<Routine>) => void;
   onSelectMuscle: (muscle: string) => void;
@@ -45,12 +54,15 @@ export const AppRouter = ({
   setCurrentRoutine,
   selectedRoutineDayId,
   setSelectedRoutineDayId,
+  userEmail,
   selectedMuscle,
   selectedExercise,
+  profile,
   onLoginWithGoogle,
   onLoginWithEmail,
   onRegisterWithEmail,
   onLogout,
+  onSaveProfile,
   onNewRoutine,
   onSaveRoutine,
   onSelectMuscle,
@@ -161,7 +173,15 @@ export const AppRouter = ({
     case 'history':
       return <HistoryView setView={setView} />;
     case 'settings':
-      return <SettingsView setView={setView} onLogout={onLogout} />;
+      return (
+        <SettingsView
+          setView={setView}
+          profile={profile}
+          userEmail={userEmail}
+          onLogout={onLogout}
+          onSaveProfile={onSaveProfile}
+        />
+      );
     default:
       return null;
   }

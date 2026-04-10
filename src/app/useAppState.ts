@@ -5,7 +5,7 @@ import type { Database } from '../lib/supabase/database.types';
 import { initialRoutines } from './initialData';
 import { consumeRoutinesRepositoryNotice, routinesRepository } from '../features/routines/repository';
 import { RoutineRepositoryError } from '../features/routines/errors';
-import type { Exercise, Routine, View } from '../types';
+import type { Exercise, Routine, UserProfile, View } from '../types';
 
 type AppBannerState = {
   level: 'error' | 'warning';
@@ -51,6 +51,18 @@ const getUserProfilePayload = (user: User): Database['public']['Tables']['profil
     null,
 });
 
+const mapProfileRow = (
+  profile: Database['public']['Tables']['profiles']['Row'],
+): UserProfile => ({
+  id: profile.id,
+  fullName: profile.full_name,
+  username: profile.username,
+  avatarUrl: profile.avatar_url,
+  unitSystem: profile.unit_system,
+  bio: profile.bio,
+  fitnessLevel: profile.fitness_level,
+});
+
 export const useAppState = () => {
   const [view, setView] = useState<View>('login');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -64,6 +76,7 @@ export const useAppState = () => {
   const [navigationSource, setNavigationSource] = useState<View>('dashboard');
   const [appBanner, setAppBanner] = useState<AppBannerState | null>(null);
   const [openDayId, setOpenDayId] = useState<string | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
 
   const syncRoutines = useCallback(async () => {
     try {
@@ -112,6 +125,26 @@ export const useAppState = () => {
     }
   }, []);
 
+  const loadProfile = useCallback(async (userId: string) => {
+    if (!supabase) {
+      return null;
+    }
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    const mapped = mapProfileRow(data);
+    setProfile(mapped);
+    return mapped;
+  }, []);
+
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [view]);
@@ -128,6 +161,7 @@ export const useAppState = () => {
       if (isNowLoggedIn) {
         try {
           await ensureProfileExists(session.user);
+          await loadProfile(session.user.id);
         } catch (error) {
           console.error('No se pudo garantizar el perfil del usuario:', error);
           setAppBanner({
@@ -143,6 +177,7 @@ export const useAppState = () => {
         }
       } else {
         setRoutines(initialRoutines);
+        setProfile(null);
         setView('login');
       }
     });
@@ -152,7 +187,7 @@ export const useAppState = () => {
       if (session) {
         setIsLoggedIn(true);
         setUser(session.user);
-        ensureProfileExists(session.user).catch((error) => {
+        ensureProfileExists(session.user).then(() => loadProfile(session.user.id)).catch((error) => {
           console.error('No se pudo preparar el perfil en la carga inicial:', error);
         });
         syncRoutines();
@@ -162,7 +197,7 @@ export const useAppState = () => {
     return () => {
       subscription.unsubscribe();
     };
-  }, [ensureProfileExists, syncRoutines, view]);
+  }, [ensureProfileExists, loadProfile, syncRoutines, view]);
 
   const handleLoginWithGoogle = async (): Promise<{ started: boolean; error?: string }> => {
     if (!supabase) {
@@ -241,6 +276,7 @@ export const useAppState = () => {
     setNavigationSource('dashboard');
     setOpenDayId(null);
     setAppBanner(null);
+    setProfile(null);
     setView('login');
 
     if (supabase) {
@@ -248,6 +284,44 @@ export const useAppState = () => {
         console.error('No se pudo cerrar la sesion remotamente:', error);
       });
     }
+  };
+
+  const handleSaveProfile = async (input: {
+    fullName: string;
+    username: string;
+    bio: string;
+    fitnessLevel: string;
+    unitSystem: 'kg' | 'lb';
+  }) => {
+    if (!supabase || !user) {
+      throw new Error('No hay una sesion activa para guardar el perfil.');
+    }
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .update({
+        full_name: input.fullName.trim() || null,
+        username: input.username.trim() || null,
+        bio: input.bio.trim() || null,
+        fitness_level: input.fitnessLevel || null,
+        unit_system: input.unitSystem,
+      })
+      .eq('id', user.id)
+      .select('*')
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    const mapped = mapProfileRow(data);
+    setProfile(mapped);
+    setAppBanner({
+      level: 'warning',
+      title: 'Perfil actualizado',
+      message: 'Tus cambios se guardaron correctamente.',
+    });
+    return mapped;
   };
 
   const handleStartNewRoutine = () => {
@@ -406,6 +480,7 @@ export const useAppState = () => {
     setView,
     isLoggedIn,
     user,
+    profile,
     routines,
     currentRoutine,
     setCurrentRoutine,
@@ -419,6 +494,7 @@ export const useAppState = () => {
     handleLoginWithEmail,
     handleRegisterWithEmail,
     handleLogout,
+    handleSaveProfile,
     handleStartNewRoutine,
     handleSaveRoutine,
     handleSelectMuscle,

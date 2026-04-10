@@ -9,6 +9,16 @@ export type View =
   | 'settings'
   | 'history';
 
+export interface UserProfile {
+  id: string;
+  fullName: string | null;
+  username: string | null;
+  avatarUrl: string | null;
+  unitSystem: 'kg' | 'lb';
+  bio: string | null;
+  fitnessLevel: string | null;
+}
+
 export interface ExerciseSet {
   reps: number;
   weight: number;
