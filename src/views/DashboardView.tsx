@@ -115,7 +115,6 @@ export const DashboardView = ({
     fetchStats();
   }, []);
 
-  // Lógica mejorada: Si hay rutinas, siempre devuelve la más reciente o la primera. No debería ser null si routines > 0.
   const lastActiveRoutine = routines.length > 0 
     ? [...routines].sort((a, b) => {
         if (!a.lastSession && !b.lastSession) return 0;
@@ -132,7 +131,6 @@ export const DashboardView = ({
       activeView="dashboard"
       setView={setView}
       onProfileClick={() => setView('settings')}
-      onSettingsClick={() => setView('settings')}
     >
         <section className="space-y-10">
           <header className="space-y-3">
@@ -144,9 +142,20 @@ export const DashboardView = ({
           </header>
 
           <div className="space-y-6">
-            <div className="flex items-center gap-3 px-2">
-              <div className="h-6 w-1 rounded-full bg-primary shadow-[0_0_10px_rgba(212,255,0,0.4)]"></div>
-              <h3 className="text-[10px] font-black uppercase italic tracking-[0.4em] text-on-surface-variant/60">PRÓXIMO PASO</h3>
+            <div className="flex items-center justify-between px-2">
+              <div className="flex items-center gap-3">
+                <div className="h-6 w-1 rounded-full bg-primary shadow-[0_0_10px_rgba(212,255,0,0.4)]"></div>
+                <h3 className="text-[10px] font-black uppercase italic tracking-[0.4em] text-on-surface-variant/60">PRÓXIMO PASO</h3>
+              </div>
+              <button 
+                onClick={() => setView('routines-list')}
+                className="flex items-center gap-2 rounded-full bg-white/5 py-1.5 pl-4 pr-2 text-[9px] font-black uppercase tracking-widest text-primary transition-all hover:bg-primary/10 active:scale-95"
+              >
+                Ver todas
+                <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-black">
+                  <ChevronRight size={14} />
+                </div>
+              </button>
             </div>
 
             {lastActiveRoutine ? (
@@ -183,7 +192,7 @@ export const DashboardView = ({
             ) : (
               <div className="rounded-[3rem] border border-dashed border-white/8 bg-surface-container-low/35 p-12 text-center backdrop-blur-xl">
                 <p className="font-headline text-2xl font-black uppercase italic text-on-surface opacity-40 leading-tight">No tienes rutinas activas</p>
-                <p className="mt-3 text-sm text-on-surface-variant/60">Ve a Mis Rutinas para empezar a diseñar tu entrenamiento.</p>
+                <p className="mt-3 text-sm text-on-surface-variant/60">Carga tu primer plan de entrenamiento para empezar.</p>
               </div>
             )}
           </div>
@@ -195,7 +204,7 @@ export const DashboardView = ({
               <div className="space-y-2">
                 <span className="block text-[9px] font-black uppercase italic tracking-[0.4em] text-primary sm:text-[10px]">ACTIVIDAD RECIENTE</span>
                 <div className="flex items-baseline gap-3">
-                  <span className="font-headline text-3xl font-black italic leading-none tracking-tighter text-on-background drop-shadow-[0_0_30px_rgba(212,255,0,0.2)] sm:text-4xl">
+                  <span className="font-headline text-3xl font-black italic leading-none tracking-tighter text-on-background drop-shadow-[0_0_30px_rgba(212,255,0,0.2)] sm:text-4xl" id="recent-activity-count">
                     {realWeeklyActivity}
                   </span>
                   <span className="text-[11px] font-black uppercase italic tracking-widest text-on-surface-variant/40 sm:text-[12px]">
@@ -232,7 +241,7 @@ export const DashboardView = ({
           </div>
         </section>
 
-        <section className="mt-14 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:gap-8">
+        <section className="mt-14 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:gap-8 pb-10">
            <div className="group relative overflow-hidden rounded-[2.5rem] bg-surface-container-low/40 border border-white/5 p-8 backdrop-blur-xl transition-all hover:bg-white/5">
               <div className="flex items-center gap-3 mb-6">
                 <div className="h-6 w-1 rounded-full bg-primary shadow-[0_0_10px_rgba(212,255,0,0.4)]"></div>
@@ -298,24 +307,6 @@ export const DashboardView = ({
                 </div>
               </div>
            </div>
-        </section>
-
-        <section className="mt-14 pb-32">
-          <button 
-             onClick={() => setView('routines-list')}
-             className="flex w-full items-center justify-between rounded-[2rem] bg-white/5 border border-white/5 p-10 transition-all hover:bg-white/10 active:scale-[0.98] shadow-2xl"
-          >
-            <div className="flex items-center gap-6">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-inner">
-                <Plus size={32} />
-              </div>
-              <div className="text-left">
-                <h4 className="font-headline text-2xl font-black uppercase italic leading-none text-on-background">MIS RUTINAS</h4>
-                <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.2em] text-on-surface-variant/40">{routines.length} PLANES CONFIGURADOS</p>
-              </div>
-            </div>
-            <ChevronRight size={28} className="text-on-surface-variant/30" />
-          </button>
         </section>
     </PageShell>
   );

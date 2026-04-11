@@ -2,16 +2,12 @@ import type React from 'react';
 
 export const Header = ({
   children,
-  showSettings = true,
   showProfile = true,
   onProfileClick,
-  onSettingsClick,
 }: {
   children?: React.ReactNode;
-  showSettings?: boolean;
   showProfile?: boolean;
   onProfileClick?: () => void;
-  onSettingsClick?: () => void;
 }) => (
   <header className="fixed top-0 z-[60] w-full border-b border-white/6 bg-background/80 backdrop-blur-xl">
     <div className="mx-auto flex h-[4.5rem] w-full max-w-2xl items-center justify-between px-5 sm:px-6">
@@ -39,14 +35,6 @@ export const Header = ({
       </div>
       <div className="flex items-center gap-3">
         {children}
-        {showSettings && (
-          <button
-            onClick={onSettingsClick}
-            className="material-symbols-outlined flex h-11 w-11 items-center justify-center rounded-2xl border border-white/6 bg-surface-container-high/80 text-primary transition-all active:scale-95 hover:bg-surface-container-highest"
-          >
-            settings
-          </button>
-        )}
       </div>
     </div>
   </header>
