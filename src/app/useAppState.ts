@@ -1,11 +1,11 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import type { User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase/client';
 import type { Database } from '../lib/supabase/database.types';
 import { initialRoutines } from './initialData';
 import { consumeRoutinesRepositoryNotice, routinesRepository } from '../features/routines/repository';
 import { RoutineRepositoryError } from '../features/routines/errors';
-import type { Exercise, Routine, UserProfile, View } from '../types';
+import type { ActiveSession, Exercise, Routine, UserProfile, View } from '../types';
 
 type AppBannerState = {
   level: 'error' | 'warning';
@@ -77,6 +77,11 @@ export const useAppState = () => {
   const [appBanner, setAppBanner] = useState<AppBannerState | null>(null);
   const [openDayId, setOpenDayId] = useState<string | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [isAppLoading, setIsAppLoading] = useState(true);
+  const [activeSession, setActiveSession] = useState<ActiveSession | null>(null);
+  
+  // Ref para evitar ciclos de renderizado y rastrear inicializacion
+  const authInitialized = useRef(false);
 
   const syncRoutines = useCallback(async () => {
     try {
@@ -97,9 +102,7 @@ export const useAppState = () => {
   }, []);
 
   const ensureProfileExists = useCallback(async (user: User) => {
-    if (!supabase) {
-      return;
-    }
+    if (!supabase) return;
 
     const { data: existingProfile, error: profileQueryError } = await supabase
       .from('profiles')
@@ -107,28 +110,19 @@ export const useAppState = () => {
       .eq('id', user.id)
       .maybeSingle();
 
-    if (profileQueryError) {
-      throw profileQueryError;
-    }
-
-    if (existingProfile) {
-      return;
-    }
+    if (profileQueryError) throw profileQueryError;
+    if (existingProfile) return;
 
     const payload = getUserProfilePayload(user);
     const { error: insertError } = await supabase
       .from('profiles')
       .insert(payload);
 
-    if (insertError) {
-      throw insertError;
-    }
+    if (insertError) throw insertError;
   }, []);
 
   const loadProfile = useCallback(async (userId: string) => {
-    if (!supabase) {
-      return null;
-    }
+    if (!supabase) return null;
 
     const { data, error } = await supabase
       .from('profiles')
@@ -136,9 +130,7 @@ export const useAppState = () => {
       .eq('id', userId)
       .single();
 
-    if (error) {
-      throw error;
-    }
+    if (error) throw error;
 
     const mapped = mapProfileRow(data);
     setProfile(mapped);
@@ -152,64 +144,70 @@ export const useAppState = () => {
   useEffect(() => {
     if (!supabase) return;
 
-    // Listen to auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      const isNowLoggedIn = !!session;
-      setIsLoggedIn(isNowLoggedIn);
-      setUser(session?.user ?? null);
+    const fallbackTimeout = setTimeout(() => {
+      setIsAppLoading((loading) => {
+        if (loading) console.warn('Forcing splash screen hide after timeout');
+        return false;
+      });
+    }, 6000); // Dar un poco mas de margen en iOS
 
-      if (isNowLoggedIn) {
-        try {
-          await ensureProfileExists(session.user);
-          await loadProfile(session.user.id);
-        } catch (error) {
-          console.error('No se pudo garantizar el perfil del usuario:', error);
-          setAppBanner({
-            level: 'warning',
-            title: 'Perfil incompleto',
-            message: 'Tu sesion esta activa, pero no se pudo preparar tu perfil. Intenta recargar.',
-          });
-        }
+    const handleAuthState = async (session: any) => {
+      try {
+        const isNowLoggedIn = !!session;
+        setIsLoggedIn(isNowLoggedIn);
+        setUser(session?.user ?? null);
 
-        await syncRoutines();
-        if (view === 'login') {
-          setView('dashboard');
+        if (isNowLoggedIn) {
+          try {
+            await ensureProfileExists(session.user);
+            await loadProfile(session.user.id);
+          } catch (error) {
+            console.error('Error cargando perfil:', error);
+          }
+          await syncRoutines();
+          setView((current) => current === 'login' ? 'dashboard' : current);
+        } else {
+          setRoutines(initialRoutines);
+          setProfile(null);
+          // Solo redirigir si no estamos en medio de un flujo de OAuth
+          if (!window.location.hash.includes('access_token') && !window.location.search.includes('code=')) {
+            setView('login');
+          }
         }
-      } else {
-        setRoutines(initialRoutines);
-        setProfile(null);
-        setView('login');
+      } finally {
+        authInitialized.current = true;
+        // Un pequeño delay para que React procese los cambios de estado antes de quitar el splash
+        setTimeout(() => setIsAppLoading(false), 500);
       }
+    };
+
+    // 1. Escuchar cambios
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      // En iOS PWA, a veces el evento INITIAL_SESSION no llega rapido
+      handleAuthState(session);
     });
 
-    // Check initial session
+    // 2. Verificación inmediata
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        setIsLoggedIn(true);
-        setUser(session.user);
-        ensureProfileExists(session.user).then(() => loadProfile(session.user.id)).catch((error) => {
-          console.error('No se pudo preparar el perfil en la carga inicial:', error);
-        });
-        syncRoutines();
+      if (!authInitialized.current) {
+         handleAuthState(session);
       }
     });
 
     return () => {
+      clearTimeout(fallbackTimeout);
       subscription.unsubscribe();
     };
-  }, [ensureProfileExists, loadProfile, syncRoutines, view]);
+  }, [ensureProfileExists, loadProfile, syncRoutines]);
 
   const handleLoginWithGoogle = async (): Promise<{ started: boolean; error?: string }> => {
     if (!supabase) {
-      const message = 'Configura VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY para usar Google.';
-      setAppBanner({
-        level: 'error',
-        title: 'Supabase no configurado',
-        message,
-      });
+      const message = 'Configura VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY.';
+      setAppBanner({ level: 'error', title: 'Error', message });
       return { started: false, error: message };
     }
 
+    setIsAppLoading(true);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
@@ -218,11 +216,8 @@ export const useAppState = () => {
     });
 
     if (error) {
-      setAppBanner({
-        level: 'error',
-        title: 'Error de autenticacion',
-        message: error.message,
-      });
+      setIsAppLoading(false);
+      setAppBanner({ level: 'error', title: 'Error Auth', message: error.message });
       return { started: false, error: error.message };
     }
 
@@ -231,37 +226,19 @@ export const useAppState = () => {
 
   const handleLoginWithEmail = async (email: string, pass: string) => {
     if (!supabase) return;
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password: pass,
-    });
+    const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
     if (error) {
-      setAppBanner({
-        level: 'error',
-        title: 'Acceso denegado',
-        message: 'Credenciales invalidas o error de servidor.',
-      });
+      setAppBanner({ level: 'error', title: 'Acceso denegado', message: 'Credenciales invalidas.' });
     }
   };
 
   const handleRegisterWithEmail = async (email: string, pass: string) => {
     if (!supabase) return;
-    const { error, data } = await supabase.auth.signUp({
-      email,
-      password: pass,
-    });
+    const { error, data } = await supabase.auth.signUp({ email, password: pass });
     if (error) {
-      setAppBanner({
-        level: 'error',
-        title: 'Error de registro',
-        message: error.message,
-      });
+      setAppBanner({ level: 'error', title: 'Error registro', message: error.message });
     } else if (data.session || data.user) {
-      setAppBanner({
-        level: 'warning',
-        title: 'Confirma tu cuenta',
-        message: 'Te hemos enviado un correo. Confirmalo para activar tu perfil.',
-      });
+      setAppBanner({ level: 'warning', title: 'Confirma tu cuenta', message: 'Revisa tu correo.' });
     }
   };
 
@@ -280,9 +257,7 @@ export const useAppState = () => {
     setView('login');
 
     if (supabase) {
-      supabase.auth.signOut().catch((error) => {
-        console.error('No se pudo cerrar la sesion remotamente:', error);
-      });
+      supabase.auth.signOut().catch(console.error);
     }
   };
 
@@ -293,9 +268,7 @@ export const useAppState = () => {
     fitnessLevel: string;
     unitSystem: 'kg' | 'lb';
   }) => {
-    if (!supabase || !user) {
-      throw new Error('No hay una sesion activa para guardar el perfil.');
-    }
+    if (!supabase || !user) throw new Error('No hay sesion activa.');
 
     const { data, error } = await supabase
       .from('profiles')
@@ -310,9 +283,7 @@ export const useAppState = () => {
       .select('*')
       .single();
 
-    if (error) {
-      throw error;
-    }
+    if (error) throw error;
 
     const mapped = mapProfileRow(data);
     setProfile(mapped);
@@ -322,6 +293,121 @@ export const useAppState = () => {
       message: 'Tus cambios se guardaron correctamente.',
     });
     return mapped;
+  };
+
+  const startSession = async (routineId: string, routineName: string, routineDayId?: string) => {
+    if (!supabase || !user) return;
+    try {
+      const { data, error } = await supabase.from('routine_sessions').insert({
+        routine_id: routineId,
+        user_id: user.id,
+        status: 'in_progress',
+        started_at: new Date().toISOString()
+      }).select('id').single();
+
+      if (error) throw error;
+      
+      setActiveSession({
+        id: data.id,
+        routineId,
+        routineName,
+        routineDayId,
+        startTimeMs: Date.now(),
+        completedExercises: []
+      });
+      setAppBanner({
+        level: 'warning',
+        title: 'Entrenamiento Iniciado',
+        message: 'Tu sesión está activa en segundo plano.',
+      });
+    } catch (error) {
+      console.error('Error al iniciar sesión', error);
+      setAppBanner({
+        level: 'error',
+        title: 'No se pudo iniciar',
+        message: 'Verifica tu conexión y prueba nuevamente.',
+      });
+    }
+  };
+
+  const toggleExerciseComplete = (exerciseInstanceId: string) => {
+    setActiveSession((prev) => {
+      if (!prev) return prev;
+      const isCompleted = prev.completedExercises.includes(exerciseInstanceId);
+      return {
+        ...prev,
+        completedExercises: isCompleted
+          ? prev.completedExercises.filter(id => id !== exerciseInstanceId)
+          : [...prev.completedExercises, exerciseInstanceId]
+      };
+    });
+  };
+
+  const endSession = async () => {
+    if (!supabase || !activeSession) return;
+    try {
+      if (activeSession.id) {
+        const { error } = await supabase.from('routine_sessions').update({
+          status: 'completed',
+          ended_at: new Date().toISOString()
+        }).eq('id', activeSession.id);
+        
+        if (error) throw error;
+
+        if (activeSession.completedExercises.length > 0 && activeSession.routineDayId && currentRoutine) {
+          const currentDay = currentRoutine.dayEntries?.find(d => d.id === activeSession.routineDayId);
+          if (currentDay) {
+            const { data: dayLog, error: dayLogError } = await supabase.from('session_day_logs').insert({
+               session_id: activeSession.id,
+               routine_day_id: currentDay.id,
+               started_at: new Date(activeSession.startTimeMs).toISOString(),
+               ended_at: new Date().toISOString()
+            }).select('id').single();
+
+            if (!dayLogError && dayLog) {
+               for (const rdeId of activeSession.completedExercises) {
+                 const exDef = currentDay.exercises.find(e => e.id === rdeId);
+                 if (!exDef) continue;
+
+                 const { data: exLog, error: exLogError } = await supabase
+                   .from('session_exercise_logs')
+                   .insert({
+                     session_day_log_id: dayLog.id,
+                     exercise_id: exDef.exerciseId,
+                     position: exDef.position,
+                     notes: exDef.notes
+                   })
+                   .select('id')
+                   .single();
+
+                 if (!exLogError && exLog && exDef.exercise.sets) {
+                   const setLogs = exDef.exercise.sets.map(s => ({
+                     session_exercise_log_id: exLog.id,
+                     set_number: s.setNumber || 1,
+                     reps: s.reps || 0,
+                     weight: s.weight || 0,
+                     completed: true
+                   }));
+                   if (setLogs.length > 0) {
+                     await supabase.from('session_set_logs').insert(setLogs);
+                   }
+                 }
+               }
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error finalizando sesión', error);
+    } finally {
+      setActiveSession(null);
+      syncRoutines();
+      setAppBanner({
+        level: 'warning',
+        title: 'Entrenamiento Finalizado',
+        message: '¡Excelente trabajo! Sesión guardada.',
+      });
+    }
   };
 
   const handleStartNewRoutine = () => {
@@ -367,11 +453,11 @@ export const useAppState = () => {
       setAppBanner(repositoryNotice);
       return savedRoutine;
     } catch (error) {
-      console.error('No se pudo guardar la rutina:', error);
+      console.error('Error guardando rutina:', error);
       setAppBanner({
         level: 'error',
-        title: 'No se pudo guardar la rutina',
-        message: getErrorMessage(error, 'Intentalo de nuevo en unos segundos.'),
+        title: 'Error',
+        message: getErrorMessage(error, 'Intentalo de nuevo.'),
       });
     }
   };
@@ -390,9 +476,7 @@ export const useAppState = () => {
   };
 
   const handleSaveExercise = async (exercise: Exercise) => {
-    if (!currentRoutine || !selectedRoutineDayId) {
-      return;
-    }
+    if (!currentRoutine || !selectedRoutineDayId) return;
 
     try {
       const updatedRoutine = await routinesRepository.saveExercise(currentRoutine, exercise, selectedRoutineDayId, editingInstanceId || undefined);
@@ -401,16 +485,15 @@ export const useAppState = () => {
         prev.map((routine) => (routine.id === updatedRoutine.id ? updatedRoutine : routine)),
       );
       
-      // Volver a la pantalla de origen (Creator o Detail)
       setView(navigationSource === 'exercise-selector' ? 'routine-creator' : navigationSource);
       setEditingInstanceId(null);
       setAppBanner(null);
     } catch (error) {
-      console.error('No se pudo guardar el ejercicio:', error);
+      console.error('Error guardando ejercicio:', error);
       setAppBanner({
         level: 'error',
-        title: 'No se pudo guardar el ejercicio',
-        message: getErrorMessage(error, 'Verifica los datos e intentalo nuevamente.'),
+        title: 'Error',
+        message: getErrorMessage(error, 'Revisa los datos.'),
       });
     }
   };
@@ -425,11 +508,11 @@ export const useAppState = () => {
       }
       setAppBanner(null);
     } catch (error) {
-      console.error('No se pudo borrar la rutina:', error);
+      console.error('Error eliminando rutina:', error);
       setAppBanner({
         level: 'error',
-        title: 'Error eliminando rutina',
-        message: getErrorMessage(error, 'Intentalo otra vez mas tarde.'),
+        title: 'Error',
+        message: getErrorMessage(error, 'Intentalo mas tarde.'),
       });
     }
   };
@@ -445,12 +528,8 @@ export const useAppState = () => {
       }
       setAppBanner(null);
     } catch (error) {
-      console.error('No se pudo borrar el dia:', error);
-      setAppBanner({
-        level: 'error',
-        title: 'Error eliminando dia',
-        message: getErrorMessage(error, 'Intentalo otra vez mas tarde.'),
-      });
+      console.error('Error eliminando dia:', error);
+      setAppBanner({ level: 'error', title: 'Error', message: getErrorMessage(error, 'Intentalo mas tarde.') });
     }
   };
 
@@ -466,12 +545,8 @@ export const useAppState = () => {
       }
       setAppBanner(null);
     } catch (error) {
-      console.error('No se pudo borrar el ejercicio:', error);
-      setAppBanner({
-        level: 'error',
-        title: 'Error eliminando ejercicio',
-        message: getErrorMessage(error, 'Intentalo otra vez mas tarde.'),
-      });
+      console.error('Error eliminando ejercicio:', error);
+      setAppBanner({ level: 'error', title: 'Error', message: getErrorMessage(error, 'Intentalo mas tarde.') });
     }
   };
 
@@ -508,5 +583,10 @@ export const useAppState = () => {
     setNavigationSource,
     openDayId,
     setOpenDayId,
+    activeSession,
+    startSession,
+    endSession,
+    toggleExerciseComplete,
+    isAppLoading,
   };
 };

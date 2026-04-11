@@ -7,7 +7,8 @@ export type View =
   | 'exercise-list'
   | 'routine-detail'
   | 'settings'
-  | 'history';
+  | 'history'
+  | 'routines-list';
 
 export interface UserProfile {
   id: string;
@@ -74,4 +75,13 @@ export interface Routine {
   updatedAt?: string;
   /** True cuando la rutina solo está guardada en el cliente (fallo al subir a Supabase). */
   syncPending?: boolean;
+}
+
+export interface ActiveSession {
+  id: string;
+  routineId: string | null;
+  routineName: string;
+  routineDayId?: string;
+  startTimeMs: number;
+  completedExercises: string[];
 }

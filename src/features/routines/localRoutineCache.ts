@@ -2,8 +2,14 @@ import type { Routine } from '../../types';
 
 const STORAGE_KEY = 'kinetic:v1:routines-local-cache';
 
-const isRoutineLike = (item: unknown): item is Routine =>
-  Boolean(item && typeof item === 'object' && typeof (item as Routine).id === 'string');
+const isRoutineLike = (item: unknown): item is Routine => {
+  if (!item || typeof item !== 'object') return false;
+  const r = item as any;
+  if (typeof r.id !== 'string') return false;
+  if (!Array.isArray(r.exercises)) return false;
+  if (!Array.isArray(r.dayEntries)) return false;
+  return true;
+};
 
 export const loadCachedRoutines = (): Routine[] => {
   if (typeof window === 'undefined') {
@@ -17,10 +23,22 @@ export const loadCachedRoutines = (): Routine[] => {
     }
     const parsed = JSON.parse(raw) as unknown;
     if (!Array.isArray(parsed)) {
+      window.localStorage.removeItem(STORAGE_KEY);
       return [];
     }
-    return parsed.filter(isRoutineLike);
-  } catch {
+    
+    // Strict validation or clear it
+    const validated = parsed.filter(isRoutineLike);
+    if (parsed.length > 0 && validated.length === 0) {
+      console.warn(' kinetic: Cache local incompatible detectada. Limpiando para evitar bloqueos.');
+      window.localStorage.removeItem(STORAGE_KEY);
+      return [];
+    }
+    
+    return validated;
+  } catch (err) {
+    console.error('Error cargando cache local:', err);
+    window.localStorage.removeItem(STORAGE_KEY);
     return [];
   }
 };

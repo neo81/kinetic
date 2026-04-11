@@ -7,7 +7,8 @@ import { KineticLoginView } from '../views/KineticLoginView';
 import { RoutineCreatorView } from '../views/RoutineCreatorView';
 import { RoutineDetailKineticView } from '../views/RoutineDetailKineticView';
 import { SettingsView } from '../views/SettingsView';
-import type { Exercise, Routine, UserProfile, View } from '../types';
+import { RoutinesListView } from '../views/RoutinesListView';
+import type { ActiveSession, Exercise, Routine, UserProfile, View } from '../types';
 
 type AppRouterProps = {
   view: View;
@@ -44,6 +45,10 @@ type AppRouterProps = {
   setNavigationSource: (view: View) => void;
   openDayId: string | null;
   setOpenDayId: (dayId: string | null) => void;
+  activeSession: ActiveSession | null;
+  startSession: (routineId: string, routineName: string, routineDayId: string) => Promise<void>;
+  endSession: () => Promise<void>;
+  onToggleExerciseComplete: (exerciseInstanceId: string) => void;
 };
 
 export const AppRouter = ({
@@ -75,6 +80,10 @@ export const AppRouter = ({
   setNavigationSource,
   openDayId,
   setOpenDayId,
+  activeSession,
+  startSession,
+  endSession,
+  onToggleExerciseComplete,
 }: AppRouterProps) => {
   switch (view) {
     case 'login':
@@ -95,6 +104,15 @@ export const AppRouter = ({
             setCurrentRoutine(routine);
             setSelectedRoutineDayId(null);
           }}
+        />
+      );
+    case 'routines-list':
+      return (
+        <RoutinesListView
+          setView={setView}
+          routines={routines}
+          onNewRoutine={onNewRoutine}
+          setCurrentRoutine={setCurrentRoutine}
           onDeleteRoutine={onDeleteRoutine}
         />
       );
@@ -150,6 +168,10 @@ export const AppRouter = ({
         <RoutineDetailKineticView
           setView={setView}
           routine={currentRoutine ?? routines[0] ?? null}
+          activeSession={activeSession}
+          onStartSession={startSession}
+          onEndSession={endSession}
+          onToggleExerciseComplete={onToggleExerciseComplete}
           onDeleteRoutine={onDeleteRoutine}
           onDeleteRoutineDay={onDeleteRoutineDay}
           onDeleteExercise={onDeleteExercise}

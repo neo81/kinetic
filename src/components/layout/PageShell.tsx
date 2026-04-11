@@ -50,7 +50,7 @@ export const PageShell = ({
     )}
 
     <main
-      className={`relative z-10 mx-auto w-full max-w-2xl px-4 pb-24 ${showHeader ? 'pt-24' : 'pt-4'} sm:px-6 ${contentClassName}`.trim()}
+      className={`relative z-10 mx-auto w-full max-w-2xl px-4 pb-24 ${showHeader ? 'pt-24' : 'pt-6'} sm:px-6 ${contentClassName}`.trim()}
     >
       {children}
     </main>

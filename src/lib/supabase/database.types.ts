@@ -75,6 +75,7 @@ export type Database = {
           equipment: string | null;
           is_active: boolean;
           created_at: string;
+          user_id: string | null;
         };
         Insert: {
           id?: string;
@@ -84,6 +85,7 @@ export type Database = {
           equipment?: string | null;
           is_active?: boolean;
           created_at?: string;
+          user_id?: string | null;
         };
         Update: {
           name?: string;
@@ -91,6 +93,7 @@ export type Database = {
           muscle_group_id?: number;
           equipment?: string | null;
           is_active?: boolean;
+          user_id?: string | null;
         };
         Relationships: [];
       };

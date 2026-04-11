@@ -1,6 +1,6 @@
-import { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { motion } from 'motion/react';
-import { ArrowLeft, Search, Loader2, Star } from 'lucide-react';
+import { ArrowLeft, Search, Loader2, Star, User, Edit2 } from 'lucide-react';
 import { PageShell } from '../components/layout/PageShell';
 import type { Exercise, View } from '../types';
 import { supabase, isSupabaseConfigured } from '../lib/supabase/client';
@@ -11,6 +11,7 @@ type ExerciseLibraryItem = Exercise & {
   pr?: string;
   img?: string;
   equipment?: string;
+  isCustom?: boolean;
 };
 
 const getPlaceholderImage = (group: string) => {
@@ -37,6 +38,7 @@ export const ExerciseListView = ({
   const [allExercises, setAllExercises] = useState<ExerciseLibraryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
+  const [editingExerciseId, setEditingExerciseId] = useState<string | null>(null);
   const [newExName, setNewExName] = useState('');
   const [newExEq, setNewExEq] = useState('Peso corporal');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -67,6 +69,7 @@ export const ExerciseListView = ({
           equipment,
           description,
           muscle_group_id,
+          user_id,
           muscle_groups!inner(code, name)
         `)
         .eq('muscle_groups.code', muscle.toLowerCase());
@@ -82,6 +85,7 @@ export const ExerciseListView = ({
           description: item.description,
           notes: '',
           sets: [],
+          isCustom: !!item.user_id,
         }));
         setAllExercises(mapped);
       }
@@ -102,29 +106,67 @@ export const ExerciseListView = ({
     fetchExercises();
   }, [fetchExercises]);
 
-  const handleCreateExercise = async () => {
+  const handleSaveExercise = async () => {
     if (!newExName.trim() || !supabase) return;
     setIsSubmitting(true);
     try {
-      const { data: mgData } = await supabase.from('muscle_groups').select('id').eq('code', muscle.toLowerCase()).single();
-      if (mgData?.id) {
-        const { error } = await supabase.from('exercises').insert({
+      if (editingExerciseId) {
+        const { error } = await supabase.from('exercises').update({
           name: newExName.trim(),
           equipment: newExEq,
-          muscle_group_id: mgData.id
-        });
+        }).eq('id', editingExerciseId);
         if (error) throw error;
         
         setNewExName('');
         setNewExEq('Peso corporal');
+        setEditingExerciseId(null);
         setIsCreating(false);
         fetchExercises();
+      } else {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          console.error('No hay usuario autenticado');
+          return;
+        }
+        
+        const { data: mgData } = await supabase.from('muscle_groups').select('id').eq('code', muscle.toLowerCase()).single();
+        if (mgData?.id) {
+          const { error } = await supabase.from('exercises').insert({
+            name: newExName.trim(),
+            equipment: newExEq,
+            muscle_group_id: mgData.id,
+            user_id: user.id
+          });
+          if (error) throw error;
+          
+          setNewExName('');
+          setNewExEq('Peso corporal');
+          setEditingExerciseId(null);
+          setIsCreating(false);
+          fetchExercises();
+        }
       }
     } catch (err) {
-      console.error('Error al crear ejercicio:', err);
+      console.error('Error al guardar ejercicio:', err);
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const startEdit = (ex: ExerciseLibraryItem, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsCreating(true);
+    setEditingExerciseId(ex.id);
+    setNewExName(ex.name);
+    setNewExEq(ex.equipment || 'Peso corporal');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+  
+  const startCreate = () => {
+    setIsCreating(true);
+    setEditingExerciseId(null);
+    setNewExName('');
+    setNewExEq('Peso corporal');
   };
 
   const filteredExercises = allExercises.filter(
@@ -158,7 +200,7 @@ export const ExerciseListView = ({
                 {muscle || 'Sin grupo'}
               </h2>
               <button 
-                onClick={() => setIsCreating(true)}
+                onClick={startCreate}
                 className="text-[0.7rem] sm:text-xs font-black uppercase tracking-widest text-[#FF6B00] hover:scale-105 transition-transform"
               >
                 Crear
@@ -239,7 +281,9 @@ export const ExerciseListView = ({
           </div>
         ) : isCreating ? (
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="rounded-[2rem] border border-white/10 bg-surface-container-high p-6 shadow-2xl">
-            <h3 className="mb-4 font-headline text-xl font-black uppercase italic tracking-widest text-on-surface">Crear Nuevo</h3>
+            <h3 className="mb-4 font-headline text-xl font-black uppercase italic tracking-widest text-on-surface">
+              {editingExerciseId ? 'Editar Ejercicio' : 'Crear Nuevo'}
+            </h3>
             <div className="space-y-4">
               <div className="flex w-full appearance-none rounded-xl border border-white/5 bg-black/40 px-5 py-4 text-sm text-on-surface opacity-70">
                 <span className="mr-2 self-center text-xs font-bold uppercase tracking-widest text-on-surface-variant/70">Grupo:</span>
@@ -264,13 +308,13 @@ export const ExerciseListView = ({
               </select>
               <div className="flex gap-3 pt-2">
                 <button
-                  onClick={() => setIsCreating(false)}
+                  onClick={() => { setIsCreating(false); setEditingExerciseId(null); }}
                   className="flex-1 rounded-xl bg-white/5 py-3 text-xs font-bold uppercase tracking-widest text-on-surface-variant hover:bg-white/10"
                 >
                   Cancelar
                 </button>
                 <button
-                  onClick={handleCreateExercise}
+                  onClick={handleSaveExercise}
                   disabled={isSubmitting || !newExName.trim()}
                   className="flex-1 rounded-xl bg-primary py-3 text-xs font-bold uppercase tracking-widest text-black hover:bg-primary/90 disabled:opacity-50"
                 >
@@ -295,9 +339,26 @@ export const ExerciseListView = ({
                   <img src={getPlaceholderImage(muscle)} alt="Ejercicio" className="h-[90%] w-[90%] object-contain mix-blend-multiply opacity-90" />
                 </div>
                 <div className="flex w-full flex-col p-4 bg-[#141414]">
-                  <h3 className="line-clamp-2 text-sm font-semibold leading-tight text-on-surface group-hover:text-primary transition-colors">
-                    {exercise.name}
-                  </h3>
+                  <div className="flex items-start justify-between">
+                    <h3 className="line-clamp-2 text-sm font-semibold leading-tight text-on-surface group-hover:text-primary transition-colors pr-2">
+                      {exercise.name}
+                    </h3>
+                    {exercise.isCustom && (
+                      <div className="flex flex-col items-end gap-1.5 ml-2">
+                        <div className="flex shrink-0 items-center justify-center rounded bg-primary/20 px-1.5 py-0.5 border border-primary/30">
+                          <User size={10} strokeWidth={3} className="text-primary mr-1" />
+                          <span className="text-[8px] font-black uppercase text-primary tracking-wider">Custom</span>
+                        </div>
+                        <button 
+                          onClick={(e) => startEdit(exercise, e)}
+                          className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-on-surface-variant hover:text-primary transition-colors bg-white/5 px-2 py-1 rounded"
+                        >
+                          <Edit2 size={10} strokeWidth={2.5} />
+                          Editar
+                        </button>
+                      </div>
+                    )}
+                  </div>
                   {exercise.equipment && (
                     <span className="mt-1 text-[10px] font-medium tracking-wide text-on-surface-variant/60">
                       ({exercise.equipment})

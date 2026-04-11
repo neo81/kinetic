@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
+import { supabase } from '../lib/supabase/client';
 import { motion } from 'motion/react';
-import { Activity, ChevronRight, Edit2, Play, Plus, Trash2 } from 'lucide-react';
+import { Activity, ChevronRight, Clock, Edit2, Play, Plus, Trash2, TrendingUp, Trophy } from 'lucide-react';
 import { RoutineSyncPendingBadge } from '../components/RoutineSyncPendingBadge';
 import { PageShell } from '../components/layout/PageShell';
-import { ConfirmDialog } from '../components/layout/ConfirmDialog';
 import type { Routine, View } from '../types';
 
 const getGreeting = () => {
@@ -13,39 +13,119 @@ const getGreeting = () => {
   return 'BUENAS NOCHES';
 };
 
+interface DashboardViewProps {
+  setView: (view: View) => void;
+  routines: Routine[];
+  onNewRoutine: () => void;
+  setCurrentRoutine: (routine: Routine | null) => void;
+}
+
 export const DashboardView = ({
   setView,
   routines,
   onNewRoutine,
   setCurrentRoutine,
-  onDeleteRoutine,
-}: {
-  setView: (v: View) => void;
-  routines: Routine[];
-  onNewRoutine: () => void;
-  setCurrentRoutine: (r: Routine | null) => void;
-  onDeleteRoutine: (id: string) => void;
-}) => {
-  const [routineToTrash, setRoutineToTrash] = useState<Routine | null>(null);
+}: DashboardViewProps) => {
+  const [realWeeklyActivity, setRealWeeklyActivity] = useState(0);
+  const [realWeeklyVolume, setRealWeeklyVolume] = useState(0);
+  const [lastSessionDuration, setLastSessionDuration] = useState(0);
+  const [weeklyAvgDuration, setWeeklyAvgDuration] = useState(0);
+  const [dailyActivityMap, setDailyActivityMap] = useState<number[]>([0, 0, 0, 0, 0, 0, 0]);
+
   useEffect(() => {
     window.scrollTo(0, 0);
+    
+    const fetchStats = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      
+      const oneWeekAgo = new Date();
+      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+      oneWeekAgo.setHours(0, 0, 0, 0);
+
+      const { data, error } = await supabase
+        .from('routine_sessions')
+        .select(`
+          id,
+          started_at,
+          ended_at,
+          status,
+          session_day_logs(
+            session_exercise_logs(
+              session_set_logs(reps, weight)
+            )
+          )
+        `)
+        .eq('user_id', session.user.id)
+        .eq('status', 'completed')
+        .order('ended_at', { ascending: false });
+
+      if (data && !error) {
+        const days = [0, 0, 0, 0, 0, 0, 0];
+        let totalExercises = 0;
+        let totalVolume = 0;
+        let totalDuration = 0;
+        let completedSessionsCount = 0;
+        
+        const weekSessions = (data as any[]).filter(s => new Date(s.ended_at) >= oneWeekAgo);
+        
+        weekSessions.forEach(sess => {
+          const date = new Date(sess.ended_at);
+          const dayIndex = (date.getDay() + 6) % 7; 
+          
+          let sessExerCount = 0;
+          let sessVolume = 0;
+          
+          sess.session_day_logs?.forEach((dl: any) => {
+             const exLogs = dl.session_exercise_logs || [];
+             sessExerCount += exLogs.length;
+             exLogs.forEach((el: any) => {
+               (el.session_set_logs || []).forEach((sl: any) => {
+                 sessVolume += (Number(sl.reps) || 0) * (Number(sl.weight) || 0);
+               });
+             });
+          });
+          
+          days[dayIndex] += sessExerCount;
+          totalExercises += sessExerCount;
+          totalVolume += sessVolume;
+
+          if (sess.started_at && sess.ended_at) {
+            const duration = (new Date(sess.ended_at).getTime() - new Date(sess.started_at).getTime()) / (1000 * 60);
+            totalDuration += duration;
+            completedSessionsCount++;
+          }
+        });
+
+        const max = Math.max(...days, 1);
+        setDailyActivityMap(days.map(d => d / max));
+        setRealWeeklyActivity(totalExercises);
+        setRealWeeklyVolume(totalVolume);
+        setWeeklyAvgDuration(completedSessionsCount > 0 ? Math.round(totalDuration / completedSessionsCount) : 0);
+
+        if (data.length > 0) {
+           const lastSess = data[0];
+           if (lastSess.started_at && lastSess.ended_at) {
+             const duration = (new Date(lastSess.ended_at).getTime() - new Date(lastSess.started_at).getTime()) / (1000 * 60);
+             setLastSessionDuration(Math.round(duration));
+           }
+        }
+      }
+    };
+    fetchStats();
   }, []);
 
-  const totalExercises = routines.reduce((count, routine) => count + routine.exercises.length, 0);
-  const weeklyLoad = routines.reduce(
-    (total, routine) =>
-      total +
-      routine.exercises.reduce(
-        (exerciseTotal, exercise) =>
-          exerciseTotal +
-          exercise.sets.reduce(
-            (setsTotal, set) => setsTotal + set.weight * set.reps,
-            0,
-          ),
-        0,
-      ),
-    0,
-  );
+  // Lógica mejorada: Si hay rutinas, siempre devuelve la más reciente o la primera. No debería ser null si routines > 0.
+  const lastActiveRoutine = routines.length > 0 
+    ? [...routines].sort((a, b) => {
+        if (!a.lastSession && !b.lastSession) return 0;
+        if (!a.lastSession) return 1;
+        if (!b.lastSession) return -1;
+        const dateA = new Date(a.lastSession.split('/').reverse().join('-')).getTime();
+        const dateB = new Date(b.lastSession.split('/').reverse().join('-')).getTime();
+        return dateB - dateA;
+      })[0] 
+    : null;
 
   return (
     <PageShell
@@ -53,52 +133,86 @@ export const DashboardView = ({
       setView={setView}
       onProfileClick={() => setView('settings')}
       onSettingsClick={() => setView('settings')}
-      contentClassName="space-y-12 sm:space-y-20"
     >
-        <section className="space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_10px_rgba(212,255,0,0.8)] animate-pulse"></div>
-            <span className="font-sans text-[10px] font-black uppercase italic tracking-[0.5em] text-primary opacity-80 sm:text-[11px]">{getGreeting()}</span>
+        <section className="space-y-10">
+          <header className="space-y-3">
+             <div className="flex items-center gap-3">
+               <div className="h-1.5 w-12 rounded-full bg-primary/80"></div>
+               <span className="text-[10px] font-black uppercase tracking-[0.4em] text-on-surface-variant/40">{getGreeting()}</span>
+             </div>
+             <h1 className="font-headline text-[3.2rem] font-bold uppercase leading-none tracking-tight text-on-surface">DASHBOARD</h1>
+          </header>
+
+          <div className="space-y-6">
+            <div className="flex items-center gap-3 px-2">
+              <div className="h-6 w-1 rounded-full bg-primary shadow-[0_0_10px_rgba(212,255,0,0.4)]"></div>
+              <h3 className="text-[10px] font-black uppercase italic tracking-[0.4em] text-on-surface-variant/60">PRÓXIMO PASO</h3>
+            </div>
+
+            {lastActiveRoutine ? (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                onClick={() => {
+                  setCurrentRoutine(lastActiveRoutine);
+                  setView('routine-detail');
+                }}
+                className="group relative cursor-pointer overflow-hidden rounded-[3rem] border border-white/5 bg-surface-container-low/40 p-10 shadow-2xl backdrop-blur-xl transition-all active:scale-[0.985] hover:bg-white/5"
+              >
+                <div className="absolute top-0 right-0 -mr-32 -mt-32 h-64 w-64 rounded-full bg-primary/10 opacity-0 blur-[100px] transition-opacity duration-700 group-hover:opacity-100"></div>
+                
+                <div className="relative z-10 space-y-8">
+                  <div>
+                    <div className="mb-2 text-[10px] font-black uppercase italic tracking-[0.5em] text-primary">CONTINUAR ENTRENAMIENTO</div>
+                    <h4 className="font-headline text-4xl font-black uppercase italic leading-none tracking-tight text-on-background sm:text-5xl">
+                      {lastActiveRoutine.name}
+                    </h4>
+                    <p className="mt-4 text-[11px] font-black uppercase italic tracking-widest text-on-surface-variant/40">
+                      Última sesión: {lastActiveRoutine.lastSession || 'Sin registros aún'} • {lastActiveRoutine.focus || 'General'}
+                    </p>
+                  </div>
+                  
+                  <button 
+                     className="flex items-center gap-3 rounded-2xl bg-primary px-8 py-4 text-[12px] font-black uppercase tracking-[0.2em] text-black shadow-[0_15px_30px_rgba(212,255,0,0.25)] transition-all hover:scale-105 active:scale-95"
+                  >
+                    <Play size={18} fill="currentColor" />
+                    Entrenar Ahora
+                  </button>
+                </div>
+              </motion.div>
+            ) : (
+              <div className="rounded-[3rem] border border-dashed border-white/8 bg-surface-container-low/35 p-12 text-center backdrop-blur-xl">
+                <p className="font-headline text-2xl font-black uppercase italic text-on-surface opacity-40 leading-tight">No tienes rutinas activas</p>
+                <p className="mt-3 text-sm text-on-surface-variant/60">Ve a Mis Rutinas para empezar a diseñar tu entrenamiento.</p>
+              </div>
+            )}
           </div>
-          <h2 className="font-headline text-5xl font-black uppercase italic leading-none tracking-tighter text-on-background drop-shadow-[0_0_30px_rgba(212,255,0,0.2)] sm:text-8xl">
-            BIENVENIDO
-          </h2>
         </section>
 
-        <section
-          onClick={() => {
-            onNewRoutine();
-            setView('routine-creator');
-          }}
-          className="group relative flex cursor-pointer items-center justify-between overflow-hidden rounded-[3rem] border border-primary/20 bg-primary p-10 shadow-[0_30px_70px_rgba(212,255,0,0.3)] transition-all active:scale-[0.98] hover:shadow-[0_40px_90px_rgba(212,255,0,0.4)]"
-        >
-          <div className="absolute top-0 right-0 -mr-32 -mt-32 h-64 w-64 rounded-full bg-black/5 blur-[100px] transition-all duration-700 group-hover:bg-black/10"></div>
-
-          <div className="relative z-10 flex items-center gap-8">
-            <div className="flex h-16 w-16 items-center justify-center rounded-[1.5rem] bg-black text-primary shadow-2xl transition-transform duration-700 group-hover:scale-110">
-              <Plus size={32} strokeWidth={3} />
-            </div>
-            <div className="text-left">
-              <h3 className="font-headline text-3xl font-black uppercase italic leading-none tracking-tight text-black sm:text-4xl">NUEVA RUTINA</h3>
-              <p className="mt-2 text-[9px] font-black uppercase italic tracking-[0.4em] text-black/40">INICIAR PROGRAMACION</p>
-            </div>
-          </div>
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-black/5 transition-colors group-hover:bg-black/10">
-            <ChevronRight size={28} className="text-black/40 transition-transform duration-500 group-hover:translate-x-2" />
-          </div>
-        </section>
-
-        <section className="group relative overflow-hidden rounded-[3.5rem] border border-white/5 bg-surface-container-low/40 p-10 shadow-2xl backdrop-blur-xl transition-all hover:bg-white/5 sm:p-14">
-          <div className="mb-10 flex items-start justify-between sm:mb-14">
-            <div className="space-y-4">
-              <span className="block text-[9px] font-black uppercase italic tracking-[0.4em] text-secondary sm:text-[10px]">VOLUMEN ESTA SEMANA</span>
-              <div className="flex items-baseline gap-3">
-                <span className="font-headline text-5xl font-black italic leading-none tracking-tighter text-on-background drop-shadow-[0_0_30px_rgba(255,92,0,0.2)] sm:text-8xl">
-                  {Math.round(weeklyLoad)}
-                </span>
-                <span className="text-[11px] font-black uppercase italic tracking-widest text-on-surface-variant/40 sm:text-[12px]">
-                  {weeklyLoad > 0 ? 'KILOS' : 'SIN DATOS'}
-                </span>
+        <section className="mt-14 group relative overflow-hidden rounded-[3rem] border border-white/5 bg-surface-container-low/40 p-10 shadow-2xl backdrop-blur-xl">
+          <div className="mb-10 flex flex-wrap items-center justify-between gap-8 sm:gap-12">
+            <div className="flex gap-10 sm:gap-16">
+              <div className="space-y-2">
+                <span className="block text-[9px] font-black uppercase italic tracking-[0.4em] text-primary sm:text-[10px]">ACTIVIDAD RECIENTE</span>
+                <div className="flex items-baseline gap-3">
+                  <span className="font-headline text-3xl font-black italic leading-none tracking-tighter text-on-background drop-shadow-[0_0_30px_rgba(212,255,0,0.2)] sm:text-4xl">
+                    {realWeeklyActivity}
+                  </span>
+                  <span className="text-[11px] font-black uppercase italic tracking-widest text-on-surface-variant/40 sm:text-[12px]">
+                    {realWeeklyActivity > 0 ? 'EJERCICIOS' : 'SIN DATOS'}
+                  </span>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <span className="block text-[9px] font-black uppercase italic tracking-[0.4em] text-primary sm:text-[10px]">VOLUMEN REAL (7D)</span>
+                <div className="flex items-baseline gap-3">
+                  <span className="font-headline text-3xl font-black italic leading-none tracking-tighter text-on-background drop-shadow-[0_0_30px_rgba(212,255,0,0.2)] sm:text-4xl">
+                    {Math.round(realWeeklyVolume / 1000)}k
+                  </span>
+                  <span className="text-[11px] font-black uppercase italic tracking-widest text-on-surface-variant/40 sm:text-[12px]">
+                    Kgs
+                  </span>
+                </div>
               </div>
             </div>
             <div className="flex h-16 w-16 items-center justify-center rounded-[1.5rem] border border-white/5 bg-secondary/10 text-secondary shadow-inner transition-transform duration-700 group-hover:scale-110 sm:h-20 sm:w-20">
@@ -107,9 +221,10 @@ export const DashboardView = ({
           </div>
 
           <div className="flex h-32 items-end justify-between gap-3 sm:h-48 sm:gap-5">
-            {[0, 0, 0, 0, 0, 0, 0].map((h, i) => (
+            {dailyActivityMap.map((h, i) => (
               <div key={i} className="flex flex-1 flex-col items-center gap-4 sm:gap-6">
-                <div className="relative w-full rounded-t-2xl bg-white/5 transition-all duration-1000 hover:bg-white/10" style={{ height: `${Math.max(h * 100, 12)}%` }}>
+                <div className="relative w-full rounded-t-2xl bg-white/5 transition-all duration-1000 hover:bg-white/10" style={{ height: `${Math.max(h * 100, 15)}%` }}>
+                  {h > 0 && <div className="absolute inset-x-0 bottom-0 top-0 rounded-t-2xl bg-primary/60 shadow-[0_0_20px_rgba(212,255,0,0.3)] animate-pulse" />}
                 </div>
                 <span className="text-[8px] font-black uppercase italic tracking-[0.2em] text-on-surface-variant/30 sm:text-[9px]">{['LUN', 'MAR', 'MIE', 'JUE', 'VIE', 'SAB', 'DOM'][i]}</span>
               </div>
@@ -117,117 +232,91 @@ export const DashboardView = ({
           </div>
         </section>
 
-        <section className="space-y-10">
-          <div className="flex items-center justify-between px-2">
-            <div className="flex items-center gap-5">
-              <div className="h-8 w-1.5 rounded-full bg-primary shadow-[0_0_15px_rgba(212,255,0,0.5)]"></div>
-              <h3 className="font-headline text-[12px] font-black uppercase italic tracking-[0.5em] text-on-background">RUTINAS ACTIVAS</h3>
-            </div>
-            <button className="group flex items-center gap-3 text-[10px] font-black uppercase italic tracking-[0.4em] text-on-surface-variant/40 transition-colors hover:text-primary">
-              VER TODO
-              <ChevronRight size={14} className="transition-transform group-hover:translate-x-1" />
-            </button>
-          </div>
-
-          <div className="space-y-8">
-            {routines.length === 0 && (
-              <div className="rounded-[3rem] border border-dashed border-white/8 bg-surface-container-low/35 p-10 text-center shadow-2xl backdrop-blur-xl">
-                <p className="font-headline text-3xl font-semibold uppercase text-on-surface">Sin rutinas cargadas</p>
-                <p className="mt-3 text-sm text-on-surface-variant">
-                  Crea tu primera rutina para empezar a registrar ejercicios y volumen real.
-                </p>
-                <div className="mt-6 text-[10px] font-bold uppercase tracking-[0.24em] text-primary">
-                  {totalExercises} ejercicios registrados
+        <section className="mt-14 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:gap-8">
+           <div className="group relative overflow-hidden rounded-[2.5rem] bg-surface-container-low/40 border border-white/5 p-8 backdrop-blur-xl transition-all hover:bg-white/5">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="h-6 w-1 rounded-full bg-primary shadow-[0_0_10px_rgba(212,255,0,0.4)]"></div>
+                <h3 className="text-[10px] font-black uppercase italic tracking-[0.4em] text-on-surface-variant/60">DURACIÓN DE SESIÓN</h3>
+              </div>
+              <div className="grid grid-cols-2 gap-4 relative z-10">
+                <div>
+                  <p className="text-2xl font-black italic text-on-background tracking-tighter">
+                    {lastSessionDuration}m
+                  </p>
+                  <p className="text-[9px] font-bold text-on-surface-variant/40 mt-1 uppercase tracking-widest text-nowrap">ÚLTIMA SESIÓN</p>
+                </div>
+                <div className="border-l border-white/5 pl-4">
+                  <p className="text-2xl font-black italic text-primary tracking-tighter">
+                    {weeklyAvgDuration}m
+                  </p>
+                  <p className="text-[9px] font-bold text-on-surface-variant/40 mt-1 uppercase tracking-widest text-nowrap">PROM. SEMANAL</p>
                 </div>
               </div>
-            )}
-            {routines.map((routine, idx) => (
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: idx * 0.1 }}
-                key={routine.id}
-                onClick={() => {
-                  setCurrentRoutine(routine);
-                  setView('routine-detail');
-                }}
-                className="group relative cursor-pointer overflow-hidden rounded-[3rem] border border-white/5 bg-surface-container-low/40 p-10 shadow-2xl backdrop-blur-xl transition-all active:scale-[0.98] hover:bg-white/5"
-              >
-                <div className="absolute top-0 right-0 -mr-32 -mt-32 h-64 w-64 rounded-full bg-primary/5 opacity-0 blur-[100px] transition-opacity duration-700 group-hover:opacity-100"></div>
+              <div className="absolute -right-4 -bottom-4 opacity-5 text-primary">
+                <Clock size={80} />
+              </div>
+           </div>
 
-                <div className="relative z-10 flex items-start justify-between">
-                  <div className="space-y-8">
-                    <div>
-                      <div className="mb-4 flex flex-wrap items-center gap-2 sm:gap-3">
-                        <h4 className="min-w-0 font-headline text-4xl font-black uppercase italic leading-none tracking-tight text-on-background transition-colors group-hover:text-primary sm:text-5xl">
-                          {routine.name}
-                        </h4>
-                        {routine.syncPending ? <RoutineSyncPendingBadge /> : null}
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <div className="h-2.5 w-2.5 rounded-full bg-primary/20 shadow-inner"></div>
-                        <span className="text-[11px] font-black uppercase italic tracking-widest text-on-surface-variant/40">{routine.frequency}</span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-12 sm:gap-20">
-                      <div className="flex flex-col">
-                        <span className="mb-2 text-[9px] font-black uppercase italic tracking-[0.4em] text-on-surface-variant/30">ULTIMA SESION</span>
-                        <span className="text-[12px] font-black uppercase tracking-widest text-on-surface">{routine.lastSession}</span>
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="mb-2 text-[9px] font-black uppercase italic tracking-[0.4em] text-on-surface-variant/30">ENFOQUE</span>
-                        <span className="text-[12px] font-black uppercase italic tracking-widest text-primary">{routine.focus}</span>
-                      </div>
-                    </div>
+           <div className="group relative overflow-hidden rounded-[2.5rem] bg-surface-container-low/40 border border-white/5 p-8 backdrop-blur-xl transition-all hover:bg-white/5">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="h-6 w-1 rounded-full bg-secondary shadow-[0_0_10px_rgba(255,107,0,0.4)]"></div>
+                <h3 className="text-[10px] font-black uppercase italic tracking-[0.4em] text-on-surface-variant/60">TEN. VOLUMEN</h3>
+              </div>
+              <div className="flex items-center justify-between relative z-10">
+                <div>
+                  <div className="flex items-baseline gap-2">
+                    <p className="text-3xl font-black italic text-on-background tracking-tighter">
+                      {realWeeklyVolume > 0 ? `+${Math.round(realWeeklyVolume / 1000)}k` : '0'}
+                    </p>
+                    <TrendingUp size={16} className="text-secondary mb-1" />
                   </div>
-
-                  <div className="flex h-16 w-16 items-center justify-center rounded-[1.5rem] border border-white/5 bg-white/5 shadow-xl transition-all duration-700 group-hover:scale-110 group-hover:border-primary group-hover:bg-primary group-hover:text-black">
-                    <Play size={28} fill="currentColor" className="ml-1" />
+                  <p className="text-[10px] font-bold text-on-surface-variant/40 mt-1 uppercase tracking-widest tracking-widest">KGS TRABAJADOS</p>
+                </div>
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary/10 text-secondary">
+                  <Activity size={24} />
+                </div>
+              </div>
+           </div>
+           
+           <div className="group relative overflow-hidden rounded-[2.5rem] bg-surface-container-low/40 border border-white/5 p-8 backdrop-blur-xl transition-all hover:bg-white/5 sm:col-span-2">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="h-6 w-1 rounded-full bg-primary shadow-[0_0_10px_rgba(212,255,0,0.4)]"></div>
+                <h3 className="text-[10px] font-black uppercase italic tracking-[0.4em] text-on-surface-variant/60">CAPACIDAD DE TRABAJO</h3>
+              </div>
+              <div className="flex items-center justify-between relative z-10">
+                <div className="flex items-center gap-8">
+                  <div>
+                    <div className="flex items-baseline gap-2">
+                      <p className="text-3xl font-black italic text-on-background tracking-tighter">{realWeeklyActivity}</p>
+                      <Trophy size={16} className="text-primary mb-1" />
+                    </div>
+                    <p className="text-[10px] font-bold text-on-surface-variant/40 mt-1 uppercase tracking-widest">EJERCICIOS COMPLETADOS (7D)</p>
                   </div>
                 </div>
-                
-                <div className="mt-6 flex items-center justify-end gap-3 opacity-0 transition-opacity duration-500 group-hover:opacity-100 relative z-20">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setCurrentRoutine(routine);
-                      setView('routine-creator');
-                    }}
-                    className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/5 text-on-surface transition-all hover:bg-primary hover:text-black active:scale-90"
-                  >
-                    <Edit2 size={16} />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setRoutineToTrash(routine);
-                    }}
-                    className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/5 text-on-surface-variant transition-all hover:bg-red-500 hover:text-white active:scale-90"
-                  >
-                    <Trash2 size={16} />
-                  </button>
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                  <Trophy size={20} />
                 </div>
-              </motion.div>
-            ))}
-          </div>
+              </div>
+           </div>
         </section>
 
-        <ConfirmDialog
-          isOpen={!!routineToTrash}
-          title="Eliminar rutina"
-          message={`¿Estás seguro de que quieres eliminar la rutina "${routineToTrash?.name}" permanentemente? Perderás todos tus registros y progresos asociados a ella.`}
-          confirmText="Eliminar"
-          cancelText="Cancelar"
-          variant="danger"
-          onConfirm={() => {
-            if (routineToTrash) {
-              onDeleteRoutine(routineToTrash.id);
-            }
-            setRoutineToTrash(null);
-          }}
-          onCancel={() => setRoutineToTrash(null)}
-        />
+        <section className="mt-14 pb-32">
+          <button 
+             onClick={() => setView('routines-list')}
+             className="flex w-full items-center justify-between rounded-[2rem] bg-white/5 border border-white/5 p-10 transition-all hover:bg-white/10 active:scale-[0.98] shadow-2xl"
+          >
+            <div className="flex items-center gap-6">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-inner">
+                <Plus size={32} />
+              </div>
+              <div className="text-left">
+                <h4 className="font-headline text-2xl font-black uppercase italic leading-none text-on-background">MIS RUTINAS</h4>
+                <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.2em] text-on-surface-variant/40">{routines.length} PLANES CONFIGURADOS</p>
+              </div>
+            </div>
+            <ChevronRight size={28} className="text-on-surface-variant/30" />
+          </button>
+        </section>
     </PageShell>
   );
 };

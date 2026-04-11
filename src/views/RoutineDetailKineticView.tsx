@@ -11,12 +11,14 @@ import {
   RotateCcw,
   Trash2,
   X,
+  Timer,
+  Check
 } from 'lucide-react';
 import { RoutineSyncPendingBadge } from '../components/RoutineSyncPendingBadge';
 import { PageShell } from '../components/layout/PageShell';
-import type { Exercise, Routine, View } from '../types';
+import type { ActiveSession, Exercise, Routine, View } from '../types';
 
-const DEFAULT_REST_SECONDS = 90;
+const DEFAULT_REST_SECONDS = 0;
 
 const formatClock = (value: number) => String(value).padStart(2, '0');
 
@@ -175,8 +177,11 @@ const RestTimerModal = ({ open, onClose }: { open: boolean; onClose: () => void 
         </p>
       </div>
 
-      <div className="mt-8 grid grid-cols-3 gap-3">
+      <div className="mt-8 grid grid-cols-3 gap-2 sm:gap-3">
         {[
+          { label: '-10s', value: -10 },
+          { label: '-30s', value: -30 },
+          { label: '-1m', value: -60 },
           { label: '+10s', value: 10 },
           { label: '+30s', value: 30 },
           { label: '+1m', value: 60 },
@@ -184,7 +189,7 @@ const RestTimerModal = ({ open, onClose }: { open: boolean; onClose: () => void 
           <button
             key={item.label}
             onClick={() => adjustTimer(item.value)}
-            className="rounded-[0.85rem] bg-surface-container-high px-4 py-3 text-sm font-bold text-on-surface-variant transition-colors hover:text-on-surface"
+            className="rounded-[0.85rem] bg-surface-container-high px-2 py-3 text-sm font-bold text-on-surface-variant transition-colors hover:text-on-surface hover:bg-white/5 active:scale-95"
           >
             {item.label}
           </button>
@@ -326,6 +331,10 @@ export const RoutineDetailKineticView = ({
   onSelectRoutineDay,
   openDayId,
   onOpenDayChange,
+  activeSession,
+  onStartSession,
+  onEndSession,
+  onToggleExerciseComplete,
 }: {
   setView: (v: View) => void;
   routine: Routine | null;
@@ -337,6 +346,10 @@ export const RoutineDetailKineticView = ({
   onSelectRoutineDay: (dayId: string | null) => void;
   openDayId: string | null;
   onOpenDayChange: (dayId: string | null) => void;
+  activeSession: ActiveSession | null;
+  onStartSession: (routineId: string, routineName: string, routineDayId: string) => Promise<void>;
+  onEndSession: () => Promise<void>;
+  onToggleExerciseComplete: (exerciseInstanceId: string) => void;
 }) => {
   const [isRestTimerOpen, setIsRestTimerOpen] = useState(false);
   const [isSessionTimerOpen, setIsSessionTimerOpen] = useState(false);
@@ -347,6 +360,7 @@ export const RoutineDetailKineticView = ({
   const [confirmRoutineDelete, setConfirmRoutineDelete] = useState(false);
   const [confirmDayDeleteId, setConfirmDayDeleteId] = useState<string | null>(null);
   const [confirmExerciseDelete, setConfirmExerciseDelete] = useState<{ exId: string; dayId: string } | null>(null);
+  const [confirmEndSession, setConfirmEndSession] = useState(false);
 
   useEffect(() => {
     // Solo scrollear al inicio al montar
@@ -375,14 +389,23 @@ export const RoutineDetailKineticView = ({
           onSettingsClick={() => setView('settings')}
           contentClassName="max-w-md"
           headerChildren={
-            <button
-              onClick={() => setIsRestTimerOpen(true)}
-              className="flex items-center gap-2 rounded-full border border-secondary/25 bg-surface-container-high/90 px-3 py-2 text-secondary shadow-[0_12px_32px_rgba(255,92,0,0.15)]"
-            >
-              <AlarmClock size={15} strokeWidth={2.4} />
-              <span className="text-[0.62rem] font-bold uppercase tracking-[0.2em] text-on-surface-variant">Timer</span>
-              <span className="font-headline text-[1rem] font-semibold uppercase tracking-[0.08em] text-secondary">Descanso</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setIsRestTimerOpen(true)}
+                className="flex items-center gap-2 rounded-full border border-secondary/25 bg-surface-container-high/90 px-3 py-2 text-secondary shadow-[0_12px_32px_rgba(255,92,0,0.15)] hover:bg-surface-bright transition-colors"
+                title="Reloj de Descanso"
+              >
+                <AlarmClock size={15} strokeWidth={2.4} />
+                <span className="font-headline text-[1rem] font-semibold uppercase tracking-[0.08em] text-secondary">Descanso</span>
+              </button>
+              <button
+                onClick={() => setIsSessionTimerOpen(true)}
+                className="flex items-center justify-center p-2.5 rounded-full border border-white/10 bg-surface-container-high text-on-surface-variant hover:text-white hover:bg-white/10 transition-colors"
+                title="Cronómetro temporal"
+              >
+                <Timer size={18} />
+              </button>
+            </div>
           }
         >
           <section className="space-y-6 text-center">
@@ -426,14 +449,23 @@ export const RoutineDetailKineticView = ({
         onSettingsClick={() => setView('settings')}
         contentClassName="max-w-md"
         headerChildren={
-          <button
-            onClick={() => setIsRestTimerOpen(true)}
-            className="flex items-center gap-2 rounded-full border border-secondary/25 bg-surface-container-high/90 px-3 py-2 text-secondary shadow-[0_12px_32px_rgba(255,92,0,0.15)]"
-          >
-            <AlarmClock size={15} strokeWidth={2.4} />
-            <span className="text-[0.62rem] font-bold uppercase tracking-[0.2em] text-on-surface-variant">Timer</span>
-            <span className="font-headline text-[1rem] font-semibold uppercase tracking-[0.08em] text-secondary">Descanso</span>
-          </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setIsRestTimerOpen(true)}
+                className="flex items-center gap-2 rounded-full border border-secondary/25 bg-surface-container-high/90 px-3 py-2 text-secondary shadow-[0_12px_32px_rgba(255,92,0,0.15)] hover:bg-surface-bright transition-colors"
+                title="Reloj de Descanso"
+              >
+                <AlarmClock size={15} strokeWidth={2.4} />
+                <span className="font-headline text-[1rem] font-semibold uppercase tracking-[0.08em] text-secondary">Descanso</span>
+              </button>
+              <button
+                onClick={() => setIsSessionTimerOpen(true)}
+                className="flex items-center justify-center p-2.5 rounded-full border border-white/10 bg-surface-container-high text-on-surface-variant hover:text-white hover:bg-white/10 transition-colors"
+                title="Cronómetro temporal"
+              >
+                <Timer size={18} />
+              </button>
+            </div>
         }
       >
         <section className="mb-6">
@@ -498,8 +530,12 @@ export const RoutineDetailKineticView = ({
               <div key={day.id} className={`overflow-hidden rounded-[1.2rem] ${isOpen ? 'border-l-4 border-primary bg-surface-container' : 'bg-surface-container'}`}>
                 <div className="flex items-center bg-surface-container-high/30 pr-3">
                   <button
-                    onClick={() => onOpenDayChange(isOpen ? null : day.id)}
-                    className={`flex flex-1 items-center justify-between gap-3 p-4 text-left transition-colors sm:p-5 ${isOpen ? 'bg-surface-container-high/55' : 'hover:bg-surface-bright/35'}`}
+                    onClick={() => {
+                      if (activeSession) return; // Bloquear si hay sesión activa
+                      onOpenDayChange(isOpen ? null : day.id);
+                    }}
+                    disabled={!!activeSession}
+                    className={`flex flex-1 items-center justify-between gap-3 p-4 text-left transition-colors sm:p-5 ${isOpen ? 'bg-surface-container-high/55' : 'hover:bg-surface-bright/35'} ${activeSession ? 'cursor-not-allowed' : ''}`}
                   >
                     <div className="flex min-w-0 items-center gap-4">
                       <span className={`font-headline text-[1.4rem] font-semibold sm:text-[1.6rem] ${isOpen ? 'text-primary' : 'text-on-surface-variant'}`}>
@@ -513,40 +549,60 @@ export const RoutineDetailKineticView = ({
                     <ChevronDown size={18} className={`shrink-0 text-on-surface-variant transition-transform ${isOpen ? 'rotate-180' : ''}`} />
                   </button>
                   <button
-                    onClick={() => setConfirmDayDeleteId(day.id)}
-                    className="flex h-10 w-10 items-center justify-center rounded-full text-on-surface-variant/40 transition-colors hover:bg-secondary/10 hover:text-secondary active:scale-95"
-                    title="Eliminar este día"
+                    onClick={() => {
+                      if (!activeSession) setConfirmDayDeleteId(day.id);
+                    }}
+                    disabled={!!activeSession}
+                    className={`flex h-10 w-10 items-center justify-center rounded-full text-on-surface-variant/40 transition-colors hover:bg-secondary/10 hover:text-secondary active:scale-95 ${activeSession ? 'opacity-30 cursor-not-allowed' : ''}`}
+                    title={activeSession ? 'No disponible durante entrenamiento' : 'Eliminar este día'}
                   >
                     <Trash2 size={16} />
                   </button>
                 </div>
 
                 {isOpen && (
-                  <div className="space-y-4 px-4 pb-4 sm:px-5 sm:pb-5">
+                  <div className="space-y-6 px-4 pb-4 sm:px-5 sm:pb-5">
                     {day.exercises.length > 0 ? (
-                      day.exercises.map((dayEx, index) => (
-                        <div key={dayEx.id || dayEx.exercise.name}>
+                      day.exercises.map((dayEx, index) => {
+                        const isCompleted = activeSession?.routineId === routine.id && activeSession.completedExercises.includes(dayEx.id);
+                        return (
+                        <div key={dayEx.id || dayEx.exercise.name} className={`transition-all duration-300 ${isCompleted ? 'opacity-40 scale-[0.98]' : 'opacity-100 scale-100'}`}>
                           <div className="mb-2 flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <h4 className="font-sans text-[1.05rem] font-semibold text-on-surface">{dayEx.exercise.name}</h4>
-                              <p className="text-[9px] font-bold uppercase tracking-widest text-on-surface-variant/60">{dayEx.exercise.muscleGroup || dayEx.exercise.muscle}</p>
+                            <div className="min-w-0 flex-1">
+                              <h4 className={`font-sans text-[1.15rem] font-semibold leading-tight text-on-surface ${isCompleted ? 'line-through' : ''}`}>{dayEx.exercise.name}</h4>
+                              <p className="text-[9px] font-bold uppercase tracking-widest text-on-surface-variant/60 mt-0.5">{dayEx.exercise.muscleGroup || dayEx.exercise.muscle}</p>
                             </div>
                             <div className="flex items-center gap-1">
-                              <button
-                                onClick={() => {
-                                  onSelectRoutineDay(day.id);
-                                  onEditExercise(dayEx.exercise, dayEx.id, day.id);
-                                }}
-                                className="flex h-8 w-8 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:bg-white/10"
-                              >
-                                <Edit2 size={14} />
-                              </button>
-                              <button
-                                onClick={() => setConfirmExerciseDelete({ exId: dayEx.id, dayId: day.id })}
-                                className="flex h-8 w-8 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:bg-secondary/10 hover:text-secondary"
-                              >
-                                <Trash2 size={14} />
-                              </button>
+                              {activeSession?.routineId === routine.id ? (
+                                <button
+                                  onClick={() => onToggleExerciseComplete(dayEx.id)}
+                                  className={`flex h-10 w-10 items-center justify-center rounded-full border-[2.5px] transition-colors ${
+                                    isCompleted 
+                                      ? 'bg-primary border-primary text-black shadow-[0_0_15px_rgba(209,252,0,0.4)]' 
+                                      : 'border-white/20 text-white/40 hover:border-primary/50 bg-black/40'
+                                  }`}
+                                >
+                                  {isCompleted && <Check size={20} strokeWidth={3.5} />}
+                                </button>
+                              ) : (
+                                <>
+                                  <button
+                                    onClick={() => {
+                                      onSelectRoutineDay(day.id);
+                                      onEditExercise(dayEx.exercise, dayEx.id, day.id);
+                                    }}
+                                    className="flex h-8 w-8 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:bg-white/10"
+                                  >
+                                    <Edit2 size={14} />
+                                  </button>
+                                  <button
+                                    onClick={() => setConfirmExerciseDelete({ exId: dayEx.id, dayId: day.id })}
+                                    className="flex h-8 w-8 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:bg-secondary/10 hover:text-secondary"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                </>
+                              )}
                             </div>
                           </div>
                           <div className="grid grid-cols-3 gap-4">
@@ -574,7 +630,8 @@ export const RoutineDetailKineticView = ({
                           )}
                           {index < day.exercises.length - 1 && <div className="mt-4 h-px bg-white/6"></div>}
                         </div>
-                      ))
+                        );
+                      })
                     ) : (
                       <p className="py-2 text-sm text-on-surface-variant">Este día todavía no tiene ejercicios cargados.</p>
                     )}
@@ -587,45 +644,44 @@ export const RoutineDetailKineticView = ({
 
         <section className="mt-8 space-y-3 pb-20">
           <button
-            onClick={() => onEditRoutine(routine)}
-            className="neon-button flex w-full items-center justify-center gap-2 rounded-[0.9rem] py-4 font-sans text-sm font-bold uppercase tracking-[0.22em] transition-all active:scale-[0.985]"
+            onClick={() => !activeSession && onEditRoutine(routine)}
+            disabled={!!activeSession}
+            className={`neon-button flex w-full items-center justify-center gap-2 rounded-[0.9rem] py-4 font-sans text-sm font-bold uppercase tracking-[0.22em] transition-all active:scale-[0.985] ${activeSession ? 'opacity-40 cursor-not-allowed brightness-50' : ''}`}
           >
             <Edit2 size={16} strokeWidth={2.5} />
             Editar rutina
           </button>
           <button
-            onClick={() => setConfirmRoutineDelete(true)}
-            className="flex w-full items-center justify-center gap-2 rounded-[0.9rem] border border-secondary/18 bg-surface-container-low py-4 font-sans text-sm font-bold uppercase tracking-[0.22em] text-secondary transition-all hover:bg-secondary/10 active:scale-[0.985]"
+            onClick={() => !activeSession && setConfirmRoutineDelete(true)}
+            disabled={!!activeSession}
+            className={`flex w-full items-center justify-center gap-2 rounded-[0.9rem] border border-secondary/18 bg-surface-container-low py-4 font-sans text-sm font-bold uppercase tracking-[0.22em] text-secondary transition-all hover:bg-secondary/10 active:scale-[0.985] ${activeSession ? 'opacity-30 cursor-not-allowed' : ''}`}
           >
             <Trash2 size={16} strokeWidth={2.5} />
             Eliminar Rutina
           </button>
         </section>
 
-        <div className="fixed bottom-32 right-6 z-50 sm:right-8">
-          <button
-            type="button"
-            onClick={() => setIsSessionTimerOpen(true)}
-            aria-label={
-              isSessionTimerRunning
-                ? 'Cronometro de sesion activo: abrir (en marcha)'
-                : 'Abrir cronometro de sesion'
-            }
-            className={`relative flex h-16 w-16 items-center justify-center rounded-[1rem] bg-primary text-black shadow-[0_20px_40px_rgba(209,252,0,0.22)] transition-all hover:scale-105 active:scale-90 ${
-              isSessionTimerRunning ? 'ring-2 ring-secondary ring-offset-2 ring-offset-background' : ''
-            }`}
-          >
-            {isSessionTimerRunning ? (
-              <span
-                className="absolute right-1.5 top-1.5 flex h-3 w-3"
-                aria-hidden
-              >
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-secondary opacity-75" />
-                <span className="relative inline-flex h-3 w-3 rounded-full bg-secondary shadow-[0_0_10px_rgba(255,92,0,0.9)]" />
-              </span>
-            ) : null}
-            <Play size={28} fill="currentColor" className="ml-1" />
-          </button>
+        <div className="fixed bottom-[8.5rem] sm:bottom-36 left-0 right-0 z-[60] px-4 pointer-events-none flex justify-center pb-safe">
+          {activeSession?.routineId === routine.id ? (
+            <button
+               onClick={() => setConfirmEndSession(true)}
+               className="pointer-events-auto w-full max-w-md h-[4.5rem] rounded-[1.2rem] bg-secondary text-black shadow-[0_20px_40px_rgba(209,252,0,0.25),_0_-10px_30px_rgba(0,0,0,0.6)] transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3 font-headline text-[1.15rem] leading-none font-bold uppercase tracking-[0.15em] border border-secondary/50"
+            >
+               <X strokeWidth={3} size={22} className="mt-0.5" />
+               Finalizar Entrenamiento
+            </button>
+          ) : (
+            <button
+              onClick={() => {
+                if (openDayId) onStartSession(routine.id, routine.name, openDayId);
+              }}
+              disabled={!openDayId}
+              className={`pointer-events-auto w-full max-w-md h-[4.5rem] rounded-[1.2rem] bg-primary text-black shadow-[0_20px_40px_rgba(255,107,0,0.3),_0_-10px_30px_rgba(0,0,0,0.6)] transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3 font-headline text-[1.15rem] leading-none font-bold uppercase tracking-[0.15em] border border-primary/20 ${!openDayId ? 'opacity-50 grayscale' : ''}`}
+            >
+              <Play fill="currentColor" size={22} className="mt-0.5" />
+              {openDayId ? 'Iniciar Entrenamiento' : 'Selecciona un día'}
+            </button>
+          )}
         </div>
       </PageShell>
 
@@ -680,6 +736,16 @@ export const RoutineDetailKineticView = ({
           }
         }}
         onCancel={() => setConfirmExerciseDelete(null)}
+      />
+      <ConfirmDialog
+        open={confirmEndSession}
+        title="¿Finalizar entrenamiento?"
+        message="¿Estás seguro de que deseas terminar tu sesión actual? Se guardará el progreso de los ejercicios marcados."
+        onConfirm={() => {
+          onEndSession();
+          setConfirmEndSession(false);
+        }}
+        onCancel={() => setConfirmEndSession(false)}
       />
     </>
   );
