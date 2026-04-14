@@ -241,18 +241,19 @@ export type Database = {
         Row: {
           id: string;
           session_id: string;
-          routine_day_id: string;
+          routine_day_id: string | null;
           started_at: string | null;
           ended_at: string | null;
         };
         Insert: {
           id?: string;
           session_id: string;
-          routine_day_id: string;
+          routine_day_id?: string | null;
           started_at?: string | null;
           ended_at?: string | null;
         };
         Update: {
+          routine_day_id?: string | null;
           started_at?: string | null;
           ended_at?: string | null;
         };
@@ -262,18 +263,19 @@ export type Database = {
         Row: {
           id: string;
           session_day_log_id: string;
-          exercise_id: string;
+          exercise_id: string | null;
           position: number | null;
           notes: string | null;
         };
         Insert: {
           id?: string;
           session_day_log_id: string;
-          exercise_id: string;
+          exercise_id?: string | null;
           position?: number | null;
           notes?: string | null;
         };
         Update: {
+          exercise_id?: string | null;
           position?: number | null;
           notes?: string | null;
         };

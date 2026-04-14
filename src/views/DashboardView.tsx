@@ -36,6 +36,8 @@ export const DashboardView = ({
     window.scrollTo(0, 0);
     
     const fetchStats = async () => {
+      if (!supabase) return;
+
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
       
@@ -61,13 +63,14 @@ export const DashboardView = ({
         .order('ended_at', { ascending: false });
 
       if (data && !error) {
+        const sessions = data as any[];
         const days = [0, 0, 0, 0, 0, 0, 0];
         let totalExercises = 0;
         let totalVolume = 0;
         let totalDuration = 0;
         let completedSessionsCount = 0;
         
-        const weekSessions = (data as any[]).filter(s => new Date(s.ended_at) >= oneWeekAgo);
+        const weekSessions = sessions.filter(s => new Date(s.ended_at) >= oneWeekAgo);
         
         weekSessions.forEach(sess => {
           const date = new Date(sess.ended_at);
@@ -103,8 +106,8 @@ export const DashboardView = ({
         setRealWeeklyVolume(totalVolume);
         setWeeklyAvgDuration(completedSessionsCount > 0 ? Math.round(totalDuration / completedSessionsCount) : 0);
 
-        if (data.length > 0) {
-           const lastSess = data[0];
+        if (sessions.length > 0) {
+           const lastSess = sessions[0];
            if (lastSess.started_at && lastSess.ended_at) {
              const duration = (new Date(lastSess.ended_at).getTime() - new Date(lastSess.started_at).getTime()) / (1000 * 60);
              setLastSessionDuration(Math.round(duration));

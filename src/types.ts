@@ -81,7 +81,7 @@ export interface ActiveSession {
   id: string;
   routineId: string | null;
   routineName: string;
-  routineDayId?: string;
+  routineDayId: string;
   startTimeMs: number;
   completedExercises: string[];
 }

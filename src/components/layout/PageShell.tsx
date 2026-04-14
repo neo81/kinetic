@@ -11,9 +11,11 @@ type PageShellProps = {
   showHeader?: boolean;
   showFooter?: boolean;
   showProfile?: boolean;
+  showSettings?: boolean;
   containerClassName?: string;
   contentClassName?: string;
   onProfileClick?: () => void;
+  onSettingsClick?: () => void;
 };
 
 export const PageShell = ({
@@ -24,9 +26,11 @@ export const PageShell = ({
   showHeader = true,
   showFooter = true,
   showProfile = true,
+  showSettings = true,
   containerClassName = '',
   contentClassName = '',
   onProfileClick,
+  onSettingsClick,
 }: PageShellProps) => (
   <div className={`relative min-h-screen overflow-hidden bg-background text-on-background ${showFooter ? 'pb-32' : ''} ${containerClassName}`.trim()}>
     <div className="pointer-events-none absolute inset-0 z-0 opacity-10">

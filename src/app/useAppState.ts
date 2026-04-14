@@ -13,6 +13,8 @@ type AppBannerState = {
   message: string;
 };
 
+const ACTIVE_SESSION_STORAGE_KEY = 'kinetic.activeSession';
+
 const getErrorMessage = (error: unknown, fallbackMessage: string) => {
   if (error instanceof RoutineRepositoryError) {
     switch (error.code) {
@@ -62,6 +64,32 @@ const mapProfileRow = (
   bio: profile.bio,
   fitnessLevel: profile.fitness_level,
 });
+
+const loadPersistedActiveSession = (): ActiveSession | null => {
+  if (typeof window === 'undefined') return null;
+
+  try {
+    const raw = window.localStorage.getItem(ACTIVE_SESSION_STORAGE_KEY);
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw) as ActiveSession;
+    if (!parsed?.id || !parsed.routineId || !parsed.routineDayId) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+};
+
+const persistActiveSession = (session: ActiveSession | null) => {
+  if (typeof window === 'undefined') return;
+
+  if (!session) {
+    window.localStorage.removeItem(ACTIVE_SESSION_STORAGE_KEY);
+    return;
+  }
+
+  window.localStorage.setItem(ACTIVE_SESSION_STORAGE_KEY, JSON.stringify(session));
+};
 
 export const useAppState = () => {
   const [view, setView] = useState<View>('login');
@@ -137,6 +165,33 @@ export const useAppState = () => {
     return mapped;
   }, []);
 
+  const syncActiveSessionFromStorage = useCallback(async () => {
+    if (!supabase) return;
+
+    const persisted = loadPersistedActiveSession();
+    if (!persisted?.id) {
+      setActiveSession(null);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from('routine_sessions')
+      .select('id, routine_id, status')
+      .eq('id', persisted.id)
+      .maybeSingle();
+
+    if (error || !data || data.status !== 'in_progress' || !data.routine_id) {
+      persistActiveSession(null);
+      setActiveSession(null);
+      return;
+    }
+
+    setActiveSession({
+      ...persisted,
+      routineId: data.routine_id,
+    });
+  }, []);
+
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [view]);
@@ -165,10 +220,13 @@ export const useAppState = () => {
             console.error('Error cargando perfil:', error);
           }
           await syncRoutines();
+          await syncActiveSessionFromStorage();
           setView((current) => current === 'login' ? 'dashboard' : current);
         } else {
           setRoutines(initialRoutines);
           setProfile(null);
+          setActiveSession(null);
+          persistActiveSession(null);
           // Solo redirigir si no estamos en medio de un flujo de OAuth
           if (!window.location.hash.includes('access_token') && !window.location.search.includes('code=')) {
             setView('login');
@@ -198,7 +256,7 @@ export const useAppState = () => {
       clearTimeout(fallbackTimeout);
       subscription.unsubscribe();
     };
-  }, [ensureProfileExists, loadProfile, syncRoutines]);
+  }, [ensureProfileExists, loadProfile, syncActiveSessionFromStorage, syncRoutines]);
 
   const handleLoginWithGoogle = async (): Promise<{ started: boolean; error?: string }> => {
     if (!supabase) {
@@ -252,8 +310,10 @@ export const useAppState = () => {
     setEditingInstanceId(null);
     setNavigationSource('dashboard');
     setOpenDayId(null);
+    setActiveSession(null);
     setAppBanner(null);
     setProfile(null);
+    persistActiveSession(null);
     setView('login');
 
     if (supabase) {
@@ -295,8 +355,16 @@ export const useAppState = () => {
     return mapped;
   };
 
-  const startSession = async (routineId: string, routineName: string, routineDayId?: string) => {
+  const startSession = async (routineId: string, routineName: string, routineDayId: string) => {
     if (!supabase || !user) return;
+    if (activeSession) {
+      setAppBanner({
+        level: 'warning',
+        title: 'Sesion en curso',
+        message: 'Finaliza el entrenamiento activo antes de iniciar otro.',
+      });
+      return;
+    }
     try {
       const { data, error } = await supabase.from('routine_sessions').insert({
         routine_id: routineId,
@@ -307,14 +375,16 @@ export const useAppState = () => {
 
       if (error) throw error;
       
-      setActiveSession({
+      const nextSession: ActiveSession = {
         id: data.id,
         routineId,
         routineName,
         routineDayId,
         startTimeMs: Date.now(),
         completedExercises: []
-      });
+      };
+      setActiveSession(nextSession);
+      persistActiveSession(nextSession);
       setAppBanner({
         level: 'warning',
         title: 'Entrenamiento Iniciado',
@@ -334,34 +404,42 @@ export const useAppState = () => {
     setActiveSession((prev) => {
       if (!prev) return prev;
       const isCompleted = prev.completedExercises.includes(exerciseInstanceId);
-      return {
+      const nextSession = {
         ...prev,
         completedExercises: isCompleted
           ? prev.completedExercises.filter(id => id !== exerciseInstanceId)
           : [...prev.completedExercises, exerciseInstanceId]
       };
+      persistActiveSession(nextSession);
+      return nextSession;
     });
   };
 
   const endSession = async () => {
     if (!supabase || !activeSession) return;
+    let didFinishSuccessfully = false;
     try {
+      const endedAt = new Date().toISOString();
+      const activeRoutine =
+        currentRoutine?.id === activeSession.routineId
+          ? currentRoutine
+          : routines.find((routine) => routine.id === activeSession.routineId) ?? null;
       if (activeSession.id) {
         const { error } = await supabase.from('routine_sessions').update({
           status: 'completed',
-          ended_at: new Date().toISOString()
+          ended_at: endedAt
         }).eq('id', activeSession.id);
         
         if (error) throw error;
 
-        if (activeSession.completedExercises.length > 0 && activeSession.routineDayId && currentRoutine) {
-          const currentDay = currentRoutine.dayEntries?.find(d => d.id === activeSession.routineDayId);
+        if (activeSession.completedExercises.length > 0 && activeRoutine) {
+          const currentDay = activeRoutine.dayEntries?.find(d => d.id === activeSession.routineDayId);
           if (currentDay) {
             const { data: dayLog, error: dayLogError } = await supabase.from('session_day_logs').insert({
                session_id: activeSession.id,
                routine_day_id: currentDay.id,
                started_at: new Date(activeSession.startTimeMs).toISOString(),
-               ended_at: new Date().toISOString()
+               ended_at: endedAt
             }).select('id').single();
 
             if (!dayLogError && dayLog) {
@@ -381,11 +459,13 @@ export const useAppState = () => {
                    .single();
 
                  if (!exLogError && exLog && exDef.exercise.sets) {
-                   const setLogs = exDef.exercise.sets.map(s => ({
+                   const setLogs = exDef.exercise.sets.map((s, index) => ({
                      session_exercise_log_id: exLog.id,
-                     set_number: s.setNumber || 1,
+                     set_number: s.setNumber || index + 1,
                      reps: s.reps || 0,
                      weight: s.weight || 0,
+                     duration_minutes: s.durationMinutes || 0,
+                     duration_seconds: s.durationSeconds || 0,
                      completed: true
                    }));
                    if (setLogs.length > 0) {
@@ -396,17 +476,27 @@ export const useAppState = () => {
             }
           }
         }
+        didFinishSuccessfully = true;
       }
     } catch (error) {
       console.error('Error finalizando sesión', error);
-    } finally {
-      setActiveSession(null);
-      syncRoutines();
       setAppBanner({
-        level: 'warning',
-        title: 'Entrenamiento Finalizado',
-        message: '¡Excelente trabajo! Sesión guardada.',
+        level: 'error',
+        title: 'No se pudo finalizar',
+        message: 'Verifica tu conexion y prueba nuevamente.',
       });
+      return;
+    } finally {
+      if (didFinishSuccessfully) {
+        setActiveSession(null);
+        persistActiveSession(null);
+        syncRoutines();
+        setAppBanner({
+          level: 'warning',
+          title: 'Entrenamiento Finalizado',
+          message: 'Excelente trabajo. Sesion guardada.',
+        });
+      }
     }
   };
 

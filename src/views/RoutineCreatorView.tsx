@@ -266,7 +266,7 @@ export const RoutineCreatorView = ({
                           e.stopPropagation();
                           setItemToTrash({ type: 'day', id: day.id });
                         }}
-                        className="absolute -right-1 -top-1 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-red-500 text-white shadow-xl opacity-0 transition-all hover:scale-110 group-hover:opacity-100"
+                        className="absolute -right-1 -top-1 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-red-500 text-white shadow-xl transition-all hover:scale-110 active:scale-95"
                         title="Eliminar día"
                       >
                         <Trash2 size={13} />
@@ -305,7 +305,7 @@ export const RoutineCreatorView = ({
                           key={item.id} 
                           className="group relative flex items-center justify-between rounded-[1rem] border border-white/5 bg-surface-container-low/60 px-5 py-4 transition-shadow hover:shadow-[0_8px_30px_rgb(0,0,0,0.4)] hover:border-primary/20"
                         >
-                          <div className="min-w-0 pr-4">
+                          <div className="min-w-0 flex-1 pr-3">
                             <div className="text-[0.9rem] font-bold text-on-surface truncate tracking-tight">{item.exercise.name}</div>
                             <div className="mt-1 flex items-center gap-2">
                               <span className="text-[0.62rem] font-black uppercase tracking-[0.15em] text-primary bg-primary/10 px-1.5 py-0.5 rounded">
@@ -317,13 +317,13 @@ export const RoutineCreatorView = ({
                               </span>
                             </div>
                           </div>
-                          <div className="flex items-center gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
+                          <div className="flex shrink-0 items-center gap-2 opacity-100">
                             <button 
                               onClick={(e) => {
                                 e.stopPropagation();
                                 onEditExercise(item.exercise, item.id);
                               }}
-                              className="flex h-9 w-9 items-center justify-center rounded-xl bg-surface-container-highest text-on-surface-variant transition-all hover:bg-primary hover:text-black active:scale-90"
+                              className="flex h-10 w-10 items-center justify-center rounded-xl bg-surface-container-highest text-on-surface-variant transition-all hover:bg-primary hover:text-black active:scale-90"
                               title="Editar"
                             >
                               <Edit2 size={15} strokeWidth={2.5} />
@@ -333,7 +333,7 @@ export const RoutineCreatorView = ({
                                 e.stopPropagation();
                                 setItemToTrash({ type: 'exercise', id: item.id });
                               }}
-                              className="flex h-9 w-9 items-center justify-center rounded-xl bg-surface-container-highest text-on-surface-variant transition-all hover:bg-red-500 hover:text-white active:scale-90"
+                              className="flex h-10 w-10 items-center justify-center rounded-xl bg-surface-container-highest text-on-surface-variant transition-all hover:bg-red-500 hover:text-white active:scale-90"
                               title="Eliminar"
                             >
                               <Trash2 size={15} strokeWidth={2.5} />
