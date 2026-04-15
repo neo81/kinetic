@@ -2,11 +2,16 @@ import { AnimatePresence, motion } from 'motion/react';
 import { Play } from 'lucide-react';
 import { AppRouter } from './app/AppRouter';
 import { useAppState } from './app/useAppState';
+import { useSync } from './hooks/useSync';
+import { useSyncState } from './hooks/useSyncState';
 import { AppErrorBanner } from './components/layout/AppErrorBanner';
+import { SyncStatusBanner } from './components/layout/SyncStatusBanner';
 import { SplashScreen } from './components/layout/SplashScreen';
 
 export default function AppRoot() {
   const app = useAppState();
+  useSync();
+  const syncState = useSyncState();
 
   const handleReturnToSession = () => {
     if (app.activeSession?.routineId) {
@@ -30,6 +35,8 @@ export default function AppRoot() {
           onDismiss={app.clearAppBanner}
         />
       )}
+
+      <SyncStatusBanner syncState={syncState} />
 
       <AnimatePresence mode="wait">
         {app.isAppLoading && <SplashScreen key="splash" />}
@@ -95,6 +102,8 @@ export default function AppRoot() {
             startSession={app.startSession}
             endSession={app.endSession}
             onToggleExerciseComplete={app.toggleExerciseComplete}
+            onCaptureSetPerformance={app.captureSetPerformance}
+            onSwitchSessionDay={app.switchSessionDay}
           />
         </motion.div>
       </AnimatePresence>

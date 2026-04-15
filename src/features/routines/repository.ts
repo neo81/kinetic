@@ -1,6 +1,6 @@
 import { supabase } from '../../lib/supabase/client';
 import type { Database } from '../../lib/supabase/database.types';
-import type { Exercise, Routine } from '../../types';
+import type { Exercise, Routine, CompletedSession, UserGoals, WeeklyStats, DashboardData } from '../../types';
 import { mapSupabaseErrorCode, RoutineRepositoryError } from './errors';
 import { loadCachedRoutines, saveCachedRoutines } from './localRoutineCache';
 
@@ -156,7 +156,7 @@ const buildRoutineDayInputs = (
   const sortedDays = [...input.days].sort((left, right) => left - right);
   const currentDayEntries = currentRoutine?.dayEntries ?? [];
   const currentCoreDay = currentDayEntries.find((day) => day.dayType === 'core');
-  const shouldIncludeCore = input.focus?.toLowerCase() === 'dia core';
+  const shouldIncludeCore = !!currentCoreDay || input.focus?.toLowerCase() === 'dia core';
 
   return [
     ...(shouldIncludeCore
@@ -240,6 +240,7 @@ const mapExercise = (
   name: routineExercise.exercises?.name || 'Ejercicio sin nombre',
   description: (routineExercise.exercises as any)?.description || undefined,
   muscleGroup: routineExercise.exercises?.muscle_groups?.name || 'Sin grupo',
+  measureUnit: (routineExercise as any).measure_unit || 'kg',
   sets:
     routineExercise.exercise_sets?.map((set) => ({
       setNumber: set.set_number,
@@ -394,6 +395,7 @@ const syncRoutineDayExercises = async (
       position: index + 1,
       rest_seconds: item.restSeconds ?? null,
       notes: item.notes ?? item.exercise.notes ?? null,
+      measure_unit: (item.exercise.measureUnit ?? 'kg') as any,
     };
 
     const { data: savedRow, error: upsertRowError } = await supabase
@@ -462,6 +464,7 @@ const listSupabaseRoutines = async (): Promise<Routine[] | null> => {
             position,
             rest_seconds,
             notes,
+            measure_unit,
             created_at,
             exercises (
               id,
@@ -621,6 +624,217 @@ const saveSupabaseRoutine = async (
   return routines?.find((routine) => routine.id === routineId) ?? null;
 };
 
+const fetchCompletedSessions = async (userId: string): Promise<CompletedSession[]> => {
+  if (!supabase) {
+    return [];
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('routine_sessions')
+      .select(`
+        id,
+        started_at,
+        ended_at,
+        routines (
+          name
+        ),
+        session_day_logs (
+          id,
+          routine_day_id,
+          routine_days (
+            day_type,
+            day_number
+          ),
+          session_exercise_logs (
+            id,
+            session_set_logs (
+              reps,
+              weight,
+              duration_minutes,
+              duration_seconds
+            )
+          )
+        )
+      `)
+      .eq('user_id', userId)
+      .eq('status', 'completed')
+      .order('ended_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching completed sessions:', error);
+      return [];
+    }
+
+    if (!data || data.length === 0) {
+      return [];
+    }
+
+    // Process and aggregate session data
+    const sessions: CompletedSession[] = data.map((session: any) => {
+      const startDate = new Date(session.started_at);
+      const endDate = new Date(session.ended_at);
+      const durationMs = endDate.getTime() - startDate.getTime();
+
+      const dayLogs = session.session_day_logs || [];
+      const dayCount = dayLogs.length;
+
+      // Build day info string (e.g., "Core + Día 1", "Día 1, Día 2")
+      const dayNames = dayLogs
+        .map((dayLog: any) => {
+          if (dayLog.routine_days?.day_type === 'core') {
+            return '⚡ Core';
+          }
+          const dayNum = dayLog.routine_days?.day_number ?? 0;
+          return `Día ${dayNum}`;
+        })
+        .join(', ');
+
+      // Count exercises and calculate total volume (weight and time)
+      let exerciseCount = 0;
+      let totalVolumeWeight = 0;
+      let totalVolumeMinutes = 0;
+
+      dayLogs.forEach((dayLog: any) => {
+        const exercises = dayLog.session_exercise_logs || [];
+        exerciseCount += exercises.length;
+
+        exercises.forEach((exercise: any) => {
+          const sets = exercise.session_set_logs || [];
+          sets.forEach((set: any) => {
+            // Weight-based exercises (reps × weight)
+            const reps = parseFloat(set.reps) || 0;
+            const weight = parseFloat(set.weight) || 0;
+            if (weight > 0) {
+              totalVolumeWeight += reps * weight;
+            }
+
+            // Time-based exercises (duration in minutes)
+            const durationMinutes = parseFloat(set.duration_minutes) || 0;
+            const durationSeconds = parseFloat(set.duration_seconds) || 0;
+            totalVolumeMinutes += durationMinutes + durationSeconds / 60;
+          });
+        });
+      });
+
+      return {
+        id: session.id,
+        routineName: session.routines?.name || 'Rutina sin nombre',
+        endedAt: endDate,
+        startedAt: startDate,
+        durationMs,
+        dayCount,
+        dayInfo: dayNames || `${dayCount} días`,
+        exerciseCount,
+        totalVolume: totalVolumeWeight, // For backward compatibility
+        totalVolumeWeight,
+        totalVolumeMinutes,
+      };
+    });
+
+    return sessions;
+  } catch (error) {
+    console.error('Error in fetchCompletedSessions:', error);
+    return [];
+  }
+};
+
+// Helper function to calculate percentage change between two values
+const calculatePercentageChange = (current: number, previous: number): number => {
+  if (previous === 0) {
+    return current > 0 ? 100 : 0;
+  }
+  return ((current - previous) / previous) * 100;
+};
+
+// Helper function to calculate progress toward a goal (0-100)
+const calculateProgressToGoal = (current: number, target: number): number => {
+  if (target <= 0) return 0;
+  return Math.min(100, (current / target) * 100);
+};
+
+// Get user's weekly goals (with defaults if not set)
+const fetchUserGoals = async (userId: string): Promise<UserGoals> => {
+  if (!supabase) {
+    return {
+      weeklyVolumeTarget: 20000,
+      weeklyExercisesTarget: 30,
+      weeklyDurationTarget: 300,
+    };
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('user_goals')
+      .select('weekly_volume_target, weekly_exercises_target, weekly_duration_target')
+      .eq('user_id', userId)
+      .single();
+
+    if (error || !data) {
+      // Return defaults if not found
+      return {
+        weeklyVolumeTarget: 20000,
+        weeklyExercisesTarget: 30,
+        weeklyDurationTarget: 300,
+      };
+    }
+
+    return {
+      weeklyVolumeTarget: parseFloat(data.weekly_volume_target as any) || 20000,
+      weeklyExercisesTarget: data.weekly_exercises_target || 30,
+      weeklyDurationTarget: data.weekly_duration_target || 300,
+    };
+  } catch (error) {
+    console.error('Error fetching user goals:', error);
+    return {
+      weeklyVolumeTarget: 20000,
+      weeklyExercisesTarget: 30,
+      weeklyDurationTarget: 300,
+    };
+  }
+};
+
+// Calculate weekly statistics for a given week (weekOffset: 0 = this week, -1 = last week)
+const calculateWeeklyStats = (sessions: CompletedSession[], weekOffset: number = 0): WeeklyStats => {
+  const now = new Date();
+  const startOfCurrentWeek = new Date(now);
+  startOfCurrentWeek.setDate(now.getDate() - now.getDay()); // Sunday
+  startOfCurrentWeek.setHours(0, 0, 0, 0);
+
+  const weekStart = new Date(startOfCurrentWeek);
+  weekStart.setDate(weekStart.getDate() + weekOffset * 7);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekEnd.getDate() + 7);
+
+  // Filter sessions for the target week
+  const weekSessions = sessions.filter(sess => {
+    const sessDate = new Date(sess.endedAt);
+    return sessDate >= weekStart && sessDate < weekEnd;
+  });
+
+  // Aggregate stats
+  let totalVolume = 0;
+  let totalVolumeMinutes = 0;
+  let totalExercises = 0;
+  let totalDuration = 0;
+
+  weekSessions.forEach(session => {
+    totalVolume += session.totalVolumeWeight;
+    totalVolumeMinutes += session.totalVolumeMinutes;
+    totalExercises += session.exerciseCount;
+    totalDuration += session.durationMs / (1000 * 60); // Convert to minutes
+  });
+
+  return {
+    volume: totalVolume,
+    volumeMinutes: totalVolumeMinutes,
+    exercises: totalExercises,
+    sessions: weekSessions.length,
+    avgDuration: weekSessions.length > 0 ? Math.round(totalDuration / weekSessions.length) : 0,
+    changeVsLastWeek: { volumeChange: 0, exerciseChange: 0, durationChange: 0 }, // Will be filled in comparison
+  };
+};
+
 export const routinesRepository = {
   async list(): Promise<Routine[]> {
     ensureHydratedFromStorage();
@@ -735,6 +949,7 @@ export const routinesRepository = {
             position: targetItem.position,
             rest_seconds: targetItem.restSeconds ?? null,
             notes: targetItem.notes ?? targetItem.exercise.notes ?? null,
+            measure_unit: (targetItem.exercise.measureUnit ?? 'kg') as any,
           };
 
           const { data: savedRow, error: upsertRowError } = await supabase
@@ -822,7 +1037,7 @@ export const routinesRepository = {
         );
       }
     }
-    
+
     const targetRoutine = localRoutines.find((r) => r.id === routineId);
     if (!targetRoutine) {
       throw new Error('Rutina no encontrada en cache.');
@@ -844,5 +1059,138 @@ export const routinesRepository = {
 
     commitLocalRoutines(localRoutines.map((r) => (r.id === routineId ? updatedRoutine : r)));
     return updatedRoutine;
+  },
+
+  async getCompletedSessions(userId: string): Promise<CompletedSession[]> {
+    return fetchCompletedSessions(userId);
+  },
+
+  async getUserGoals(userId: string): Promise<UserGoals> {
+    return fetchUserGoals(userId);
+  },
+
+  async getDashboardData(userId: string): Promise<DashboardData> {
+    try {
+      const allSessions = await fetchCompletedSessions(userId);
+      const goals = await fetchUserGoals(userId);
+
+      // Calculate this week and last week stats
+      const thisWeek = calculateWeeklyStats(allSessions, 0);
+      const lastWeek = calculateWeeklyStats(allSessions, -1);
+
+      // Calculate percentage changes
+      thisWeek.changeVsLastWeek.volumeChange = calculatePercentageChange(thisWeek.volume, lastWeek.volume);
+      thisWeek.changeVsLastWeek.exerciseChange = calculatePercentageChange(thisWeek.exercises, lastWeek.exercises);
+      thisWeek.changeVsLastWeek.durationChange = calculatePercentageChange(thisWeek.avgDuration, lastWeek.avgDuration);
+
+      return {
+        thisWeek,
+        lastWeek,
+        goals,
+      };
+    } catch (error) {
+      console.error('Error in getDashboardData:', error);
+      // Return default empty structure
+      return {
+        thisWeek: {
+          volume: 0,
+          volumeMinutes: 0,
+          exercises: 0,
+          sessions: 0,
+          avgDuration: 0,
+          changeVsLastWeek: { volumeChange: 0, exerciseChange: 0, durationChange: 0 },
+        },
+        lastWeek: {
+          volume: 0,
+          volumeMinutes: 0,
+          exercises: 0,
+          sessions: 0,
+          avgDuration: 0,
+          changeVsLastWeek: { volumeChange: 0, exerciseChange: 0, durationChange: 0 },
+        },
+        goals: {
+          weeklyVolumeTarget: 20000,
+          weeklyExercisesTarget: 30,
+          weeklyDurationTarget: 300,
+        },
+      };
+    }
+  },
+
+  async saveUserGoals(userId: string, goals: Partial<UserGoals>): Promise<UserGoals> {
+    if (!supabase) {
+      throw new Error('Supabase not available');
+    }
+
+    try {
+      const payload: any = {
+        user_id: userId,
+      };
+
+      if (goals.weeklyVolumeTarget !== undefined) {
+        payload.weekly_volume_target = goals.weeklyVolumeTarget;
+      }
+      if (goals.weeklyExercisesTarget !== undefined) {
+        payload.weekly_exercises_target = goals.weeklyExercisesTarget;
+      }
+      if (goals.weeklyDurationTarget !== undefined) {
+        payload.weekly_duration_target = goals.weeklyDurationTarget;
+      }
+
+      const { data, error } = await supabase
+        .from('user_goals')
+        .upsert(payload)
+        .select('weekly_volume_target, weekly_exercises_target, weekly_duration_target')
+        .single();
+
+      if (error || !data) {
+        console.error('Error saving user goals:', error);
+        throw new Error('No se pudo guardar los objetivos');
+      }
+
+      return {
+        weeklyVolumeTarget: parseFloat(data.weekly_volume_target as any) || 20000,
+        weeklyExercisesTarget: data.weekly_exercises_target || 30,
+        weeklyDurationTarget: data.weekly_duration_target || 300,
+      };
+    } catch (error) {
+      console.error('Error in saveUserGoals:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * SYNC QUEUE HANDLERS
+   * These are called by the sync processor to handle queued operations
+   */
+
+  async handleRoutineSaveSync(payload: any): Promise<void> {
+    const { routine, input } = payload;
+    console.log('[repository] Syncing routine save:', routine.id);
+
+    // Re-attempt the save
+    // Note: We don't throw errors here - the sync processor expects them
+    // But we still need to await and let errors propagate
+    await saveSupabaseRoutine(routine, input);
+  },
+
+  async handleSessionEndSync(payload: any): Promise<void> {
+    // This will be handled differently since session end requires special logic
+    // For now, just log
+    console.log('[repository] Session end sync not implemented via queue yet');
+    throw new Error('Session end sync requires direct implementation in useAppState');
+  },
+
+  async handleGoalsUpdateSync(payload: any): Promise<void> {
+    const { userId, goals } = payload;
+    console.log('[repository] Syncing goals update:', userId);
+
+    await this.saveUserGoals(userId, goals);
+  },
+
+  async handleProfileUpdateSync(payload: any): Promise<void> {
+    // This will be implemented when profile sync is added
+    console.log('[repository] Profile update sync not fully implemented yet');
+    throw new Error('Profile sync not implemented');
   },
 };

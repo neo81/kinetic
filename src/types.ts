@@ -81,7 +81,59 @@ export interface ActiveSession {
   id: string;
   routineId: string | null;
   routineName: string;
-  routineDayId: string;
+  routineDayIds: string[];
+  activeRoutineDayId: string;
   startTimeMs: number;
   completedExercises: string[];
+  completedDayIds: string[];
+  performanceData: {
+    [exerciseId: string]: {
+      [setNumber: number]: {
+        actualReps: number | null;
+        actualWeight: number | null;
+        actualDurationMinutes: number | null;
+        actualDurationSeconds: number | null;
+        captured: boolean;
+      };
+    };
+  };
+}
+
+export interface CompletedSession {
+  id: string;
+  routineName: string;
+  endedAt: Date;
+  startedAt: Date;
+  durationMs: number;
+  dayCount: number;
+  dayInfo: string;
+  exerciseCount: number;
+  totalVolume: number;
+  totalVolumeWeight: number;
+  totalVolumeMinutes: number;
+}
+
+export interface UserGoals {
+  weeklyVolumeTarget: number;      // kg
+  weeklyExercisesTarget: number;
+  weeklyDurationTarget: number;    // minutes
+}
+
+export interface WeeklyStats {
+  volume: number;                  // kg
+  volumeMinutes: number;           // minutes
+  exercises: number;
+  sessions: number;
+  avgDuration: number;             // minutes
+  changeVsLastWeek: {
+    volumeChange: number;          // percentage, e.g., 12.5 for +12.5%
+    exerciseChange: number;        // percentage
+    durationChange: number;        // percentage
+  };
+}
+
+export interface DashboardData {
+  thisWeek: WeeklyStats;
+  lastWeek: WeeklyStats;
+  goals: UserGoals;
 }

@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { RoutineSyncPendingBadge } from '../components/RoutineSyncPendingBadge';
 import { PageShell } from '../components/layout/PageShell';
-import type { ActiveSession, Exercise, Routine, View } from '../types';
+import type { ActiveSession, Exercise, Routine, View, RoutineDayExercise } from '../types';
 
 const DEFAULT_REST_SECONDS = 0;
 
@@ -276,6 +276,133 @@ const SessionStopwatchModal = ({
   );
 };
 
+const SetCaptureOverlay = ({
+  open,
+  onClose,
+  exercise,
+  setNumber,
+  plannedReps,
+  plannedWeight,
+  totalSets,
+  onCapture,
+}: {
+  open: boolean;
+  onClose: () => void;
+  exercise: { name: string; measureUnit?: 'kg' | 'min' | 'sec' };
+  setNumber: number;
+  plannedReps: number | null;
+  plannedWeight: number | null;
+  totalSets: number;
+  onCapture: (reps: number | null, weight: number | null) => void;
+}) => {
+  const [actualReps, setActualReps] = useState<string>(String(plannedReps ?? ''));
+  const [actualWeight, setActualWeight] = useState<string>(String(plannedWeight ?? ''));
+
+  useEffect(() => {
+    setActualReps(String(plannedReps ?? ''));
+    setActualWeight(String(plannedWeight ?? ''));
+  }, [plannedReps, plannedWeight, setNumber, open]);
+
+  const normalizeInput = (value: string) => value.replace(',', '.');
+
+  const handleConfirm = () => {
+    const reps = actualReps ? parseFloat(actualReps) : null;
+    const weight = actualWeight ? parseFloat(actualWeight) : null;
+    onCapture(reps, weight);
+    // No cerrar aquí - dejar que handleSetCapture maneje el cierre del modal
+  };
+
+  if (!open) {
+    return null;
+  }
+
+  return (
+    <PopupShell
+      title={`Set ${setNumber} - ${exercise.name}`}
+      accent="primary"
+      onClose={onClose}
+    >
+      <div className="mb-4 flex items-center justify-between">
+        <div className="flex-1">
+          <div className="h-2 bg-surface-container-high rounded-full overflow-hidden">
+            <div
+              className="h-full bg-primary transition-all duration-300"
+              style={{ width: `${(setNumber / totalSets) * 100}%` }}
+            />
+          </div>
+          <p className="mt-2 text-center text-xs font-bold uppercase tracking-widest text-on-surface-variant/70">
+            Set {setNumber} de {totalSets}
+          </p>
+        </div>
+      </div>
+
+      <div
+        key={`set-${setNumber}`}
+        className="space-y-6 animate-fade-in"
+      >
+        <div className="space-y-3">
+          <div>
+            <label className="block text-[12px] font-bold uppercase tracking-[0.2em] text-on-surface-variant mb-2">
+              Reps Realizadas
+            </label>
+            <input
+              type="text"
+              inputMode="decimal"
+              value={actualReps}
+              onChange={(e) => {
+                const normalized = normalizeInput(e.target.value);
+                if (normalized === '' || /^\d*([.]\d*)?$/.test(normalized)) {
+                  setActualReps(normalized);
+                }
+              }}
+              placeholder={String(plannedReps ?? '0')}
+              className="w-full rounded-lg bg-surface-container p-3 text-center font-headline text-xl font-semibold text-on-surface focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+          </div>
+
+          <div>
+            <label className="block text-[12px] font-bold uppercase tracking-[0.2em] text-on-surface-variant mb-2">
+              {exercise.measureUnit === 'min'
+                ? 'Minutos Realizados'
+                : exercise.measureUnit === 'sec'
+                  ? 'Segundos Realizados'
+                  : 'Peso / Kg Realizado'}
+            </label>
+            <input
+              type="text"
+              inputMode="decimal"
+              value={actualWeight}
+              onChange={(e) => {
+                const normalized = normalizeInput(e.target.value);
+                if (normalized === '' || /^\d*([.]\d*)?$/.test(normalized)) {
+                  setActualWeight(normalized);
+                }
+              }}
+              placeholder={String(plannedWeight ?? '0')}
+              className="w-full rounded-lg bg-surface-container p-3 text-center font-headline text-xl font-semibold text-on-surface focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+          </div>
+        </div>
+
+        <button
+          onClick={handleConfirm}
+          className="neon-button w-full flex items-center justify-center gap-2 rounded-[0.95rem] py-4 font-headline text-[1.2rem] font-semibold uppercase tracking-[0.16em]"
+        >
+          <Check size={18} strokeWidth={2.5} />
+          Confirmar
+        </button>
+
+        <button
+          onClick={onClose}
+          className="w-full rounded-[0.95rem] border border-white/12 py-4 text-sm font-bold uppercase tracking-[0.18em] text-on-surface-variant transition-colors hover:text-on-surface"
+        >
+          Cancelar
+        </button>
+      </div>
+    </PopupShell>
+  );
+};
+
 const ConfirmDialog = ({
   open,
   title,
@@ -335,6 +462,8 @@ export const RoutineDetailKineticView = ({
   onStartSession,
   onEndSession,
   onToggleExerciseComplete,
+  onCaptureSetPerformance,
+  onSwitchSessionDay,
 }: {
   setView: (v: View) => void;
   routine: Routine | null;
@@ -347,9 +476,11 @@ export const RoutineDetailKineticView = ({
   openDayId: string | null;
   onOpenDayChange: (dayId: string | null) => void;
   activeSession: ActiveSession | null;
-  onStartSession: (routineId: string, routineName: string, routineDayId: string) => Promise<void>;
+  onStartSession: (routineId: string, routineName: string, routineDayIds: string | string[]) => Promise<void>;
   onEndSession: () => Promise<void>;
   onToggleExerciseComplete: (exerciseInstanceId: string) => void;
+  onCaptureSetPerformance: (exerciseId: string, setNumber: number, reps: number | null, weight: number | null, durationMin: number | null, durationSec: number | null) => void;
+  onSwitchSessionDay: (dayId: string) => void;
 }) => {
   const [isRestTimerOpen, setIsRestTimerOpen] = useState(false);
   const [isSessionTimerOpen, setIsSessionTimerOpen] = useState(false);
@@ -362,10 +493,54 @@ export const RoutineDetailKineticView = ({
   const [confirmExerciseDelete, setConfirmExerciseDelete] = useState<{ exId: string; dayId: string } | null>(null);
   const [confirmEndSession, setConfirmEndSession] = useState(false);
 
+  // Estado para captura de set
+  const [setCapturePending, setSetCapturePending] = useState<{ exerciseId: string; setNumber: number; reps: number | null; weight: number | null } | null>(null);
+  const [captureSetIndex, setCaptureSetIndex] = useState(0);
+  const [allExerciseSets, setAllExerciseSets] = useState<Exercise | null>(null);
+
   useEffect(() => {
     // Solo scrollear al inicio al montar
     window.scrollTo(0, 0);
   }, []);
+
+  // Mantener CORE abierto cuando está en sesión activa, y cambiar el día abierto cuando el día activo cambia
+  useEffect(() => {
+    if (!activeSession || activeSession.routineId !== routine?.id) {
+      return;
+    }
+
+    // Si hay sesión activa, mantener abierto el día activo
+    if (openDayId !== activeSession.activeRoutineDayId) {
+      onOpenDayChange(activeSession.activeRoutineDayId);
+    }
+  }, [activeSession?.activeRoutineDayId, activeSession?.routineId, routine?.id, openDayId, onOpenDayChange]);
+
+  // Auto-avanzar al siguiente día si el actual está completado
+  useEffect(() => {
+    if (!activeSession || activeSession.routineId !== routine?.id) {
+      return;
+    }
+
+    // Obtener el día actualmente abierto
+    const currentDay = routine.dayEntries?.find(d => d.id === activeSession.activeRoutineDayId);
+    if (!currentDay) return;
+
+    // Verificar si todos los ejercicios de este día están completados
+    const allExercisesInDay = currentDay.exercises;
+    const dayExercisesCompleted = allExercisesInDay.every(dayEx =>
+      activeSession.completedExercises.includes(dayEx.id)
+    );
+
+    if (dayExercisesCompleted && allExercisesInDay.length > 0) {
+      // Encontrar el próximo día en la sesión
+      const currentIndex = activeSession.routineDayIds.indexOf(activeSession.activeRoutineDayId);
+      const nextDayId = activeSession.routineDayIds[currentIndex + 1];
+
+      if (nextDayId) {
+        onSwitchSessionDay(nextDayId);
+      }
+    }
+  }, [activeSession?.completedExercises, activeSession?.activeRoutineDayId, routine?.dayEntries, activeSession?.routineId, activeSession?.routineDayIds, onSwitchSessionDay]);
 
   useEffect(() => {
     if (!isSessionTimerRunning) {
@@ -378,6 +553,91 @@ export const RoutineDetailKineticView = ({
 
     return () => window.clearInterval(timer);
   }, [isSessionTimerRunning]);
+
+  const handleSetCaptureClose = () => {
+    setSetCapturePending(null);
+    setCaptureSetIndex(0);
+    setAllExerciseSets(null);
+  };
+
+  const handleSetCapture = (reps: number | null, weight: number | null) => {
+    if (!setCapturePending || !allExerciseSets) return;
+
+    // Guardar los datos del set actual
+    onCaptureSetPerformance(
+      setCapturePending.exerciseId,
+      setCapturePending.setNumber,
+      reps,
+      weight,
+      null,
+      null
+    );
+
+    // Verificar si hay más sets
+    const nextSetIndex = captureSetIndex + 1;
+    if (nextSetIndex < allExerciseSets.sets.length) {
+      // Abrir modal para el siguiente set
+      const nextSet = allExerciseSets.sets[nextSetIndex];
+      const { measureUnit } = allExerciseSets;
+
+      // Determine correct field based on measureUnit
+      let value: number | null = null;
+      if (measureUnit === 'min') {
+        value = nextSet.durationMinutes ?? null;
+      } else if (measureUnit === 'sec') {
+        value = nextSet.durationSeconds ?? null;
+      } else {
+        value = nextSet.weight ?? null;  // kg is default
+      }
+
+      setCaptureSetIndex(nextSetIndex);
+      setSetCapturePending({
+        exerciseId: setCapturePending.exerciseId,
+        setNumber: nextSet.setNumber || nextSetIndex + 1,
+        reps: nextSet.reps ?? null,
+        weight: value,
+      });
+    } else {
+      // Todos los sets han sido capturados, marcar como completado
+      handleSetCaptureClose();
+      onToggleExerciseComplete(setCapturePending.exerciseId);
+    }
+  };
+
+  const handleExerciseCompleteClick = (dayEx: RoutineDayExercise, routine: Routine) => {
+    const isCompleted = activeSession?.routineId === routine.id && activeSession.completedExercises.includes(dayEx.id);
+
+    if (isCompleted) {
+      // Si ya está completado, simplemente desmarcarlo
+      onToggleExerciseComplete(dayEx.id);
+      return;
+    }
+
+    // Si no está completado, abrir modal para el primer set
+    if (dayEx.exercise.sets.length > 0) {
+      setAllExerciseSets(dayEx.exercise);
+      const firstSet = dayEx.exercise.sets[0];
+      const { measureUnit } = dayEx.exercise;
+
+      // Determine correct field based on measureUnit
+      let value: number | null = null;
+      if (measureUnit === 'min') {
+        value = firstSet.durationMinutes ?? null;
+      } else if (measureUnit === 'sec') {
+        value = firstSet.durationSeconds ?? null;
+      } else {
+        value = firstSet.weight ?? null;  // kg is default
+      }
+
+      setCaptureSetIndex(0);
+      setSetCapturePending({
+        exerciseId: dayEx.id,
+        setNumber: firstSet.setNumber || 1,
+        reps: firstSet.reps ?? null,
+        weight: value,
+      });
+    }
+  };
 
   if (!routine) {
     return (
@@ -523,15 +783,49 @@ export const RoutineDetailKineticView = ({
           </div>
         </section>
 
+        {activeSession?.routineId === routine.id && activeSession.routineDayIds.length > 1 && (
+          <section className="mb-6">
+            <p className="mb-3 text-[0.72rem] font-bold uppercase tracking-[0.22em] text-on-surface-variant">Días activos en esta sesión</p>
+            <div className="flex gap-2 overflow-x-auto pb-2">
+              {activeSession.routineDayIds.map((dayId) => {
+                const day = routine.dayEntries?.find(d => d.id === dayId);
+                if (!day) return null;
+                const isActive = activeSession.activeRoutineDayId === dayId;
+                return (
+                  <button
+                    key={dayId}
+                    onClick={() => {
+                      onSwitchSessionDay(dayId);
+                      onOpenDayChange(dayId);
+                    }}
+                    className={`shrink-0 rounded-full px-4 py-2 font-headline text-sm font-semibold uppercase tracking-wide transition-all whitespace-nowrap ${
+                      isActive
+                        ? 'bg-primary text-black shadow-[0_0_15px_rgba(212,255,0,0.4)]'
+                        : 'bg-surface-container-high text-on-surface-variant hover:bg-white/10'
+                    }`}
+                  >
+                    {day.dayType === 'core' ? '⚡ Core' : `Día ${day.dayNumber}`}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
         <section className="space-y-4">
           {routine.dayEntries?.map((day) => {
+            // Si hay sesión activa, solo mostrar días que son parte de la sesión
+            if (activeSession?.routineId === routine.id && !activeSession.routineDayIds.includes(day.id)) {
+              return null;
+            }
+
             const isOpen = openDayId === day.id;
             return (
               <div key={day.id} className={`overflow-hidden rounded-[1.2rem] ${isOpen ? 'border-l-4 border-primary bg-surface-container' : 'bg-surface-container'}`}>
                 <div className="flex items-center bg-surface-container-high/30 pr-3">
                   <button
                     onClick={() => {
-                      if (activeSession) return; // Bloquear si hay sesión activa
+                      if (activeSession?.routineId === routine.id) return; // Bloquear cierre si hay sesión
                       onOpenDayChange(isOpen ? null : day.id);
                     }}
                     disabled={!!activeSession}
@@ -575,10 +869,10 @@ export const RoutineDetailKineticView = ({
                             <div className="flex items-center gap-1">
                               {activeSession?.routineId === routine.id ? (
                                 <button
-                                  onClick={() => onToggleExerciseComplete(dayEx.id)}
+                                  onClick={() => handleExerciseCompleteClick(dayEx, routine)}
                                   className={`flex h-10 w-10 items-center justify-center rounded-full border-[2.5px] transition-colors ${
-                                    isCompleted 
-                                      ? 'bg-primary border-primary text-black shadow-[0_0_15px_rgba(209,252,0,0.4)]' 
+                                    isCompleted
+                                      ? 'bg-primary border-primary text-black shadow-[0_0_15px_rgba(209,252,0,0.4)]'
                                       : 'border-white/20 text-white/40 hover:border-primary/50 bg-black/40'
                                   }`}
                                 >
@@ -673,7 +967,13 @@ export const RoutineDetailKineticView = ({
           ) : (
             <button
               onClick={() => {
-                if (openDayId) onStartSession(routine.id, routine.name, openDayId);
+                if (openDayId && routine) {
+                  // Find CORE day if it exists
+                  const coreDay = routine.dayEntries?.find(d => d.dayType === 'core');
+                  // Prepare day IDs: include CORE if exists, then the selected day
+                  const dayIds = coreDay ? [coreDay.id, openDayId] : [openDayId];
+                  onStartSession(routine.id, routine.name, dayIds);
+                }
               }}
               disabled={!openDayId}
               className={`pointer-events-auto w-full max-w-md h-[4.5rem] rounded-[1.2rem] bg-primary text-black shadow-[0_20px_40px_rgba(255,107,0,0.3),_0_-10px_30px_rgba(0,0,0,0.6)] transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3 font-headline text-[1.15rem] leading-none font-bold uppercase tracking-[0.15em] border border-primary/20 ${!openDayId ? 'opacity-50 grayscale' : ''}`}
@@ -697,6 +997,19 @@ export const RoutineDetailKineticView = ({
           setIsSessionTimerRunning(false);
         }}
       />
+
+      {setCapturePending && allExerciseSets && (
+        <SetCaptureOverlay
+          open={!!setCapturePending}
+          onClose={handleSetCaptureClose}
+          exercise={allExerciseSets}
+          setNumber={setCapturePending.setNumber}
+          plannedReps={setCapturePending.reps}
+          plannedWeight={setCapturePending.weight}
+          totalSets={allExerciseSets.sets.length}
+          onCapture={handleSetCapture}
+        />
+      )}
 
       {/* Confirmación para Eliminar Rutina */}
       <ConfirmDialog

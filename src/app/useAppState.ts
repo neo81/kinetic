@@ -6,6 +6,8 @@ import { initialRoutines } from './initialData';
 import { consumeRoutinesRepositoryNotice, routinesRepository } from '../features/routines/repository';
 import { RoutineRepositoryError } from '../features/routines/errors';
 import type { ActiveSession, Exercise, Routine, UserProfile, View } from '../types';
+import { syncQueue } from '../services/syncQueue';
+import { exportSessionDataForRPC } from '../services/sessionCompletion/exportSessionData';
 
 type AppBannerState = {
   level: 'error' | 'warning';
@@ -355,7 +357,7 @@ export const useAppState = () => {
     return mapped;
   };
 
-  const startSession = async (routineId: string, routineName: string, routineDayId: string) => {
+  const startSession = async (routineId: string, routineName: string, routineDayIds: string | string[]) => {
     if (!supabase || !user) return;
     if (activeSession) {
       setAppBanner({
@@ -366,6 +368,9 @@ export const useAppState = () => {
       return;
     }
     try {
+      // Support both single string (backward compat) and array
+      const dayIdsArray = Array.isArray(routineDayIds) ? routineDayIds : [routineDayIds];
+
       const { data, error } = await supabase.from('routine_sessions').insert({
         routine_id: routineId,
         user_id: user.id,
@@ -374,14 +379,17 @@ export const useAppState = () => {
       }).select('id').single();
 
       if (error) throw error;
-      
+
       const nextSession: ActiveSession = {
         id: data.id,
         routineId,
         routineName,
-        routineDayId,
+        routineDayIds: dayIdsArray,
+        activeRoutineDayId: dayIdsArray[0],
         startTimeMs: Date.now(),
-        completedExercises: []
+        completedExercises: [],
+        completedDayIds: [],
+        performanceData: {}
       };
       setActiveSession(nextSession);
       persistActiveSession(nextSession);
@@ -415,79 +423,112 @@ export const useAppState = () => {
     });
   };
 
+  const captureSetPerformance = (
+    exerciseId: string,
+    setNumber: number,
+    actualReps: number | null,
+    actualWeight: number | null,
+    actualDurationMinutes: number | null,
+    actualDurationSeconds: number | null
+  ) => {
+    setActiveSession((prev) => {
+      if (!prev) return prev;
+      const nextSession = {
+        ...prev,
+        performanceData: {
+          ...prev.performanceData,
+          [exerciseId]: {
+            ...(prev.performanceData[exerciseId] || {}),
+            [setNumber]: {
+              actualReps,
+              actualWeight,
+              actualDurationMinutes,
+              actualDurationSeconds,
+              captured: true
+            }
+          }
+        }
+      };
+      persistActiveSession(nextSession);
+      return nextSession;
+    });
+  };
+
+  const switchSessionDay = (dayId: string) => {
+    setActiveSession((prev) => {
+      if (!prev || !prev.routineDayIds.includes(dayId)) return prev;
+      const nextSession = {
+        ...prev,
+        activeRoutineDayId: dayId,
+      };
+      persistActiveSession(nextSession);
+      return nextSession;
+    });
+  };
+
   const endSession = async () => {
     if (!supabase || !activeSession) return;
-    let didFinishSuccessfully = false;
+    let didQueueSuccessfully = false;
     try {
       const endedAt = new Date().toISOString();
       const activeRoutine =
         currentRoutine?.id === activeSession.routineId
           ? currentRoutine
           : routines.find((routine) => routine.id === activeSession.routineId) ?? null;
+
       if (activeSession.id) {
-        const { error } = await supabase.from('routine_sessions').update({
-          status: 'completed',
-          ended_at: endedAt
-        }).eq('id', activeSession.id);
-        
-        if (error) throw error;
+        // Prepare session data for RPC transaction
+        const sessionData = exportSessionDataForRPC(activeSession, activeRoutine);
 
-        if (activeSession.completedExercises.length > 0 && activeRoutine) {
-          const currentDay = activeRoutine.dayEntries?.find(d => d.id === activeSession.routineDayId);
-          if (currentDay) {
-            const { data: dayLog, error: dayLogError } = await supabase.from('session_day_logs').insert({
-               session_id: activeSession.id,
-               routine_day_id: currentDay.id,
-               started_at: new Date(activeSession.startTimeMs).toISOString(),
-               ended_at: endedAt
-            }).select('id').single();
+        // Call atomic RPC transaction
+        const { error: rpcError } = await supabase.rpc('end_session_transaction', {
+          p_session_id: activeSession.id,
+          p_ended_at: endedAt,
+          p_session_data: sessionData
+        });
 
-            if (!dayLogError && dayLog) {
-               for (const rdeId of activeSession.completedExercises) {
-                 const exDef = currentDay.exercises.find(e => e.id === rdeId);
-                 if (!exDef) continue;
-
-                 const { data: exLog, error: exLogError } = await supabase
-                   .from('session_exercise_logs')
-                   .insert({
-                     session_day_log_id: dayLog.id,
-                     exercise_id: exDef.exerciseId,
-                     position: exDef.position,
-                     notes: exDef.notes
-                   })
-                   .select('id')
-                   .single();
-
-                 if (!exLogError && exLog && exDef.exercise.sets) {
-                   const setLogs = exDef.exercise.sets.map((s, index) => ({
-                     session_exercise_log_id: exLog.id,
-                     set_number: s.setNumber || index + 1,
-                     reps: s.reps || 0,
-                     weight: s.weight || 0,
-                     duration_minutes: s.durationMinutes || 0,
-                     duration_seconds: s.durationSeconds || 0,
-                     completed: true
-                   }));
-                   if (setLogs.length > 0) {
-                     await supabase.from('session_set_logs').insert(setLogs);
-                   }
-                 }
-               }
-            }
-          }
+        if (rpcError) {
+          throw rpcError;
         }
-        didFinishSuccessfully = true;
+
+        didQueueSuccessfully = true;
       }
     } catch (error) {
       console.error('Error finalizando sesión', error);
+
+      // Add to sync queue for retry with exponential backoff
+      if (activeSession) {
+        const endedAt = new Date().toISOString();
+        const activeRoutine =
+          currentRoutine?.id === activeSession.routineId
+            ? currentRoutine
+            : routines.find((routine) => routine.id === activeSession.routineId) ?? null;
+        const sessionData = exportSessionDataForRPC(activeSession, activeRoutine);
+
+        syncQueue.add({
+          type: 'session_end',
+          priority: 'high',
+          payload: {
+            sessionId: activeSession.id,
+            endedAt,
+            sessionData
+          },
+          createdAt: Date.now(),
+          attemptCount: 1
+        });
+
+        console.log('[endSession] Session end queued for retry');
+        didQueueSuccessfully = true;  // Mark as queued, not failed
+      }
+
       setAppBanner({
-        level: 'error',
-        title: 'No se pudo finalizar',
-        message: 'Verifica tu conexion y prueba nuevamente.',
+        level: 'warning',
+        title: 'Sesión en cola',
+        message: 'Tu entrenamiento se guardará cuando haya conexión.',
       });
       return;
     } finally {
-      if (didFinishSuccessfully) {
+      if (didQueueSuccessfully) {
         setActiveSession(null);
         persistActiveSession(null);
         syncRoutines();
@@ -677,6 +718,8 @@ export const useAppState = () => {
     startSession,
     endSession,
     toggleExerciseComplete,
+    captureSetPerformance,
+    switchSessionDay,
     isAppLoading,
   };
 };
