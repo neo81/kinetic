@@ -40,6 +40,24 @@ export interface Exercise {
   measureUnit?: 'kg' | 'min' | 'sec';
   notes?: string;
   equipment?: string;
+  isFavorite?: boolean;
+  isCustom?: boolean;
+}
+
+export type ExerciseEquipmentFilter =
+  | 'Todos'
+  | 'Barra'
+  | 'Mancuerna'
+  | 'Maquina'
+  | 'Peso corporal'
+  | 'Cable';
+
+export type ExerciseSourceFilter = 'todos' | 'global' | 'custom';
+
+export interface ExerciseFilter {
+  equipment: ExerciseEquipmentFilter;
+  source: ExerciseSourceFilter;
+  onlyFavorites: boolean;
 }
 
 export interface RoutineDayExercise {

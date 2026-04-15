@@ -8,6 +8,7 @@ import { RoutineRepositoryError } from '../features/routines/errors';
 import type { ActiveSession, Exercise, Routine, UserProfile, View } from '../types';
 import { syncQueue } from '../services/syncQueue';
 import { exportSessionDataForRPC } from '../services/sessionCompletion/exportSessionData';
+import { ensureWeeklyStatsBackfilled } from '../services/dataBackfill/backfillWeeklyStats';
 
 type AppBannerState = {
   level: 'error' | 'warning';
@@ -218,8 +219,10 @@ export const useAppState = () => {
           try {
             await ensureProfileExists(session.user);
             await loadProfile(session.user.id);
+            // Backfill weekly statistics from completed sessions on first login
+            await ensureWeeklyStatsBackfilled(session.user.id);
           } catch (error) {
-            console.error('Error cargando perfil:', error);
+            console.error('Error cargando perfil o backfill:', error);
           }
           await syncRoutines();
           await syncActiveSessionFromStorage();

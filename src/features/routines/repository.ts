@@ -3,6 +3,7 @@ import type { Database } from '../../lib/supabase/database.types';
 import type { Exercise, Routine, CompletedSession, UserGoals, WeeklyStats, DashboardData } from '../../types';
 import { mapSupabaseErrorCode, RoutineRepositoryError } from './errors';
 import { loadCachedRoutines, saveCachedRoutines } from './localRoutineCache';
+import { syncQueue } from '../../services/syncQueue';
 
 type RoutineRow = Database['public']['Tables']['routines']['Row'];
 type RoutineDayRow = Database['public']['Tables']['routine_days']['Row'];

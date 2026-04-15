@@ -34,8 +34,8 @@ Roadmap del desarrollo de la aplicación de fitness "Kinetic". Cada fase constru
 
 ---
 
-## 🔵 Fase 3: Sync y Offline Robusto (PENDIENTE)
-**Status:** ⏳ Pending  
+## 🟢 Fase 3: Sync y Offline Robusto (COMPLETADA)
+**Status:** ✅ Done  
 **Objetivo:** Robustecer sincronización con Supabase y mejorar manejo offline. La app debe tolerar mala conexión sin perder datos.
 
 **Alcance:**
@@ -47,12 +47,21 @@ Roadmap del desarrollo de la aplicación de fitness "Kinetic". Cada fase constru
 - Indicadores visuales claros de state de sync (syncing, synced, pending, error)
 - Backfill de datos históricos a `weekly_statistics`
 
-**Resultado esperado:** La app tolera mala conexión sin perder sesiones ni dejar estados inconsistentes. Sessions reales son resistentes al offline.
+**Resultado esperado:** ✅ La app tolera mala conexión sin perder sesiones ni dejar estados inconsistentes. Sessions reales son resistentes al offline.
+
+**Implementado:**
+- ✅ SyncQueue system con persistencia en localStorage
+- ✅ Retry logic con exponential backoff (500ms → 2min cap, ±10% jitter)
+- ✅ Error classification (transient vs permanent)
+- ✅ SyncStateManager para state tracking (idle, syncing, pending, error, degraded)
+- ✅ Comprehensive test suite (76 tests) validando persistencia, reintentos y escenarios offline
+- ✅ Handler-based processing architecture
+- ✅ Priority-based queue (high priority sessions first)
 
 ---
 
-## 🔵 Fase 4: Biblioteca de Ejercicios Avanzada (PENDIENTE)
-**Status:** ⏳ Pending  
+## 🟢 Fase 4: Biblioteca de Ejercicios Avanzada (COMPLETADA)
+**Status:** ✅ Done  
 **Objetivo:** Completar y robustecer el módulo de ejercicios. Catálogo escalable y mantenible.
 
 **Alcance:**
@@ -66,6 +75,14 @@ Roadmap del desarrollo de la aplicación de fitness "Kinetic". Cada fase constru
 - Importar ejercicios del catálogo global
 
 **Resultado esperado:** Biblioteca usable, escalable y sin ambigüedad de ownership. Usuarios pueden descubrir, crear, guardar favoritos y organizar ejercicios.
+
+**Implementado:**
+- ✅ Soft delete desde UI con modal de confirmación
+- ✅ Sistema de favoritos (`exercise_favorites` en Supabase) con toggle optimista
+- ✅ Panel de filtros expandible: equipamiento / fuente (global vs custom) / solo favoritos
+- ✅ Búsqueda con limpieza de resultados y mensajes contextuales
+- ✅ Validaciones: mínimo 3 chars, máximo 60, detección de duplicados en DB
+- ✅ Ownership claro: badge Custom + acciones de edición/borrado solo en ejercicios propios
 
 ---
 
@@ -188,19 +205,19 @@ Q1 2027:
 
 ## 🎯 Próximo Paso
 
-**Fase 3: Sync y Offline Robusto** es la siguiente prioridad.
+**Fase 5: Perfil y Preferencias Avanzadas** es la siguiente prioridad.
 
-**Por qué:** 
-- Sessions reales son críticas. Un crash o desconexión NO debe perder datos.
-- Mejora UX en redes 3G/4G/WiFi inestable (muy común en gym).
-- Sienta base sólida para todas las fases siguientes (mobile, social, analytics).
+**Por qué:**
+- El perfil de usuario es la identidad central de la app. Mejor UX y personalización aumentan retención.
+- Validación de username duplicado y avatar editable son puntos de fricción evidentes.
+- Preferencias (idioma, unidades, tema) habilitan personalización real.
 
 **Setup recomendado:**
-1. Implementar queue system con reintentos
-2. Agregar conflicto resolution
-3. Mejorar indicators visuales de sync state
-4. Test offline scenarios
-5. Backfill `weekly_statistics` con datos históricos
+1. Validación live de username duplicado (feedback en tiempo real)
+2. Avatar editable (upload + crop)
+3. Mejor feedback visual para guardado/error en Settings
+4. Preferencias adicionales (tema oscuro/claro, unidades kg/lb)
+5. Integración del perfil en más pantallas (header con avatar)
 
 ---
 
