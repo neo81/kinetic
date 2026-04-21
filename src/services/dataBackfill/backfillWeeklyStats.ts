@@ -37,10 +37,10 @@ export async function backfillWeeklyStatistics(userId: string): Promise<number> 
           session_exercise_logs (
             id,
             session_set_logs (
-              actual_weight,
-              actual_reps,
-              actual_duration_minutes,
-              actual_duration_seconds
+              reps,
+              weight,
+              duration_minutes,
+              duration_seconds
             )
           )
         )
@@ -95,17 +95,16 @@ export async function backfillWeeklyStatistics(userId: string): Promise<number> 
               if (exerciseLog.session_set_logs && Array.isArray(exerciseLog.session_set_logs)) {
                 exerciseLog.session_set_logs.forEach((setLog: any) => {
                   // Volume from weight
-                  const reps = setLog.actual_reps || 0;
-                  const weight = setLog.actual_weight || 0;
+                  const reps = Number(setLog.reps ?? 0);
+                  const weight = Number(setLog.weight ?? 0);
                   if (reps > 0 && weight > 0) {
                     week.total_volume += reps * weight;
                   }
 
                   // Volume from minutes
-                  const durationMin = setLog.actual_duration_minutes || 0;
-                  if (durationMin > 0) {
-                    week.total_volume_minutes += durationMin;
-                  }
+                  const durationMin = Number(setLog.duration_minutes ?? 0);
+                  const durationSec = Number(setLog.duration_seconds ?? 0);
+                  week.total_volume_minutes += durationMin + durationSec / 60;
                 });
               }
             });

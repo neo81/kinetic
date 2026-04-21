@@ -6,7 +6,7 @@ import { RoutineSyncPendingBadge } from '../components/RoutineSyncPendingBadge';
 import { PageShell } from '../components/layout/PageShell';
 import { formatSessionVolume } from '../utils/formatting';
 import { routinesRepository } from '../features/routines/repository';
-import type { Routine, View, DashboardData } from '../types';
+import type { Routine, View, DashboardData, UserProfile } from '../types';
 
 const getGreeting = () => {
   const hour = new Date().getHours();
@@ -20,6 +20,7 @@ interface DashboardViewProps {
   routines: Routine[];
   onNewRoutine: () => void;
   setCurrentRoutine: (routine: Routine | null) => void;
+  profile?: UserProfile | null;
 }
 
 const TrendIndicator = ({ change }: { change: number }) => {
@@ -63,6 +64,7 @@ export const DashboardView = ({
   routines,
   onNewRoutine,
   setCurrentRoutine,
+  profile,
 }: DashboardViewProps) => {
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -111,6 +113,7 @@ export const DashboardView = ({
       activeView="dashboard"
       setView={setView}
       onProfileClick={() => setView('settings')}
+      profile={profile}
     >
         <section className="space-y-10">
           <header className="space-y-3">

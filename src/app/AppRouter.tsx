@@ -46,11 +46,13 @@ type AppRouterProps = {
   openDayId: string | null;
   setOpenDayId: (dayId: string | null) => void;
   activeSession: ActiveSession | null;
-  startSession: (routineId: string, routineName: string, routineDayId: string) => Promise<void>;
+  startSession: (routineId: string, routineName: string, routineDayId: string | string[]) => Promise<void>;
   endSession: () => Promise<void>;
-  onToggleExerciseComplete: (exerciseInstanceId: string) => void;
-  onCaptureSetPerformance: (exerciseId: string, setNumber: number, reps: number | null, weight: number | null, durationMin: number | null, durationSec: number | null) => void;
+  onCaptureSetPerformance: (exerciseId: string, setNumber: number, reps: number | null, weight: number | null, durationMin: number | null, durationSec: number | null, totalSets?: number) => void;
+  onClearCapturedSetPerformance: (exerciseId: string, setNumber: number, totalSets?: number) => void;
   onSwitchSessionDay: (dayId: string) => void;
+  onCreateExerciseGroup: (dayId: string, exerciseIds: string[]) => void;
+  onRemoveExerciseGroup: (dayId: string, groupId: string) => void;
 };
 
 export const AppRouter = ({
@@ -85,9 +87,11 @@ export const AppRouter = ({
   activeSession,
   startSession,
   endSession,
-  onToggleExerciseComplete,
   onCaptureSetPerformance,
+  onClearCapturedSetPerformance,
   onSwitchSessionDay,
+  onCreateExerciseGroup,
+  onRemoveExerciseGroup,
 }: AppRouterProps) => {
   switch (view) {
     case 'login':
@@ -104,6 +108,7 @@ export const AppRouter = ({
           setView={setView}
           routines={routines}
           onNewRoutine={onNewRoutine}
+          profile={profile}
           setCurrentRoutine={(routine) => {
             setCurrentRoutine(routine);
             setSelectedRoutineDayId(null);
@@ -118,6 +123,7 @@ export const AppRouter = ({
           onNewRoutine={onNewRoutine}
           setCurrentRoutine={setCurrentRoutine}
           onDeleteRoutine={onDeleteRoutine}
+          profile={profile}
         />
       );
     case 'routine-creator':
@@ -175,9 +181,11 @@ export const AppRouter = ({
           activeSession={activeSession}
           onStartSession={startSession}
           onEndSession={endSession}
-          onToggleExerciseComplete={onToggleExerciseComplete}
           onCaptureSetPerformance={onCaptureSetPerformance}
+          onClearCapturedSetPerformance={onClearCapturedSetPerformance}
           onSwitchSessionDay={onSwitchSessionDay}
+          onCreateExerciseGroup={onCreateExerciseGroup}
+          onRemoveExerciseGroup={onRemoveExerciseGroup}
           onDeleteRoutine={onDeleteRoutine}
           onDeleteRoutineDay={onDeleteRoutineDay}
           onDeleteExercise={onDeleteExercise}
@@ -199,7 +207,7 @@ export const AppRouter = ({
         />
       );
     case 'history':
-      return <HistoryView setView={setView} />;
+      return <HistoryView setView={setView} profile={profile} />;
     case 'settings':
       return (
         <SettingsView

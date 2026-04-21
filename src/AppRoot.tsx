@@ -101,9 +101,11 @@ export default function AppRoot() {
             activeSession={app.activeSession}
             startSession={app.startSession}
             endSession={app.endSession}
-            onToggleExerciseComplete={app.toggleExerciseComplete}
             onCaptureSetPerformance={app.captureSetPerformance}
+            onClearCapturedSetPerformance={app.clearCapturedSetPerformance}
             onSwitchSessionDay={app.switchSessionDay}
+            onCreateExerciseGroup={app.createExerciseGroup}
+            onRemoveExerciseGroup={app.removeExerciseGroup}
           />
         </motion.div>
       </AnimatePresence>

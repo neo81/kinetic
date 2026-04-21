@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { RoutineSyncPendingBadge } from '../components/RoutineSyncPendingBadge';
 import { PageShell } from '../components/layout/PageShell';
-import type { ActiveSession, Exercise, Routine, View, RoutineDayExercise } from '../types';
+import type { ActiveSession, Exercise, Routine, View, RoutineDayExercise, SessionExerciseGroup } from '../types';
 
 const DEFAULT_REST_SECONDS = 0;
 
@@ -36,6 +36,32 @@ const formatCountdown = (totalSeconds: number) => {
   const seconds = safeSeconds % 60;
   return `${formatClock(minutes)}:${formatClock(seconds)}`;
 };
+
+const getExerciseCompletedSetCount = (activeSession: ActiveSession | null, exerciseId: string) =>
+  Object.values(activeSession?.performanceData[exerciseId] || {}).filter((set) => set?.captured).length;
+
+const isExerciseFullyCompleted = (
+  activeSession: ActiveSession | null,
+  dayExercise: RoutineDayExercise,
+) => getExerciseCompletedSetCount(activeSession, dayExercise.id) >= dayExercise.exercise.sets.length && dayExercise.exercise.sets.length > 0;
+
+const getGroupLabel = (exerciseCount: number) => {
+  if (exerciseCount === 2) return 'Superset';
+  if (exerciseCount === 3) return 'Triserie';
+  return 'Circuito';
+};
+
+const getSetPreviewValue = (exercise: Exercise, setIndex: number) => {
+  const set = exercise.sets[setIndex];
+  if (!set) return '-';
+  if (exercise.measureUnit === 'min') return `${set.durationMinutes ?? 0} min`;
+  if (exercise.measureUnit === 'sec') return `${set.durationSeconds ?? 0} seg`;
+  return `${set.weight ?? 0} kg`;
+};
+
+type DayRenderItem =
+  | { type: 'single'; exercise: RoutineDayExercise }
+  | { type: 'group'; group: SessionExerciseGroup; exercises: RoutineDayExercise[] };
 
 const playAlertTone = async () => {
   const AudioContextConstructor = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
@@ -461,9 +487,11 @@ export const RoutineDetailKineticView = ({
   activeSession,
   onStartSession,
   onEndSession,
-  onToggleExerciseComplete,
   onCaptureSetPerformance,
+  onClearCapturedSetPerformance,
   onSwitchSessionDay,
+  onCreateExerciseGroup,
+  onRemoveExerciseGroup,
 }: {
   setView: (v: View) => void;
   routine: Routine | null;
@@ -478,9 +506,11 @@ export const RoutineDetailKineticView = ({
   activeSession: ActiveSession | null;
   onStartSession: (routineId: string, routineName: string, routineDayIds: string | string[]) => Promise<void>;
   onEndSession: () => Promise<void>;
-  onToggleExerciseComplete: (exerciseInstanceId: string) => void;
-  onCaptureSetPerformance: (exerciseId: string, setNumber: number, reps: number | null, weight: number | null, durationMin: number | null, durationSec: number | null) => void;
+  onCaptureSetPerformance: (exerciseId: string, setNumber: number, reps: number | null, weight: number | null, durationMin: number | null, durationSec: number | null, totalSets?: number) => void;
+  onClearCapturedSetPerformance: (exerciseId: string, setNumber: number, totalSets?: number) => void;
   onSwitchSessionDay: (dayId: string) => void;
+  onCreateExerciseGroup: (dayId: string, exerciseIds: string[]) => void;
+  onRemoveExerciseGroup: (dayId: string, groupId: string) => void;
 }) => {
   const [isRestTimerOpen, setIsRestTimerOpen] = useState(false);
   const [isSessionTimerOpen, setIsSessionTimerOpen] = useState(false);
@@ -492,10 +522,11 @@ export const RoutineDetailKineticView = ({
   const [confirmDayDeleteId, setConfirmDayDeleteId] = useState<string | null>(null);
   const [confirmExerciseDelete, setConfirmExerciseDelete] = useState<{ exId: string; dayId: string } | null>(null);
   const [confirmEndSession, setConfirmEndSession] = useState(false);
+  const [isGroupingMode, setIsGroupingMode] = useState(false);
+  const [selectedGroupExerciseIds, setSelectedGroupExerciseIds] = useState<string[]>([]);
 
   // Estado para captura de set
   const [setCapturePending, setSetCapturePending] = useState<{ exerciseId: string; setNumber: number; reps: number | null; weight: number | null } | null>(null);
-  const [captureSetIndex, setCaptureSetIndex] = useState(0);
   const [allExerciseSets, setAllExerciseSets] = useState<Exercise | null>(null);
 
   useEffect(() => {
@@ -527,8 +558,8 @@ export const RoutineDetailKineticView = ({
 
     // Verificar si todos los ejercicios de este día están completados
     const allExercisesInDay = currentDay.exercises;
-    const dayExercisesCompleted = allExercisesInDay.every(dayEx =>
-      activeSession.completedExercises.includes(dayEx.id)
+    const dayExercisesCompleted = allExercisesInDay.every((dayEx) =>
+      isExerciseFullyCompleted(activeSession, dayEx)
     );
 
     if (dayExercisesCompleted && allExercisesInDay.length > 0) {
@@ -540,7 +571,7 @@ export const RoutineDetailKineticView = ({
         onSwitchSessionDay(nextDayId);
       }
     }
-  }, [activeSession?.completedExercises, activeSession?.activeRoutineDayId, routine?.dayEntries, activeSession?.routineId, activeSession?.routineDayIds, onSwitchSessionDay]);
+  }, [activeSession, routine?.dayEntries, onSwitchSessionDay]);
 
   useEffect(() => {
     if (!isSessionTimerRunning) {
@@ -554,9 +585,12 @@ export const RoutineDetailKineticView = ({
     return () => window.clearInterval(timer);
   }, [isSessionTimerRunning]);
 
+  useEffect(() => {
+    resetGroupingMode();
+  }, [openDayId, activeSession?.activeRoutineDayId]);
+
   const handleSetCaptureClose = () => {
     setSetCapturePending(null);
-    setCaptureSetIndex(0);
     setAllExerciseSets(null);
   };
 
@@ -570,73 +604,59 @@ export const RoutineDetailKineticView = ({
       reps,
       weight,
       null,
-      null
+      null,
+      allExerciseSets.sets.length
     );
-
-    // Verificar si hay más sets
-    const nextSetIndex = captureSetIndex + 1;
-    if (nextSetIndex < allExerciseSets.sets.length) {
-      // Abrir modal para el siguiente set
-      const nextSet = allExerciseSets.sets[nextSetIndex];
-      const { measureUnit } = allExerciseSets;
-
-      // Determine correct field based on measureUnit
-      let value: number | null = null;
-      if (measureUnit === 'min') {
-        value = nextSet.durationMinutes ?? null;
-      } else if (measureUnit === 'sec') {
-        value = nextSet.durationSeconds ?? null;
-      } else {
-        value = nextSet.weight ?? null;  // kg is default
-      }
-
-      setCaptureSetIndex(nextSetIndex);
-      setSetCapturePending({
-        exerciseId: setCapturePending.exerciseId,
-        setNumber: nextSet.setNumber || nextSetIndex + 1,
-        reps: nextSet.reps ?? null,
-        weight: value,
-      });
-    } else {
-      // Todos los sets han sido capturados, marcar como completado
-      handleSetCaptureClose();
-      onToggleExerciseComplete(setCapturePending.exerciseId);
-    }
+    handleSetCaptureClose();
   };
 
-  const handleExerciseCompleteClick = (dayEx: RoutineDayExercise, routine: Routine) => {
-    const isCompleted = activeSession?.routineId === routine.id && activeSession.completedExercises.includes(dayEx.id);
+  const handleSetChipClick = (dayEx: RoutineDayExercise, setIndex: number) => {
+    const targetSet = dayEx.exercise.sets[setIndex];
+    if (!targetSet) return;
 
-    if (isCompleted) {
-      // Si ya está completado, simplemente desmarcarlo
-      onToggleExerciseComplete(dayEx.id);
+    const setNumber = targetSet.setNumber || setIndex + 1;
+    const isCaptured = !!activeSession?.performanceData[dayEx.id]?.[setNumber]?.captured;
+
+    if (isCaptured) {
+      onClearCapturedSetPerformance(dayEx.id, setNumber, dayEx.exercise.sets.length);
       return;
     }
 
-    // Si no está completado, abrir modal para el primer set
-    if (dayEx.exercise.sets.length > 0) {
-      setAllExerciseSets(dayEx.exercise);
-      const firstSet = dayEx.exercise.sets[0];
-      const { measureUnit } = dayEx.exercise;
-
-      // Determine correct field based on measureUnit
-      let value: number | null = null;
-      if (measureUnit === 'min') {
-        value = firstSet.durationMinutes ?? null;
-      } else if (measureUnit === 'sec') {
-        value = firstSet.durationSeconds ?? null;
-      } else {
-        value = firstSet.weight ?? null;  // kg is default
-      }
-
-      setCaptureSetIndex(0);
-      setSetCapturePending({
-        exerciseId: dayEx.id,
-        setNumber: firstSet.setNumber || 1,
-        reps: firstSet.reps ?? null,
-        weight: value,
-      });
+    let value: number | null = null;
+    if (dayEx.exercise.measureUnit === 'min') {
+      value = targetSet.durationMinutes ?? null;
+    } else if (dayEx.exercise.measureUnit === 'sec') {
+      value = targetSet.durationSeconds ?? null;
+    } else {
+      value = targetSet.weight ?? null;
     }
+
+    setAllExerciseSets(dayEx.exercise);
+    setSetCapturePending({
+      exerciseId: dayEx.id,
+      setNumber,
+      reps: targetSet.reps ?? null,
+      weight: value,
+    });
+  };
+
+  const toggleExerciseGroupSelection = (exerciseId: string) => {
+    setSelectedGroupExerciseIds((current) =>
+      current.includes(exerciseId)
+        ? current.filter((id) => id !== exerciseId)
+        : [...current, exerciseId]
+    );
+  };
+
+  const resetGroupingMode = () => {
+    setIsGroupingMode(false);
+    setSelectedGroupExerciseIds([]);
+  };
+
+  const handleCreateGroup = (dayId: string) => {
+    if (selectedGroupExerciseIds.length < 2) return;
+    onCreateExerciseGroup(dayId, selectedGroupExerciseIds);
+    resetGroupingMode();
   };
 
   if (!routine) {
@@ -698,6 +718,160 @@ export const RoutineDetailKineticView = ({
     if (ex.measureUnit === 'min') return `${firstSet.durationMinutes || 0} min`;
     if (ex.measureUnit === 'sec') return `${firstSet.durationSeconds || 0} seg`;
     return `${firstSet.weight || 0} kg`;
+  };
+
+  const getDayExerciseGroups = (dayId: string) => activeSession?.exerciseGroupsByDay[dayId] || [];
+
+  const buildDayRenderItems = (dayExercises: RoutineDayExercise[], groups: SessionExerciseGroup[]): DayRenderItem[] => {
+    const groupByExerciseId = new Map<string, SessionExerciseGroup>();
+
+    groups.forEach((group) => {
+      group.exerciseIds.forEach((exerciseId) => {
+        groupByExerciseId.set(exerciseId, group);
+      });
+    });
+
+    const renderedGroups = new Set<string>();
+
+    const items: DayRenderItem[] = [];
+
+    dayExercises.forEach((exercise) => {
+      const group = groupByExerciseId.get(exercise.id);
+      if (!group) {
+        items.push({ type: 'single', exercise });
+        return;
+      }
+
+      if (renderedGroups.has(group.id)) {
+        return;
+      }
+
+      renderedGroups.add(group.id);
+      const groupedExercises = dayExercises.filter((dayExercise) => group.exerciseIds.includes(dayExercise.id));
+      if (groupedExercises.length > 1) {
+        items.push({ type: 'group', group, exercises: groupedExercises });
+        return;
+      }
+
+      items.push({ type: 'single', exercise });
+    });
+
+    return items;
+  };
+
+  const renderExerciseCard = (day: NonNullable<Routine['dayEntries']>[number], dayEx: RoutineDayExercise, index: number, totalCount: number, grouped = false) => {
+    const isCompleted = activeSession?.routineId === routine.id && isExerciseFullyCompleted(activeSession, dayEx);
+    const completedSetCount = getExerciseCompletedSetCount(activeSession, dayEx.id);
+    const groupSelectionEnabled = isGroupingMode && activeSession?.routineId === routine.id;
+    const isSelectedForGroup = selectedGroupExerciseIds.includes(dayEx.id);
+    const isAlreadyGrouped = getDayExerciseGroups(day.id).some((group) => group.exerciseIds.includes(dayEx.id));
+
+    return (
+      <div key={dayEx.id || dayEx.exercise.name} className={`transition-all duration-300 ${isCompleted ? 'opacity-60 scale-[0.99]' : 'opacity-100 scale-100'}`}>
+        <div className="mb-2 flex items-start justify-between gap-3">
+          <div className="flex min-w-0 flex-1 items-start gap-3">
+            {groupSelectionEnabled && (
+              <button
+                onClick={() => toggleExerciseGroupSelection(dayEx.id)}
+                disabled={isAlreadyGrouped}
+                className={`mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-bold transition-colors ${
+                  isAlreadyGrouped
+                    ? 'cursor-not-allowed border-white/8 bg-surface-container-high text-on-surface-variant/35'
+                    : isSelectedForGroup
+                    ? 'border-primary bg-primary text-black'
+                    : 'border-white/15 bg-black/30 text-on-surface-variant hover:border-primary/45'
+                }`}
+                title={isAlreadyGrouped ? 'Este ejercicio ya está dentro de un bloque' : isSelectedForGroup ? 'Quitar de la selección' : 'Seleccionar para agrupar'}
+              >
+                {isSelectedForGroup ? <Check size={14} strokeWidth={3} /> : null}
+              </button>
+            )}
+            <div className="min-w-0 flex-1">
+              <h4 className={`font-sans text-[1.15rem] font-semibold leading-tight text-on-surface ${isCompleted ? 'line-through' : ''}`}>{dayEx.exercise.name}</h4>
+              <p className="mt-0.5 text-[9px] font-bold uppercase tracking-widest text-on-surface-variant/60">{dayEx.exercise.muscleGroup || dayEx.exercise.muscle}</p>
+              {activeSession?.routineId === routine.id && (
+                <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.18em] text-primary/70">
+                  {completedSetCount}/{dayEx.exercise.sets.length} sets
+                </p>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-1">
+            {activeSession?.routineId !== routine.id && (
+              <>
+                <button
+                  onClick={() => {
+                    onSelectRoutineDay(day.id);
+                    onEditExercise(dayEx.exercise, dayEx.id, day.id);
+                  }}
+                  className="flex h-8 w-8 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:bg-white/10"
+                >
+                  <Edit2 size={14} />
+                </button>
+                <button
+                  onClick={() => setConfirmExerciseDelete({ exId: dayEx.id, dayId: day.id })}
+                  className="flex h-8 w-8 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:bg-secondary/10 hover:text-secondary"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-4">
+          <div>
+            <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-on-surface-variant">Sets</p>
+            <p className="font-headline text-[1.6rem] font-semibold leading-none text-on-surface">{dayEx.exercise.sets.length}</p>
+          </div>
+          <div>
+            <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-on-surface-variant">Reps</p>
+            <p className="font-headline text-[1.6rem] font-semibold leading-none text-on-surface">{dayEx.exercise.sets[0]?.reps || '-'}</p>
+          </div>
+          <div>
+            <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-on-surface-variant">Peso / Tiempo</p>
+            <p className="font-headline text-[1.6rem] font-semibold leading-none text-secondary">
+              {getSetDisplayValue(dayEx.exercise)}
+            </p>
+          </div>
+        </div>
+
+        {activeSession?.routineId === routine.id && (
+          <div className="mt-4">
+            <p className="mb-2 text-[9px] font-bold uppercase tracking-[0.16em] text-on-surface-variant">Sets realizados</p>
+            <div className="flex flex-wrap gap-2">
+              {dayEx.exercise.sets.map((set, setIndex) => {
+                const setNumber = set.setNumber || setIndex + 1;
+                const isCaptured = !!activeSession.performanceData[dayEx.id]?.[setNumber]?.captured;
+                return (
+                  <button
+                    key={`${dayEx.id}-set-${setNumber}`}
+                    onClick={() => handleSetChipClick(dayEx, setIndex)}
+                    className={`rounded-full border px-3 py-2 text-xs font-bold uppercase tracking-[0.18em] transition-all ${
+                      isCaptured
+                        ? 'border-primary bg-primary text-black shadow-[0_0_15px_rgba(209,252,0,0.28)]'
+                        : 'border-white/10 bg-surface-container-high text-on-surface-variant hover:border-primary/45 hover:text-on-surface'
+                    }`}
+                    title={isCaptured ? 'Quitar set realizado' : 'Registrar set'}
+                  >
+                    {`Set ${setNumber} · ${getSetPreviewValue(dayEx.exercise, setIndex)}`}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {dayEx.exercise.sets[0]?.notes && (
+          <div className="mt-4 rounded-lg border border-white/5 bg-white/5 p-3">
+            <p className="mb-1 text-[8px] font-bold uppercase tracking-widest text-primary/70">Notas de entrenamiento</p>
+            <p className="text-xs italic leading-relaxed text-on-surface-variant/90">"{dayEx.exercise.sets[0].notes}"</p>
+          </div>
+        )}
+
+        {!grouped && index < totalCount - 1 && <div className="mt-4 h-px bg-white/6"></div>}
+      </div>
+    );
   };
 
   return (
@@ -856,75 +1030,91 @@ export const RoutineDetailKineticView = ({
 
                 {isOpen && (
                   <div className="space-y-6 px-4 pb-4 sm:px-5 sm:pb-5">
-                    {day.exercises.length > 0 ? (
-                      day.exercises.map((dayEx, index) => {
-                        const isCompleted = activeSession?.routineId === routine.id && activeSession.completedExercises.includes(dayEx.id);
-                        return (
-                        <div key={dayEx.id || dayEx.exercise.name} className={`transition-all duration-300 ${isCompleted ? 'opacity-40 scale-[0.98]' : 'opacity-100 scale-100'}`}>
-                          <div className="mb-2 flex items-start justify-between gap-3">
-                            <div className="min-w-0 flex-1">
-                              <h4 className={`font-sans text-[1.15rem] font-semibold leading-tight text-on-surface ${isCompleted ? 'line-through' : ''}`}>{dayEx.exercise.name}</h4>
-                              <p className="text-[9px] font-bold uppercase tracking-widest text-on-surface-variant/60 mt-0.5">{dayEx.exercise.muscleGroup || dayEx.exercise.muscle}</p>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              {activeSession?.routineId === routine.id ? (
-                                <button
-                                  onClick={() => handleExerciseCompleteClick(dayEx, routine)}
-                                  className={`flex h-10 w-10 items-center justify-center rounded-full border-[2.5px] transition-colors ${
-                                    isCompleted
-                                      ? 'bg-primary border-primary text-black shadow-[0_0_15px_rgba(209,252,0,0.4)]'
-                                      : 'border-white/20 text-white/40 hover:border-primary/50 bg-black/40'
-                                  }`}
-                                >
-                                  {isCompleted && <Check size={20} strokeWidth={3.5} />}
-                                </button>
-                              ) : (
-                                <>
-                                  <button
-                                    onClick={() => {
-                                      onSelectRoutineDay(day.id);
-                                      onEditExercise(dayEx.exercise, dayEx.id, day.id);
-                                    }}
-                                    className="flex h-8 w-8 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:bg-white/10"
-                                  >
-                                    <Edit2 size={14} />
-                                  </button>
-                                  <button
-                                    onClick={() => setConfirmExerciseDelete({ exId: dayEx.id, dayId: day.id })}
-                                    className="flex h-8 w-8 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:bg-secondary/10 hover:text-secondary"
-                                  >
-                                    <Trash2 size={14} />
-                                  </button>
-                                </>
-                              )}
-                            </div>
+                    {activeSession?.routineId === routine.id && (
+                      <div className="rounded-[1rem] border border-white/8 bg-surface-container-low p-3">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div>
+                            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">Bloques del día</p>
+                            <p className="mt-1 text-sm text-on-surface-variant">
+                              Agrupa ejercicios solo dentro de {day.dayType === 'core' ? 'CORE' : day.title}.
+                            </p>
                           </div>
-                          <div className="grid grid-cols-3 gap-4">
-                            <div>
-                              <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-on-surface-variant">Sets</p>
-                              <p className="font-headline text-[1.6rem] font-semibold leading-none text-on-surface">{dayEx.exercise.sets.length}</p>
-                            </div>
-                            <div>
-                              <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-on-surface-variant">Reps</p>
-                              <p className="font-headline text-[1.6rem] font-semibold leading-none text-on-surface">{dayEx.exercise.sets[0]?.reps || '-'}</p>
-                            </div>
-                            <div>
-                              <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-on-surface-variant">Peso / Tiempo</p>
-                              <p className="font-headline text-[1.6rem] font-semibold leading-none text-secondary">
-                                {getSetDisplayValue(dayEx.exercise)}
-                              </p>
-                            </div>
-                          </div>
-                          
-                          {dayEx.exercise.sets[0]?.notes && (
-                            <div className="mt-4 rounded-lg bg-white/5 p-3 border border-white/5">
-                              <p className="mb-1 text-[8px] font-bold uppercase tracking-widest text-primary/70">Notas de entrenamiento</p>
-                              <p className="text-xs italic text-on-surface-variant/90 leading-relaxed">"{dayEx.exercise.sets[0].notes}"</p>
+                          {!isGroupingMode ? (
+                            <button
+                              onClick={() => {
+                                setIsGroupingMode(true);
+                                setSelectedGroupExerciseIds([]);
+                              }}
+                              className="rounded-full border border-primary/30 bg-primary/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-primary transition-colors hover:bg-primary/15"
+                            >
+                              Agrupar ejercicios
+                            </button>
+                          ) : (
+                            <div className="flex flex-wrap gap-2">
+                              <button
+                                onClick={resetGroupingMode}
+                                className="rounded-full border border-white/12 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-on-surface-variant transition-colors hover:text-on-surface"
+                              >
+                                Cancelar
+                              </button>
+                              <button
+                                onClick={() => handleCreateGroup(day.id)}
+                                disabled={selectedGroupExerciseIds.length < 2}
+                                className={`rounded-full px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] transition-colors ${
+                                  selectedGroupExerciseIds.length >= 2
+                                    ? 'bg-primary text-black'
+                                    : 'bg-surface-container-high text-on-surface-variant'
+                                }`}
+                              >
+                                Crear bloque
+                              </button>
                             </div>
                           )}
-                          {index < day.exercises.length - 1 && <div className="mt-4 h-px bg-white/6"></div>}
                         </div>
-                        );
+                        {isGroupingMode && (
+                          <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.18em] text-primary/70">
+                            Seleccionados: {selectedGroupExerciseIds.length}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                    {day.exercises.length > 0 ? (
+                      buildDayRenderItems(day.exercises, getDayExerciseGroups(day.id)).map((item, index, items) => {
+                        if (item.type === 'group') {
+                          const totalSets = item.exercises.reduce((sum, exercise) => sum + exercise.exercise.sets.length, 0);
+                          const completedSets = item.exercises.reduce((sum, exercise) => sum + getExerciseCompletedSetCount(activeSession, exercise.id), 0);
+
+                          return (
+                            <div key={item.group.id} className="rounded-[1.1rem] border border-primary/18 bg-primary/5 p-4">
+                              <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+                                <div>
+                                  <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-primary/70">
+                                    Bloque {index + 1} · {getGroupLabel(item.exercises.length)}
+                                  </p>
+                                  <p className="mt-1 text-sm text-on-surface-variant">
+                                    {completedSets}/{totalSets} sets completados
+                                  </p>
+                                </div>
+                                <button
+                                  onClick={() => onRemoveExerciseGroup(day.id, item.group.id)}
+                                  className="rounded-full border border-white/10 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant transition-colors hover:text-on-surface"
+                                >
+                                  Desagrupar
+                                </button>
+                              </div>
+                              <div className="space-y-4">
+                                {item.exercises.map((exercise, exerciseIndex) => (
+                                  <div key={exercise.id}>
+                                    {renderExerciseCard(day, exercise, exerciseIndex, item.exercises.length, true)}
+                                    {exerciseIndex < item.exercises.length - 1 && <div className="mt-4 h-px bg-white/8"></div>}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        }
+
+                        return renderExerciseCard(day, item.exercise, index, items.length);
                       })
                     ) : (
                       <p className="py-2 text-sm text-on-surface-variant">Este día todavía no tiene ejercicios cargados.</p>

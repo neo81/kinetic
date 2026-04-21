@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import type { User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase/client';
-import type { Database } from '../lib/supabase/database.types';
+import type { Database, Json } from '../lib/supabase/database.types';
 import { initialRoutines } from './initialData';
 import { consumeRoutinesRepositoryNotice, routinesRepository } from '../features/routines/repository';
 import { RoutineRepositoryError } from '../features/routines/errors';
@@ -76,7 +76,12 @@ const loadPersistedActiveSession = (): ActiveSession | null => {
     if (!raw) return null;
 
     const parsed = JSON.parse(raw) as ActiveSession;
-    if (!parsed?.id || !parsed.routineId || !parsed.routineDayId) return null;
+    if (!parsed?.id || !parsed.routineId || !parsed.activeRoutineDayId || !Array.isArray(parsed.routineDayIds)) {
+      return null;
+    }
+    if (!parsed.exerciseGroupsByDay || typeof parsed.exerciseGroupsByDay !== 'object') {
+      parsed.exerciseGroupsByDay = {};
+    }
     return parsed;
   } catch {
     return null;
@@ -332,18 +337,26 @@ export const useAppState = () => {
     bio: string;
     fitnessLevel: string;
     unitSystem: 'kg' | 'lb';
+    avatarUrl?: string;
   }) => {
     if (!supabase || !user) throw new Error('No hay sesion activa.');
 
+    const updateData: Record<string, any> = {
+      full_name: input.fullName.trim() || null,
+      username: input.username.trim() || null,
+      bio: input.bio.trim() || null,
+      fitness_level: input.fitnessLevel || null,
+      unit_system: input.unitSystem,
+    };
+
+    // Only update avatar_url if provided
+    if (input.avatarUrl !== undefined) {
+      updateData.avatar_url = input.avatarUrl;
+    }
+
     const { data, error } = await supabase
       .from('profiles')
-      .update({
-        full_name: input.fullName.trim() || null,
-        username: input.username.trim() || null,
-        bio: input.bio.trim() || null,
-        fitness_level: input.fitnessLevel || null,
-        unit_system: input.unitSystem,
-      })
+      .update(updateData)
       .eq('id', user.id)
       .select('*')
       .single();
@@ -392,6 +405,7 @@ export const useAppState = () => {
         startTimeMs: Date.now(),
         completedExercises: [],
         completedDayIds: [],
+        exerciseGroupsByDay: {},
         performanceData: {}
       };
       setActiveSession(nextSession);
@@ -432,26 +446,122 @@ export const useAppState = () => {
     actualReps: number | null,
     actualWeight: number | null,
     actualDurationMinutes: number | null,
-    actualDurationSeconds: number | null
+    actualDurationSeconds: number | null,
+    totalSets?: number
   ) => {
     setActiveSession((prev) => {
       if (!prev) return prev;
-      const nextSession = {
-        ...prev,
-        performanceData: {
-          ...prev.performanceData,
-          [exerciseId]: {
-            ...(prev.performanceData[exerciseId] || {}),
-            [setNumber]: {
-              actualReps,
-              actualWeight,
-              actualDurationMinutes,
-              actualDurationSeconds,
-              captured: true
-            }
-          }
+      const currentExercisePerformance = {
+        ...(prev.performanceData[exerciseId] || {}),
+        [setNumber]: {
+          actualReps,
+          actualWeight,
+          actualDurationMinutes,
+          actualDurationSeconds,
+          captured: true
         }
       };
+      const completedSetCount = Object.values(currentExercisePerformance).filter(
+        (set): set is typeof currentExercisePerformance[number] => !!set && typeof set === 'object' && 'captured' in set && !!set.captured,
+      ).length;
+      const shouldMarkExerciseComplete = typeof totalSets === 'number' && totalSets > 0 && completedSetCount >= totalSets;
+      const nextSession = {
+        ...prev,
+        completedExercises: shouldMarkExerciseComplete
+          ? Array.from(new Set([...prev.completedExercises, exerciseId]))
+          : prev.completedExercises.filter((id) => id !== exerciseId),
+        performanceData: {
+          ...prev.performanceData,
+          [exerciseId]: currentExercisePerformance,
+        }
+      };
+      persistActiveSession(nextSession);
+      return nextSession;
+    });
+  };
+
+  const clearCapturedSetPerformance = (
+    exerciseId: string,
+    setNumber: number,
+    totalSets?: number,
+  ) => {
+    setActiveSession((prev) => {
+      if (!prev?.performanceData[exerciseId]?.[setNumber]) return prev;
+
+      const nextExercisePerformance = { ...prev.performanceData[exerciseId] };
+      delete nextExercisePerformance[setNumber];
+
+      const nextPerformanceData = { ...prev.performanceData };
+      if (Object.keys(nextExercisePerformance).length === 0) {
+        delete nextPerformanceData[exerciseId];
+      } else {
+        nextPerformanceData[exerciseId] = nextExercisePerformance;
+      }
+
+      const completedSetCount = Object.values(nextExercisePerformance).filter(
+        (set): set is typeof nextExercisePerformance[number] => !!set && typeof set === 'object' && 'captured' in set && !!set.captured,
+      ).length;
+      const shouldKeepExerciseComplete = typeof totalSets === 'number' && totalSets > 0 && completedSetCount >= totalSets;
+
+      const nextSession = {
+        ...prev,
+        completedExercises: shouldKeepExerciseComplete
+          ? Array.from(new Set([...prev.completedExercises, exerciseId]))
+          : prev.completedExercises.filter((id) => id !== exerciseId),
+        performanceData: nextPerformanceData,
+      };
+
+      persistActiveSession(nextSession);
+      return nextSession;
+    });
+  };
+
+  const createExerciseGroup = (dayId: string, exerciseIds: string[]) => {
+    setActiveSession((prev) => {
+      if (!prev || exerciseIds.length < 2) return prev;
+
+      const sanitizedIds = Array.from(new Set(exerciseIds));
+      const existingGroups = prev.exerciseGroupsByDay[dayId] || [];
+      const availableIds = sanitizedIds.filter((exerciseId) =>
+        !existingGroups.some((group) => group.exerciseIds.includes(exerciseId))
+      );
+
+      if (availableIds.length < 2) return prev;
+
+      const nextGroup = {
+        id: `${dayId}-${Date.now()}`,
+        exerciseIds: availableIds,
+      };
+
+      const nextSession = {
+        ...prev,
+        exerciseGroupsByDay: {
+          ...prev.exerciseGroupsByDay,
+          [dayId]: [...existingGroups, nextGroup],
+        },
+      };
+
+      persistActiveSession(nextSession);
+      return nextSession;
+    });
+  };
+
+  const removeExerciseGroup = (dayId: string, groupId: string) => {
+    setActiveSession((prev) => {
+      if (!prev) return prev;
+
+      const existingGroups = prev.exerciseGroupsByDay[dayId] || [];
+      const nextGroups = existingGroups.filter((group) => group.id !== groupId);
+      if (nextGroups.length === existingGroups.length) return prev;
+
+      const nextSession = {
+        ...prev,
+        exerciseGroupsByDay: {
+          ...prev.exerciseGroupsByDay,
+          [dayId]: nextGroups,
+        },
+      };
+
       persistActiveSession(nextSession);
       return nextSession;
     });
@@ -487,7 +597,7 @@ export const useAppState = () => {
         const { error: rpcError } = await supabase.rpc('end_session_transaction', {
           p_session_id: activeSession.id,
           p_ended_at: endedAt,
-          p_session_data: sessionData
+          p_session_data: sessionData as unknown as Json,
         });
 
         if (rpcError) {
@@ -514,7 +624,7 @@ export const useAppState = () => {
           payload: {
             sessionId: activeSession.id,
             endedAt,
-            sessionData
+            sessionData,
           },
           createdAt: Date.now(),
           attemptCount: 1
@@ -722,7 +832,10 @@ export const useAppState = () => {
     endSession,
     toggleExerciseComplete,
     captureSetPerformance,
+    clearCapturedSetPerformance,
     switchSessionDay,
+    createExerciseGroup,
+    removeExerciseGroup,
     isAppLoading,
   };
 };

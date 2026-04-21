@@ -2,6 +2,7 @@ import { syncProcessor } from './syncProcessor';
 import { routinesRepository } from '../../features/routines/repository';
 import type { SyncQueueItem } from './SyncQueue';
 import { supabase } from '../../lib/supabase/client';
+import type { Json } from '../../lib/supabase/database.types';
 
 /**
  * Register all sync handlers with the sync processor
@@ -41,7 +42,7 @@ export function setupSyncHandlers() {
     const { error: rpcError } = await supabase.rpc('end_session_transaction', {
       p_session_id: sessionId,
       p_ended_at: endedAt,
-      p_session_data: sessionData
+      p_session_data: sessionData as unknown as Json,
     });
 
     if (rpcError) {

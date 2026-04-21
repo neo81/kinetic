@@ -4,7 +4,7 @@ import { ArrowLeft, Edit2, Play, Plus, Trash2 } from 'lucide-react';
 import { RoutineSyncPendingBadge } from '../components/RoutineSyncPendingBadge';
 import { PageShell } from '../components/layout/PageShell';
 import { ConfirmDialog } from '../components/layout/ConfirmDialog';
-import type { Routine, View } from '../types';
+import type { Routine, View, UserProfile } from '../types';
 
 interface RoutinesListViewProps {
   setView: (view: View) => void;
@@ -12,6 +12,7 @@ interface RoutinesListViewProps {
   onNewRoutine: () => void;
   setCurrentRoutine: (routine: Routine | null) => void;
   onDeleteRoutine: (routineId: string) => void;
+  profile?: UserProfile | null;
 }
 
 export const RoutinesListView = ({
@@ -20,6 +21,7 @@ export const RoutinesListView = ({
   onNewRoutine,
   setCurrentRoutine,
   onDeleteRoutine,
+  profile,
 }: RoutinesListViewProps) => {
   const [routineToTrash, setRoutineToTrash] = useState<Routine | null>(null);
 
@@ -31,6 +33,7 @@ export const RoutinesListView = ({
       setView={setView}
       onProfileClick={() => setView('settings')}
       onSettingsClick={() => setView('settings')}
+      profile={profile}
     >
       <div className="space-y-10 pb-32">
         {/* Botón Volver Estándar */}

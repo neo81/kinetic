@@ -1,4 +1,4 @@
-import type { ActiveSession, Routine } from '../../types';
+import type { ActiveSession, Routine, SessionExportPayload } from '../../types';
 
 /**
  * Export session data in format required by end_session_transaction RPC
@@ -7,7 +7,7 @@ import type { ActiveSession, Routine } from '../../types';
 export function exportSessionDataForRPC(
   activeSession: ActiveSession,
   routine: Routine | null
-): Record<string, any> {
+): SessionExportPayload {
   if (!routine) {
     return {
       days: [],
@@ -16,53 +16,59 @@ export function exportSessionDataForRPC(
     };
   }
 
-  const days: any[] = [];
-  const exercises: any[] = [];
-  const sets: any[] = [];
+  const days: SessionExportPayload['days'] = [];
+  const exercises: SessionExportPayload['exercises'] = [];
+  const sets: SessionExportPayload['sets'] = [];
 
   // Process each day in the session
   for (const dayId of activeSession.routineDayIds) {
     const day = routine.dayEntries?.find(d => d.id === dayId);
     if (!day) continue;
 
-    // Find exercises completed in this day
-    const completedInDay = activeSession.completedExercises.filter(exId =>
-      day.exercises.some(e => e.id === exId)
-    );
+    const capturedInDay = day.exercises.filter((exercise) => {
+      const exercisePerformance = activeSession.performanceData[exercise.id];
+      return !!exercisePerformance && Object.values(exercisePerformance).some((set) => set?.captured);
+    });
 
-    // Only add day if exercises were completed
-    if (completedInDay.length > 0) {
+    // Only add day if at least one set was captured in this day
+    if (capturedInDay.length > 0) {
       days.push({
         routine_day_id: dayId
       });
 
-      // Process each completed exercise in this day
-      for (const exerciseInstanceId of completedInDay) {
-        const exDef = day.exercises.find(e => e.id === exerciseInstanceId);
-        if (!exDef) continue;
+      // Process each exercise with captured progress in this day
+      for (const exDef of capturedInDay) {
+        const exercisePerformance = activeSession.performanceData[exDef.id] || {};
 
         exercises.push({
           exercise_id: exDef.exerciseId,
-          day_log_id: dayId  // Link to day
+          routine_day_id: dayId,
+          position: exDef.position,
+          notes: exDef.notes ?? exDef.exercise.notes ?? null,
         });
 
         // Process sets for this exercise
         if (exDef.exercise.sets && Array.isArray(exDef.exercise.sets)) {
           exDef.exercise.sets.forEach((plannedSet, index) => {
             const setNumber = plannedSet.setNumber || index + 1;
-            const performanceForSet = activeSession.performanceData[exDef.id]?.[setNumber];
+            const performanceForSet = exercisePerformance[setNumber];
+            if (!performanceForSet?.captured) {
+              return;
+            }
 
-            // Use captured performance data if available, otherwise fallback to planned
-            const actualReps = performanceForSet?.captured ? performanceForSet.actualReps : null;
-            const actualWeight = performanceForSet?.captured ? performanceForSet.actualWeight : null;
-            const actualDurationMinutes = performanceForSet?.captured ? performanceForSet.actualDurationMinutes : null;
-            const actualDurationSeconds = performanceForSet?.captured ? performanceForSet.actualDurationSeconds : null;
+            const actualReps = performanceForSet.actualReps;
+            const actualWeight = performanceForSet.actualWeight;
+            const actualDurationMinutes = performanceForSet.actualDurationMinutes;
+            const actualDurationSeconds = performanceForSet.actualDurationSeconds;
 
             sets.push({
+              exercise_id: exDef.exerciseId,
+              exercise_position: exDef.position,
+              routine_day_id: dayId,
               set_number: setNumber,
-              planned_reps: plannedSet.reps || 0,
-              planned_weight: plannedSet.weight || 0,
-              planned_duration_minutes: plannedSet.durationMinutes || 0,
+              planned_reps: plannedSet.reps ?? null,
+              planned_weight: plannedSet.weight ?? null,
+              planned_duration_minutes: plannedSet.durationMinutes ?? null,
               actual_reps: actualReps,
               actual_weight: actualWeight,
               actual_duration_minutes: actualDurationMinutes,

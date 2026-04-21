@@ -1,8 +1,12 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, ChevronRight, Edit2, LogOut, Ruler, User, Target } from 'lucide-react';
+import { ArrowLeft, ChevronRight, Edit2, LogOut, Ruler, User, Target, Check, AlertCircle, Loader } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { supabase } from '../lib/supabase/client';
 import { PageShell } from '../components/layout/PageShell';
+import { AvatarSection } from '../components/AvatarSection';
+import { AvatarUploadDialog } from '../components/AvatarUploadDialog';
 import { routinesRepository } from '../features/routines/repository';
+import { avatarStorageService } from '../services/avatarStorageService';
 import type { UserProfile, View, UserGoals } from '../types';
 
 type SettingsViewProps = {
@@ -16,8 +20,11 @@ type SettingsViewProps = {
     bio: string;
     fitnessLevel: string;
     unitSystem: 'kg' | 'lb';
+    avatarUrl?: string;
   }) => Promise<unknown>;
 };
+
+type FeedbackState = 'idle' | 'saving' | 'success' | 'error';
 
 const fitnessLevels = ['Principiante', 'Intermedio', 'Avanzado', 'Competidor'];
 
@@ -33,11 +40,17 @@ export const SettingsView = ({
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isSavingGoals, setIsSavingGoals] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [isAvatarDialogOpen, setIsAvatarDialogOpen] = useState(false);
   const [fullName, setFullName] = useState('');
   const [username, setUsername] = useState('');
   const [bio, setBio] = useState('');
   const [fitnessLevel, setFitnessLevel] = useState('');
   const [units, setUnits] = useState<'kg' | 'lb'>('kg');
+  
+  // Feedback state
+  const [profileFeedback, setProfileFeedback] = useState<{ state: FeedbackState; message: string }>({ state: 'idle', message: '' });
+  const [goalsFeedback, setGoalsFeedback] = useState<{ state: FeedbackState; message: string }>({ state: 'idle', message: '' });
 
   // Weekly goals state
   const [goals, setGoals] = useState<UserGoals | null>(null);
@@ -66,6 +79,26 @@ export const SettingsView = ({
     loadGoals();
   }, []);
 
+  // Auto-clear profile feedback after 3 seconds
+  useEffect(() => {
+    if (profileFeedback.state !== 'idle' && profileFeedback.state !== 'saving') {
+      const timer = setTimeout(() => {
+        setProfileFeedback({ state: 'idle', message: '' });
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [profileFeedback.state]);
+
+  // Auto-clear goals feedback after 3 seconds
+  useEffect(() => {
+    if (goalsFeedback.state !== 'idle' && goalsFeedback.state !== 'saving') {
+      const timer = setTimeout(() => {
+        setGoalsFeedback({ state: 'idle', message: '' });
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [goalsFeedback.state]);
+
   const saveProfile = async (
     overrides?: Partial<{
       fullName: string;
@@ -73,6 +106,7 @@ export const SettingsView = ({
       bio: string;
       fitnessLevel: string;
       unitSystem: 'kg' | 'lb';
+      avatarUrl: string;
     }>,
   ) => {
     await onSaveProfile({
@@ -81,6 +115,7 @@ export const SettingsView = ({
       bio: overrides?.bio ?? bio,
       fitnessLevel: overrides?.fitnessLevel ?? fitnessLevel,
       unitSystem: overrides?.unitSystem ?? units,
+      avatarUrl: overrides?.avatarUrl,
     });
   };
 
@@ -90,9 +125,14 @@ export const SettingsView = ({
     }
 
     setIsSavingProfile(true);
+    setProfileFeedback({ state: 'saving', message: 'Guardando cambios...' });
     try {
       await saveProfile();
+      setProfileFeedback({ state: 'success', message: 'Perfil actualizado correctamente' });
       setIsEditingProfile(false);
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      setProfileFeedback({ state: 'error', message: 'No se pudo guardar el perfil. Intenta de nuevo.' });
     } finally {
       setIsSavingProfile(false);
     }
@@ -111,6 +151,7 @@ export const SettingsView = ({
     }
 
     setIsSavingGoals(true);
+    setGoalsFeedback({ state: 'saving', message: 'Guardando objetivos...' });
     try {
       const userId = profile?.id;
       if (!userId) {
@@ -121,9 +162,10 @@ export const SettingsView = ({
       setGoals(updated);
       setEditingGoals(null);
       setIsEditingGoals(false);
+      setGoalsFeedback({ state: 'success', message: 'Objetivos actualizados correctamente' });
     } catch (error) {
       console.error('Error saving goals:', error);
-      alert('No se pudieron guardar los objetivos. Intenta de nuevo.');
+      setGoalsFeedback({ state: 'error', message: 'No se pudieron guardar los objetivos. Intenta de nuevo.' });
     } finally {
       setIsSavingGoals(false);
     }
@@ -158,6 +200,32 @@ export const SettingsView = ({
     } finally {
       setIsLoggingOut(false);
       setView('login');
+    }
+  };
+
+  const handleAvatarUpload = async (file: File): Promise<string> => {
+    if (!profile?.id) {
+      throw new Error('User ID not available');
+    }
+
+    try {
+      setIsUploadingAvatar(true);
+      const newAvatarUrl = await avatarStorageService.uploadAvatar(profile.id, file);
+      
+      // Delete old avatar if it exists
+      if (profile.avatarUrl) {
+        await avatarStorageService.deleteOldAvatar(profile.id, profile.avatarUrl);
+      }
+
+      // Update profile with new avatar URL
+      await saveProfile({ avatarUrl: newAvatarUrl });
+      
+      return newAvatarUrl;
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
+      throw error instanceof Error ? error : new Error('Failed to upload avatar');
+    } finally {
+      setIsUploadingAvatar(false);
     }
   };
 
@@ -222,24 +290,11 @@ export const SettingsView = ({
 
       {isEditingProfile && (
         <section className="space-y-8 pb-8">
-          <div className="flex flex-col items-center">
-            <div className="relative">
-              <div className="h-32 w-32 rounded-full bg-[conic-gradient(from_210deg,#ff7439,#d1fc00,#ff7439)] p-1 shadow-[0_0_30px_rgba(209,252,0,0.16)]">
-                <div className="flex h-full w-full items-center justify-center rounded-full bg-surface-container text-on-surface">
-                  <User size={44} strokeWidth={1.8} />
-                </div>
-              </div>
-              <button
-                type="button"
-                className="absolute bottom-1 right-1 flex h-9 w-9 items-center justify-center rounded-full bg-primary text-black shadow-xl"
-              >
-                <Edit2 size={16} strokeWidth={2.5} />
-              </button>
-            </div>
-            <p className="mt-4 text-[0.75rem] font-bold uppercase tracking-[0.22em] text-on-surface-variant">
-              Perfil sincronizado con Supabase
-            </p>
-          </div>
+          <AvatarSection
+            profile={profile}
+            isEditing={true}
+            onUploadClick={() => setIsAvatarDialogOpen(true)}
+          />
 
           <form className="space-y-6" onSubmit={(event) => event.preventDefault()}>
             <div className="space-y-2">
@@ -309,14 +364,43 @@ export const SettingsView = ({
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={handleProfileSave}
-              disabled={isSavingProfile}
-              className="neon-button w-full rounded-[0.95rem] py-4 font-sans text-sm font-bold uppercase tracking-[0.22em] transition-all active:scale-[0.985] disabled:opacity-60"
-            >
-              {isSavingProfile ? 'Guardando cambios...' : 'Guardar cambios'}
-            </button>
+            <div className="space-y-3">
+              <button
+                type="button"
+                onClick={handleProfileSave}
+                disabled={isSavingProfile}
+                className="neon-button w-full rounded-[0.95rem] py-4 font-sans text-sm font-bold uppercase tracking-[0.22em] transition-all active:scale-[0.985] disabled:opacity-60 flex items-center justify-center gap-2"
+              >
+                {isSavingProfile ? (
+                  <>
+                    <Loader size={16} className="animate-spin" />
+                    Guardando cambios...
+                  </>
+                ) : (
+                  'Guardar cambios'
+                )}
+              </button>
+              <AnimatePresence>
+                {profileFeedback.state !== 'idle' && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className={`flex items-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold ${
+                      profileFeedback.state === 'success'
+                        ? 'bg-green-500/10 border border-green-500/30 text-green-400'
+                        : profileFeedback.state === 'error'
+                        ? 'bg-red-500/10 border border-red-500/30 text-red-400'
+                        : 'bg-primary/10 border border-primary/30 text-primary'
+                    }`}
+                  >
+                    {profileFeedback.state === 'success' && <Check size={16} />}
+                    {profileFeedback.state === 'error' && <AlertCircle size={16} />}
+                    {profileFeedback.message}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </form>
         </section>
       )}
@@ -404,14 +488,43 @@ export const SettingsView = ({
               <p className="text-[9px] text-on-surface-variant/60">Meta semanal de minutos de entrenamiento</p>
             </div>
 
-            <button
-              type="button"
-              onClick={handleGoalsSave}
-              disabled={isSavingGoals}
-              className="neon-button w-full rounded-[0.95rem] py-4 font-sans text-sm font-bold uppercase tracking-[0.22em] transition-all active:scale-[0.985] disabled:opacity-60"
-            >
-              {isSavingGoals ? 'Guardando objetivos...' : 'Guardar objetivos'}
-            </button>
+            <div className="space-y-3">
+              <button
+                type="button"
+                onClick={handleGoalsSave}
+                disabled={isSavingGoals}
+                className="neon-button w-full rounded-[0.95rem] py-4 font-sans text-sm font-bold uppercase tracking-[0.22em] transition-all active:scale-[0.985] disabled:opacity-60 flex items-center justify-center gap-2"
+              >
+                {isSavingGoals ? (
+                  <>
+                    <Loader size={16} className="animate-spin" />
+                    Guardando objetivos...
+                  </>
+                ) : (
+                  'Guardar objetivos'
+                )}
+              </button>
+              <AnimatePresence>
+                {goalsFeedback.state !== 'idle' && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className={`flex items-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold ${
+                      goalsFeedback.state === 'success'
+                        ? 'bg-green-500/10 border border-green-500/30 text-green-400'
+                        : goalsFeedback.state === 'error'
+                        ? 'bg-red-500/10 border border-red-500/30 text-red-400'
+                        : 'bg-primary/10 border border-primary/30 text-primary'
+                    }`}
+                  >
+                    {goalsFeedback.state === 'success' && <Check size={16} />}
+                    {goalsFeedback.state === 'error' && <AlertCircle size={16} />}
+                    {goalsFeedback.message}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </form>
         </section>
       )}
@@ -563,6 +676,13 @@ export const SettingsView = ({
           </div>
         </section>
       )}
+
+      <AvatarUploadDialog
+        isOpen={isAvatarDialogOpen}
+        onClose={() => setIsAvatarDialogOpen(false)}
+        onUpload={handleAvatarUpload}
+        isLoading={isUploadingAvatar}
+      />
     </PageShell>
   );
 };

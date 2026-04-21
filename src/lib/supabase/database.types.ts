@@ -9,312 +9,403 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      profiles: {
+      exercise_favorites: {
         Row: {
-          id: string;
-          full_name: string | null;
-          username: string | null;
-          avatar_url: string | null;
-          unit_system: 'kg' | 'lb';
           created_at: string;
-          updated_at: string;
-          bio: string | null;
-          fitness_level: string | null;
-        };
-        Insert: {
-          id: string;
-          full_name?: string | null;
-          username?: string | null;
-          avatar_url?: string | null;
-          unit_system?: 'kg' | 'lb';
-          created_at?: string;
-          updated_at?: string;
-          bio?: string | null;
-          fitness_level?: string | null;
-        };
-        Update: {
-          full_name?: string | null;
-          username?: string | null;
-          avatar_url?: string | null;
-          unit_system?: 'kg' | 'lb';
-          updated_at?: string;
-          bio?: string | null;
-          fitness_level?: string | null;
-        };
-        Relationships: [];
-      };
-      muscle_groups: {
-        Row: {
-          id: number;
-          code: string;
-          name: string;
-          body_side: 'front' | 'back' | 'core' | 'other';
-          sort_order: number;
-        };
-        Insert: {
-          id?: number;
-          code: string;
-          name: string;
-          body_side: 'front' | 'back' | 'core' | 'other';
-          sort_order?: number;
-        };
-        Update: {
-          code?: string;
-          name?: string;
-          body_side?: 'front' | 'back' | 'core' | 'other';
-          sort_order?: number;
-        };
-        Relationships: [];
-      };
-      exercises: {
-        Row: {
-          id: string;
-          name: string;
-          description: string | null;
-          muscle_group_id: number;
-          equipment: string | null;
-          is_active: boolean;
-          created_at: string;
-          user_id: string | null;
-        };
-        Insert: {
-          id?: string;
-          name: string;
-          description?: string | null;
-          muscle_group_id: number;
-          equipment?: string | null;
-          is_active?: boolean;
-          created_at?: string;
-          user_id?: string | null;
-        };
-        Update: {
-          name?: string;
-          description?: string | null;
-          muscle_group_id?: number;
-          equipment?: string | null;
-          is_active?: boolean;
-          user_id?: string | null;
-        };
-        Relationships: [];
-      };
-      routines: {
-        Row: {
-          id: string;
-          user_id: string;
-          name: string;
-          notes: string | null;
-          is_active: boolean;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          user_id: string;
-          name: string;
-          notes?: string | null;
-          is_active?: boolean;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          name?: string;
-          notes?: string | null;
-          is_active?: boolean;
-          updated_at?: string;
-        };
-        Relationships: [];
-      };
-      routine_days: {
-        Row: {
-          id: string;
-          routine_id: string;
-          day_type: 'core' | 'weekday';
-          day_number: number | null;
-          title: string | null;
-          position: number;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          routine_id: string;
-          day_type: 'core' | 'weekday';
-          day_number?: number | null;
-          title?: string | null;
-          position: number;
-          created_at?: string;
-        };
-        Update: {
-          day_type?: 'core' | 'weekday';
-          day_number?: number | null;
-          title?: string | null;
-          position?: number;
-        };
-        Relationships: [];
-      };
-      routine_day_exercises: {
-        Row: {
-          id: string;
-          routine_day_id: string;
           exercise_id: string;
-          position: number;
-          rest_seconds: number | null;
-          notes: string | null;
-          created_at: string;
+          user_id: string;
         };
         Insert: {
-          id?: string;
-          routine_day_id: string;
-          exercise_id: string;
-          position: number;
-          rest_seconds?: number | null;
-          notes?: string | null;
           created_at?: string;
+          exercise_id: string;
+          user_id: string;
         };
         Update: {
+          created_at?: string;
           exercise_id?: string;
-          position?: number;
-          rest_seconds?: number | null;
-          notes?: string | null;
+          user_id?: string;
         };
         Relationships: [];
       };
       exercise_sets: {
         Row: {
-          id: string;
-          routine_day_exercise_id: string;
-          set_number: number;
-          reps: number | null;
-          weight: number | null;
+          created_at: string;
           duration_minutes: number | null;
           duration_seconds: number | null;
+          id: string;
           notes: string | null;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
+          reps: number | null;
           routine_day_exercise_id: string;
           set_number: number;
-          reps?: number | null;
-          weight?: number | null;
+          weight: number | null;
+        };
+        Insert: {
+          created_at?: string;
           duration_minutes?: number | null;
           duration_seconds?: number | null;
+          id?: string;
           notes?: string | null;
-          created_at?: string;
+          reps?: number | null;
+          routine_day_exercise_id: string;
+          set_number: number;
+          weight?: number | null;
         };
         Update: {
-          set_number?: number;
-          reps?: number | null;
-          weight?: number | null;
           duration_minutes?: number | null;
           duration_seconds?: number | null;
           notes?: string | null;
+          reps?: number | null;
+          set_number?: number;
+          weight?: number | null;
+        };
+        Relationships: [];
+      };
+      exercises: {
+        Row: {
+          created_at: string;
+          description: string | null;
+          equipment: string | null;
+          id: string;
+          is_active: boolean;
+          muscle_group_id: number;
+          name: string;
+          user_id: string | null;
+        };
+        Insert: {
+          created_at?: string;
+          description?: string | null;
+          equipment?: string | null;
+          id?: string;
+          is_active?: boolean;
+          muscle_group_id: number;
+          name: string;
+          user_id?: string | null;
+        };
+        Update: {
+          description?: string | null;
+          equipment?: string | null;
+          is_active?: boolean;
+          muscle_group_id?: number;
+          name?: string;
+          user_id?: string | null;
+        };
+        Relationships: [];
+      };
+      muscle_groups: {
+        Row: {
+          body_side: 'front' | 'back' | 'core' | 'other';
+          code: string;
+          id: number;
+          name: string;
+          sort_order: number;
+        };
+        Insert: {
+          body_side: 'front' | 'back' | 'core' | 'other';
+          code: string;
+          id?: number;
+          name: string;
+          sort_order?: number;
+        };
+        Update: {
+          body_side?: 'front' | 'back' | 'core' | 'other';
+          code?: string;
+          name?: string;
+          sort_order?: number;
+        };
+        Relationships: [];
+      };
+      profiles: {
+        Row: {
+          avatar_url: string | null;
+          bio: string | null;
+          created_at: string;
+          fitness_level: string | null;
+          full_name: string | null;
+          id: string;
+          unit_system: 'kg' | 'lb';
+          updated_at: string;
+          username: string | null;
+        };
+        Insert: {
+          avatar_url?: string | null;
+          bio?: string | null;
+          created_at?: string;
+          fitness_level?: string | null;
+          full_name?: string | null;
+          id: string;
+          unit_system?: 'kg' | 'lb';
+          updated_at?: string;
+          username?: string | null;
+        };
+        Update: {
+          avatar_url?: string | null;
+          bio?: string | null;
+          fitness_level?: string | null;
+          full_name?: string | null;
+          unit_system?: 'kg' | 'lb';
+          updated_at?: string;
+          username?: string | null;
+        };
+        Relationships: [];
+      };
+      routine_day_exercises: {
+        Row: {
+          created_at: string;
+          exercise_id: string;
+          id: string;
+          measure_unit: 'kg' | 'min' | 'sec' | null;
+          notes: string | null;
+          position: number;
+          rest_seconds: number | null;
+          routine_day_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          exercise_id: string;
+          id?: string;
+          measure_unit?: 'kg' | 'min' | 'sec' | null;
+          notes?: string | null;
+          position: number;
+          rest_seconds?: number | null;
+          routine_day_id: string;
+        };
+        Update: {
+          exercise_id?: string;
+          measure_unit?: 'kg' | 'min' | 'sec' | null;
+          notes?: string | null;
+          position?: number;
+          rest_seconds?: number | null;
+        };
+        Relationships: [];
+      };
+      routine_days: {
+        Row: {
+          created_at: string;
+          day_number: number | null;
+          day_type: 'core' | 'weekday';
+          id: string;
+          position: number;
+          routine_id: string;
+          title: string | null;
+        };
+        Insert: {
+          created_at?: string;
+          day_number?: number | null;
+          day_type: 'core' | 'weekday';
+          id?: string;
+          position: number;
+          routine_id: string;
+          title?: string | null;
+        };
+        Update: {
+          day_number?: number | null;
+          day_type?: 'core' | 'weekday';
+          position?: number;
+          title?: string | null;
         };
         Relationships: [];
       };
       routine_sessions: {
         Row: {
-          id: string;
-          routine_id: string;
-          user_id: string;
-          started_at: string | null;
-          ended_at: string | null;
-          status: 'draft' | 'in_progress' | 'completed' | 'cancelled';
           created_at: string;
+          ended_at: string | null;
+          id: string;
+          routine_id: string | null;
+          started_at: string | null;
+          status: 'draft' | 'in_progress' | 'completed' | 'cancelled';
+          user_id: string;
         };
         Insert: {
-          id?: string;
-          routine_id: string;
-          user_id: string;
-          started_at?: string | null;
-          ended_at?: string | null;
-          status?: 'draft' | 'in_progress' | 'completed' | 'cancelled';
           created_at?: string;
+          ended_at?: string | null;
+          id?: string;
+          routine_id?: string | null;
+          started_at?: string | null;
+          status?: 'draft' | 'in_progress' | 'completed' | 'cancelled';
+          user_id: string;
         };
         Update: {
-          started_at?: string | null;
           ended_at?: string | null;
+          routine_id?: string | null;
+          started_at?: string | null;
           status?: 'draft' | 'in_progress' | 'completed' | 'cancelled';
+        };
+        Relationships: [];
+      };
+      routines: {
+        Row: {
+          created_at: string;
+          id: string;
+          is_active: boolean;
+          name: string;
+          notes: string | null;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          is_active?: boolean;
+          name: string;
+          notes?: string | null;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          is_active?: boolean;
+          name?: string;
+          notes?: string | null;
+          updated_at?: string;
         };
         Relationships: [];
       };
       session_day_logs: {
         Row: {
-          id: string;
-          session_id: string;
-          routine_day_id: string | null;
-          started_at: string | null;
           ended_at: string | null;
+          id: string;
+          routine_day_id: string | null;
+          session_id: string;
+          started_at: string | null;
         };
         Insert: {
-          id?: string;
-          session_id: string;
-          routine_day_id?: string | null;
-          started_at?: string | null;
           ended_at?: string | null;
+          id?: string;
+          routine_day_id?: string | null;
+          session_id: string;
+          started_at?: string | null;
         };
         Update: {
+          ended_at?: string | null;
           routine_day_id?: string | null;
           started_at?: string | null;
-          ended_at?: string | null;
         };
         Relationships: [];
       };
       session_exercise_logs: {
         Row: {
-          id: string;
-          session_day_log_id: string;
           exercise_id: string | null;
-          position: number | null;
+          id: string;
           notes: string | null;
+          position: number | null;
+          session_day_log_id: string;
         };
         Insert: {
-          id?: string;
-          session_day_log_id: string;
           exercise_id?: string | null;
-          position?: number | null;
+          id?: string;
           notes?: string | null;
+          position?: number | null;
+          session_day_log_id: string;
         };
         Update: {
           exercise_id?: string | null;
-          position?: number | null;
           notes?: string | null;
+          position?: number | null;
         };
         Relationships: [];
       };
       session_set_logs: {
         Row: {
-          id: string;
-          session_exercise_log_id: string;
-          set_number: number;
-          reps: number | null;
-          weight: number | null;
+          completed: boolean;
           duration_minutes: number | null;
           duration_seconds: number | null;
-          completed: boolean;
-        };
-        Insert: {
-          id?: string;
+          id: string;
+          reps: number | null;
           session_exercise_log_id: string;
           set_number: number;
-          reps?: number | null;
-          weight?: number | null;
+          weight: number | null;
+        };
+        Insert: {
+          completed?: boolean;
           duration_minutes?: number | null;
           duration_seconds?: number | null;
-          completed?: boolean;
+          id?: string;
+          reps?: number | null;
+          session_exercise_log_id: string;
+          set_number: number;
+          weight?: number | null;
         };
         Update: {
-          set_number?: number;
-          reps?: number | null;
-          weight?: number | null;
+          completed?: boolean;
           duration_minutes?: number | null;
           duration_seconds?: number | null;
-          completed?: boolean;
+          reps?: number | null;
+          set_number?: number;
+          weight?: number | null;
+        };
+        Relationships: [];
+      };
+      user_goals: {
+        Row: {
+          created_at: string;
+          id: string;
+          updated_at: string;
+          user_id: string;
+          weekly_duration_target: number;
+          weekly_exercises_target: number;
+          weekly_volume_target: number;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          updated_at?: string;
+          user_id: string;
+          weekly_duration_target?: number;
+          weekly_exercises_target?: number;
+          weekly_volume_target?: number;
+        };
+        Update: {
+          updated_at?: string;
+          weekly_duration_target?: number;
+          weekly_exercises_target?: number;
+          weekly_volume_target?: number;
+        };
+        Relationships: [];
+      };
+      weekly_statistics: {
+        Row: {
+          average_duration_minutes: number;
+          created_at: string;
+          id: string;
+          total_exercises: number;
+          total_sessions: number;
+          total_volume: number;
+          total_volume_minutes: number;
+          user_id: string;
+          week_start_date: string;
+        };
+        Insert: {
+          average_duration_minutes?: number;
+          created_at?: string;
+          id?: string;
+          total_exercises?: number;
+          total_sessions?: number;
+          total_volume?: number;
+          total_volume_minutes?: number;
+          user_id: string;
+          week_start_date: string;
+        };
+        Update: {
+          average_duration_minutes?: number;
+          total_exercises?: number;
+          total_sessions?: number;
+          total_volume?: number;
+          total_volume_minutes?: number;
+          week_start_date?: string;
         };
         Relationships: [];
       };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      end_session_transaction: {
+        Args: {
+          p_ended_at: string;
+          p_session_data: Json;
+          p_session_id: string;
+        };
+        Returns: string;
+      };
+    };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };

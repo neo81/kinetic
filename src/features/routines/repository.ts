@@ -509,7 +509,7 @@ const listSupabaseRoutines = async (): Promise<Routine[] | null> => {
     );
   }
 
-  return (data as RoutineQueryRow[]).map(mapRoutine);
+  return (data as unknown as RoutineQueryRow[]).map(mapRoutine);
 };
 
 const saveSupabaseRoutine = async (
@@ -704,15 +704,15 @@ const fetchCompletedSessions = async (userId: string): Promise<CompletedSession[
           const sets = exercise.session_set_logs || [];
           sets.forEach((set: any) => {
             // Weight-based exercises (reps × weight)
-            const reps = parseFloat(set.reps) || 0;
-            const weight = parseFloat(set.weight) || 0;
+            const reps = Number(set.reps ?? 0);
+            const weight = Number(set.weight ?? 0);
             if (weight > 0) {
               totalVolumeWeight += reps * weight;
             }
 
             // Time-based exercises (duration in minutes)
-            const durationMinutes = parseFloat(set.duration_minutes) || 0;
-            const durationSeconds = parseFloat(set.duration_seconds) || 0;
+            const durationMinutes = Number(set.duration_minutes ?? 0);
+            const durationSeconds = Number(set.duration_seconds ?? 0);
             totalVolumeMinutes += durationMinutes + durationSeconds / 60;
           });
         });
@@ -769,9 +769,13 @@ const fetchUserGoals = async (userId: string): Promise<UserGoals> => {
       .from('user_goals')
       .select('weekly_volume_target, weekly_exercises_target, weekly_duration_target')
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
 
-    if (error || !data) {
+    if (error) {
+      throw error;
+    }
+
+    if (!data) {
       // Return defaults if not found
       return {
         weeklyVolumeTarget: 20000,
@@ -781,7 +785,7 @@ const fetchUserGoals = async (userId: string): Promise<UserGoals> => {
     }
 
     return {
-      weeklyVolumeTarget: parseFloat(data.weekly_volume_target as any) || 20000,
+      weeklyVolumeTarget: Number(data.weekly_volume_target) || 20000,
       weeklyExercisesTarget: data.weekly_exercises_target || 30,
       weeklyDurationTarget: data.weekly_duration_target || 300,
     };
@@ -1142,15 +1146,20 @@ export const routinesRepository = {
         .from('user_goals')
         .upsert(payload)
         .select('weekly_volume_target, weekly_exercises_target, weekly_duration_target')
-        .single();
+        .maybeSingle();
 
-      if (error || !data) {
+      if (error) {
         console.error('Error saving user goals:', error);
+        throw error;
+      }
+
+      if (!data) {
+        console.error('No data returned from saveUserGoals upsert');
         throw new Error('No se pudo guardar los objetivos');
       }
 
       return {
-        weeklyVolumeTarget: parseFloat(data.weekly_volume_target as any) || 20000,
+        weeklyVolumeTarget: Number(data.weekly_volume_target) || 20000,
         weeklyExercisesTarget: data.weekly_exercises_target || 30,
         weeklyDurationTarget: data.weekly_duration_target || 300,
       };

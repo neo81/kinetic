@@ -4,10 +4,10 @@ import { motion } from 'framer-motion';
 import { supabase } from '../lib/supabase/client';
 import { PageShell } from '../components/layout/PageShell';
 import { routinesRepository } from '../features/routines/repository';
-import type { View, CompletedSession } from '../types';
+import type { View, CompletedSession, UserProfile } from '../types';
 import { formatSessionDate, formatSessionDuration, formatSessionVolume } from '../utils/formatting';
 
-export const HistoryView = ({ setView }: { setView: (v: View) => void }) => {
+export const HistoryView = ({ setView, profile }: { setView: (v: View) => void; profile?: UserProfile | null }) => {
   const [sessions, setSessions] = useState<CompletedSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -48,6 +48,7 @@ export const HistoryView = ({ setView }: { setView: (v: View) => void }) => {
       setView={setView}
       onProfileClick={() => setView('settings')}
       onSettingsClick={() => setView('settings')}
+      profile={profile}
       contentClassName="max-w-md"
     >
       <section className="mb-8">

@@ -104,6 +104,7 @@ export interface ActiveSession {
   startTimeMs: number;
   completedExercises: string[];
   completedDayIds: string[];
+  exerciseGroupsByDay: Record<string, SessionExerciseGroup[]>;
   performanceData: {
     [exerciseId: string]: {
       [setNumber: number]: {
@@ -115,6 +116,42 @@ export interface ActiveSession {
       };
     };
   };
+}
+
+export interface SessionExerciseGroup {
+  id: string;
+  exerciseIds: string[];
+}
+
+export interface SessionExportDayPayload {
+  routine_day_id: string;
+}
+
+export interface SessionExportExercisePayload {
+  exercise_id: string;
+  routine_day_id: string;
+  position: number;
+  notes: string | null;
+}
+
+export interface SessionExportSetPayload {
+  exercise_id: string;
+  exercise_position: number;
+  routine_day_id: string;
+  set_number: number;
+  planned_reps: number | null;
+  planned_weight: number | null;
+  planned_duration_minutes: number | null;
+  actual_reps: number | null;
+  actual_weight: number | null;
+  actual_duration_minutes: number | null;
+  actual_duration_seconds: number | null;
+}
+
+export interface SessionExportPayload {
+  days: SessionExportDayPayload[];
+  exercises: SessionExportExercisePayload[];
+  sets: SessionExportSetPayload[];
 }
 
 export interface CompletedSession {
