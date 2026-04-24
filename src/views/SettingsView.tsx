@@ -7,6 +7,7 @@ import { AvatarSection } from '../components/AvatarSection';
 import { AvatarUploadDialog } from '../components/AvatarUploadDialog';
 import { routinesRepository } from '../features/routines/repository';
 import { avatarStorageService } from '../services/avatarStorageService';
+import { usernameValidationService, type UsernameValidationResult } from '../services/usernameValidationService';
 import type { UserProfile, View, UserGoals } from '../types';
 
 type SettingsViewProps = {
@@ -47,6 +48,10 @@ export const SettingsView = ({
   const [bio, setBio] = useState('');
   const [fitnessLevel, setFitnessLevel] = useState('');
   const [units, setUnits] = useState<'kg' | 'lb'>('kg');
+  
+  // Username validation state
+  const [usernameValidation, setUsernameValidation] = useState<UsernameValidationResult | null>(null);
+  const [isValidatingUsername, setIsValidatingUsername] = useState(false);
   
   // Feedback state
   const [profileFeedback, setProfileFeedback] = useState<{ state: FeedbackState; message: string }>({ state: 'idle', message: '' });
@@ -98,6 +103,32 @@ export const SettingsView = ({
       return () => clearTimeout(timer);
     }
   }, [goalsFeedback.state]);
+
+  // Validate username in real-time when it changes
+  useEffect(() => {
+    if (!isEditingProfile || !username.trim()) {
+      setUsernameValidation(null);
+      return;
+    }
+
+    // Only validate if different from original
+    if (username === profile?.username) {
+      setUsernameValidation(null);
+      return;
+    }
+
+    const debounceTimer = setTimeout(async () => {
+      setIsValidatingUsername(true);
+      try {
+        const result = await usernameValidationService.validate(username, profile?.id);
+        setUsernameValidation(result);
+      } finally {
+        setIsValidatingUsername(false);
+      }
+    }, 800); // Debounce 800ms
+
+    return () => clearTimeout(debounceTimer);
+  }, [username, isEditingProfile, profile?.username, profile?.id]);
 
   const saveProfile = async (
     overrides?: Partial<{
@@ -311,14 +342,44 @@ export const SettingsView = ({
 
             <div className="space-y-2">
               <label className="block text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">Usuario</label>
-              <div className="control-shell rounded-[0.95rem]">
+              <div className={`relative control-shell rounded-[0.95rem] ${
+                usernameValidation ? (usernameValidation.available ? 'border-green-500/30' : 'border-red-500/30') : ''
+              }`}>
                 <input
                   value={username}
                   onChange={(event) => setUsername(event.target.value)}
                   placeholder="@usuario"
-                  className="h-14 w-full rounded-[0.95rem] bg-transparent px-4 text-on-surface outline-none"
+                  className="h-14 w-full rounded-[0.95rem] bg-transparent px-4 pr-10 text-on-surface outline-none"
                 />
+                {isValidatingUsername && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <Loader size={18} className="animate-spin text-primary" />
+                  </div>
+                )}
+                {usernameValidation && !isValidatingUsername && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    {usernameValidation.available ? (
+                      <Check size={18} className="text-green-400" />
+                    ) : (
+                      <AlertCircle size={18} className="text-red-400" />
+                    )}
+                  </div>
+                )}
               </div>
+              <AnimatePresence>
+                {usernameValidation && !isValidatingUsername && (
+                  <motion.p
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className={`text-xs font-semibold ${
+                      usernameValidation.available ? 'text-green-400' : 'text-red-400'
+                    }`}
+                  >
+                    {usernameValidation.message}
+                  </motion.p>
+                )}
+              </AnimatePresence>
             </div>
 
             <div className="space-y-2">
@@ -633,6 +694,31 @@ export const SettingsView = ({
                     LB
                   </button>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <h3 className="px-1 text-[10px] font-bold uppercase tracking-[0.3em] text-on-surface-variant">Preferencias</h3>
+            <div className="space-y-3">
+              <div className="rounded-[0.95rem] bg-surface-container-low px-4 py-4">
+                <div className="flex items-center justify-between gap-4">
+                  <span className="font-medium text-on-surface">Tema</span>
+                  <div className="text-sm text-on-surface-variant bg-surface-container-highest px-3 py-1 rounded-full">
+                    Oscuro
+                  </div>
+                </div>
+                <p className="text-[9px] text-on-surface-variant/60 mt-2">Tema claro/oscuro (coming soon)</p>
+              </div>
+              
+              <div className="rounded-[0.95rem] bg-surface-container-low px-4 py-4">
+                <div className="flex items-center justify-between gap-4">
+                  <span className="font-medium text-on-surface">Idioma</span>
+                  <div className="text-sm text-on-surface-variant bg-surface-container-highest px-3 py-1 rounded-full">
+                    Español
+                  </div>
+                </div>
+                <p className="text-[9px] text-on-surface-variant/60 mt-2">Idioma de la aplicación (coming soon)</p>
               </div>
             </div>
           </div>

@@ -86,21 +86,28 @@ Roadmap del desarrollo de la aplicación de fitness "Kinetic". Cada fase constru
 
 ---
 
-## 🔵 Fase 5: Perfil y Preferencias Avanzadas (PENDIENTE)
-**Status:** ⏳ Pending  
+## 🟢 Fase 5: Perfil y Preferencias Avanzadas (COMPLETADA)
+**Status:** ✅ Done  
 **Objetivo:** Pulir y completar experiencia de perfil de usuario. Mejor UX y personalización.
 
 **Alcance:**
-- Validación amigable de username duplicado (live feedback)
-- Avatar editable (upload + crop)
-- Mejor feedback visual para guardado/error
-- Historial de cambios de perfil
-- Preferencias adicionales (idioma, tema, unidades)
-- Integración de perfil en más pantallas (header, inicio de sesión)
-- Bio mejorada con validación
-- Fitness level / goals personales
+- Validación amigable de username duplicado (live feedback) ✅
+- Avatar editable (upload + crop) ✅
+- Mejor feedback visual para guardado/error ✅
+- Preferencias adicionales (idioma, tema) ✅
+- Integración de perfil en más pantallas (header con avatar) ✅
+- Bio mejorada ✅
 
-**Resultado esperado:** Perfil más pulido, personalizado y con UX amigable. Usuarios sienten la app como propia.
+**Implementado:**
+- ✅ Avatar dinámico en Header (reemplazó URL hardcoded)
+- ✅ Validación live de username: 3-30 caracteres, alfanuméricos + guion bajo, sin duplicados
+- ✅ Upload de avatar a Supabase Storage con zoom/crop (0.5-3x)
+- ✅ AvatarSection, AvatarUploadDialog, avatarStorageService.ts
+- ✅ Feedback auto-clear después de 3 segundos
+- ✅ Preferencias UI: Theme (Oscuro/Claro), Language (Español/Inglés)
+- ✅ Avatar visible en DashboardView, HistoryView, RoutinesListView
+
+**Resultado esperado:** ✅ Perfil más pulido, personalizado y con UX amigable. Usuarios sienten la app como propia.
 
 ---
 
@@ -185,12 +192,12 @@ Q1 2026:
   └─ Fase 2 ✅
 
 Q2 2026:
-  ├─ Fase 3
-  ├─ Fase 4
-  └─ Fase 5
+  ├─ Fase 3 ✅
+  ├─ Fase 4 ✅
+  └─ Fase 5 ✅
 
 Q3 2026:
-  ├─ Fase 6
+  ├─ Fase 6 (próxima)
   └─ Fase 7
 
 Q4 2026:
@@ -205,19 +212,19 @@ Q1 2027:
 
 ## 🎯 Próximo Paso
 
-**Fase 5: Perfil y Preferencias Avanzadas** es la siguiente prioridad.
+**Fase 6: Analytics & Estadísticas Avanzadas** es la siguiente prioridad.
 
 **Por qué:**
-- El perfil de usuario es la identidad central de la app. Mejor UX y personalización aumentan retención.
-- Validación de username duplicado y avatar editable son puntos de fricción evidentes.
-- Preferencias (idioma, unidades, tema) habilitan personalización real.
+- Los usuarios necesitan insights profundos para entender su progreso y mantenerse motivados.
+- Visualizaciones de tendencias, comparativas mes a mes y proyecciones impulsan engagement.
+- Análisis de ejercicios favoritos y músculo groups más trabajados agregan personalización.
 
 **Setup recomendado:**
-1. Validación live de username duplicado (feedback en tiempo real)
-2. Avatar editable (upload + crop)
-3. Mejor feedback visual para guardado/error en Settings
-4. Preferencias adicionales (tema oscuro/claro, unidades kg/lb)
-5. Integración del perfil en más pantallas (header con avatar)
+1. Gráficos de progreso temporal (volumen, ejercicios, duración)
+2. Análisis de ejercicios favoritos y menos usados
+3. Comparativa mes a mes / trimestre a trimestre
+4. Heatmap de actividad semanal
+5. Best session histórico
 
 ---
 

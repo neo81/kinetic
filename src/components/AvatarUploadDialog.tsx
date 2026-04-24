@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Upload, X, Check, AlertCircle, Loader } from 'lucide-react';
+import { Upload, X, Check, AlertCircle, Loader, ZoomIn, ZoomOut } from 'lucide-react';
 
 interface AvatarUploadDialogProps {
   isOpen: boolean;
@@ -21,6 +21,7 @@ export const AvatarUploadDialog = ({
   const [preview, setPreview] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [error, setError] = useState<string>('');
+  const [scale, setScale] = useState<number>(1);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -146,20 +147,56 @@ export const AvatarUploadDialog = ({
               {state === 'preview' && preview && (
                 <div className="space-y-4">
                   <div className="flex justify-center">
-                    <div className="h-48 w-48 overflow-hidden rounded-full border-4 border-primary/30">
+                    <div className="relative h-48 w-48 overflow-hidden rounded-full border-4 border-primary/30 bg-black/20">
                       <img
                         src={preview}
                         alt="Preview"
                         className="h-full w-full object-cover"
+                        style={{ transform: `scale(${scale})` }}
                       />
                     </div>
                   </div>
-                  <p className="text-center text-sm text-on-surface-variant">
-                    {selectedFile?.name}
+
+                  {/* Zoom Controls */}
+                  <div className="flex items-center justify-center gap-4">
+                    <button
+                      onClick={() => setScale(Math.max(0.5, scale - 0.1))}
+                      disabled={scale <= 0.5}
+                      className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 transition-colors hover:bg-white/5 disabled:opacity-30"
+                      title="Zoom out"
+                    >
+                      <ZoomOut size={16} />
+                    </button>
+                    <div className="flex-1">
+                      <input
+                        type="range"
+                        min="0.5"
+                        max="3"
+                        step="0.1"
+                        value={scale}
+                        onChange={(e) => setScale(parseFloat(e.target.value))}
+                        className="w-full"
+                      />
+                    </div>
+                    <button
+                      onClick={() => setScale(Math.min(3, scale + 0.1))}
+                      disabled={scale >= 3}
+                      className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 transition-colors hover:bg-white/5 disabled:opacity-30"
+                      title="Zoom in"
+                    >
+                      <ZoomIn size={16} />
+                    </button>
+                  </div>
+
+                  <p className="text-center text-xs text-on-surface-variant">
+                    {selectedFile?.name} • {(scale * 100).toFixed(0)}%
                   </p>
                   <div className="flex gap-3">
                     <button
-                      onClick={() => fileInputRef.current?.click()}
+                      onClick={() => {
+                        setScale(1);
+                        fileInputRef.current?.click();
+                      }}
                       disabled={isLoading}
                       className="flex-1 rounded-lg border border-white/10 bg-transparent py-2.5 text-sm font-bold uppercase tracking-wider text-on-surface transition-colors hover:bg-white/5 disabled:opacity-50"
                     >
