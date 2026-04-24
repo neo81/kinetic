@@ -45,7 +45,7 @@ export const RoutinesListView = ({
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/5 transition-all group-hover:bg-primary/20">
               <ArrowLeft size={16} strokeWidth={2.5} />
             </div>
-            <span className="text-[0.72rem] font-bold uppercase tracking-[0.22em]">Volver al panel</span>
+            <span className="font-headline text-[0.72rem] font-black uppercase italic tracking-[0.22em]">Volver al panel</span>
           </button>
         </section>
 
@@ -55,7 +55,7 @@ export const RoutinesListView = ({
             <div className="h-1.5 w-12 rounded-full bg-primary/80"></div>
             <span className="text-[10px] font-black uppercase tracking-[0.4em] text-on-surface-variant/40">GESTIÓN DE PLANES</span>
           </div>
-          <h1 className="font-headline text-[3.2rem] font-bold uppercase leading-none tracking-tight text-on-surface">MIS RUTINAS</h1>
+          <h1 className="font-headline text-[3.2rem] font-bold uppercase italic leading-none tracking-tight text-on-surface">MIS RUTINAS</h1>
         </header>
 
         {/* Botón Crear Rutina Explícito */}

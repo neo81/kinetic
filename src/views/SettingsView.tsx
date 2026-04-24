@@ -271,10 +271,10 @@ export const SettingsView = ({
       activeView="settings"
       setView={setView}
       showHeader={false}
-      contentClassName="max-w-md px-4 pt-0 pb-24 sm:px-6"
+      contentClassName="pt-24 pb-24"
     >
-      <div className="sticky top-0 z-50 -mx-4 bg-background/95 backdrop-blur-xl sm:-mx-6">
-        <div className="mx-auto flex max-w-md items-center justify-between px-4 py-4 sm:px-6">
+      <div className="fixed top-0 left-0 z-[60] w-full border-b border-white/6 bg-background/80 backdrop-blur-xl">
+        <div className="mx-auto flex h-[4.5rem] w-full max-w-2xl items-center justify-between px-5 sm:px-6">
           <div className="flex items-center gap-4">
             <button
               onClick={() => {
@@ -287,11 +287,11 @@ export const SettingsView = ({
                   setView('dashboard');
                 }
               }}
-              className="text-on-surface-variant transition-colors hover:text-primary"
+              className="flex h-10 w-10 items-center justify-center rounded-full text-on-surface-variant transition-all hover:bg-white/5 hover:text-primary active:scale-95"
             >
               <ArrowLeft size={20} strokeWidth={2.5} />
             </button>
-            <h1 className={`font-sans text-sm font-bold uppercase tracking-[0.28em] ${isInAnyEditMode ? 'text-on-surface' : 'text-primary'}`}>
+            <h1 className={`font-headline text-lg font-semibold uppercase italic tracking-[0.16em] ${isInAnyEditMode ? 'text-on-surface' : 'text-primary'}`}>
               {isEditingProfile ? 'Editar perfil' : isEditingGoals ? 'Editar objetivos' : 'Configuracion'}
             </h1>
           </div>
@@ -300,7 +300,7 @@ export const SettingsView = ({
             <button
               onClick={handleProfileSave}
               disabled={isSavingProfile}
-              className="font-sans text-sm font-bold uppercase tracking-[0.18em] text-primary transition-colors hover:text-primary/80 disabled:opacity-50"
+              className="font-headline text-sm font-bold uppercase italic tracking-[0.18em] text-primary transition-colors hover:text-primary/80 disabled:opacity-50"
             >
               {isSavingProfile ? 'Guardando...' : 'Guardar'}
             </button>
@@ -308,15 +308,20 @@ export const SettingsView = ({
             <button
               onClick={handleGoalsSave}
               disabled={isSavingGoals}
-              className="font-sans text-sm font-bold uppercase tracking-[0.18em] text-primary transition-colors hover:text-primary/80 disabled:opacity-50"
+              className="font-headline text-sm font-bold uppercase italic tracking-[0.18em] text-primary transition-colors hover:text-primary/80 disabled:opacity-50"
             >
               {isSavingGoals ? 'Guardando...' : 'Guardar'}
             </button>
           ) : (
-            <div className="font-headline text-[1.9rem] font-semibold uppercase tracking-[0.14em] text-primary">KINETIC</div>
+            <div className="flex items-center gap-3">
+              <div className="h-2 w-2 rounded-full bg-primary shadow-[0_0_12px_rgba(212,255,0,0.9)]"></div>
+              <div className="leading-none text-right">
+                <span className="block font-headline text-[1.6rem] font-semibold uppercase tracking-[0.16em] text-primary">KINETIC</span>
+                <span className="block text-[0.55rem] font-semibold uppercase tracking-[0.34em] text-on-surface-variant/70">Performance Engine</span>
+              </div>
+            </div>
           )}
         </div>
-        <div className="h-px bg-gradient-to-r from-transparent via-white/8 to-transparent"></div>
       </div>
 
       {isEditingProfile && (
@@ -430,7 +435,7 @@ export const SettingsView = ({
                 type="button"
                 onClick={handleProfileSave}
                 disabled={isSavingProfile}
-                className="neon-button w-full rounded-[0.95rem] py-4 font-sans text-sm font-bold uppercase tracking-[0.22em] transition-all active:scale-[0.985] disabled:opacity-60 flex items-center justify-center gap-2"
+                className="neon-button w-full rounded-[0.95rem] py-4 font-headline text-sm font-black uppercase italic tracking-[0.22em] transition-all active:scale-[0.985] disabled:opacity-60 flex items-center justify-center gap-2"
               >
                 {isSavingProfile ? (
                   <>
@@ -474,7 +479,7 @@ export const SettingsView = ({
                 <Target size={32} strokeWidth={1.8} />
               </div>
             </div>
-            <p className="mt-4 text-[0.75rem] font-bold uppercase tracking-[0.22em] text-on-surface-variant">
+            <p className="mt-4 text-[10px] font-black uppercase italic tracking-[0.3em] text-on-surface-variant">
               Establece tus objetivos semanales
             </p>
           </div>
@@ -554,7 +559,7 @@ export const SettingsView = ({
                 type="button"
                 onClick={handleGoalsSave}
                 disabled={isSavingGoals}
-                className="neon-button w-full rounded-[0.95rem] py-4 font-sans text-sm font-bold uppercase tracking-[0.22em] transition-all active:scale-[0.985] disabled:opacity-60 flex items-center justify-center gap-2"
+                className="neon-button w-full rounded-[0.95rem] py-4 font-headline text-sm font-black uppercase italic tracking-[0.22em] transition-all active:scale-[0.985] disabled:opacity-60 flex items-center justify-center gap-2"
               >
                 {isSavingGoals ? (
                   <>
@@ -605,7 +610,7 @@ export const SettingsView = ({
             </div>
 
             <div className="space-y-1">
-              <h2 className="text-4xl font-extrabold tracking-tight text-on-surface">{displayName}</h2>
+              <h2 className="font-headline text-4xl font-black uppercase italic tracking-tight text-on-background sm:text-5xl">{displayName}</h2>
               <div className="flex items-center gap-2">
                 <span className="text-xs text-secondary">•</span>
                 <span className="text-[0.72rem] font-medium uppercase tracking-[0.24em] text-on-surface-variant">{displayLevel}</span>
@@ -615,7 +620,7 @@ export const SettingsView = ({
           </div>
 
           <div className="space-y-3">
-            <h3 className="px-1 text-[10px] font-bold uppercase tracking-[0.3em] text-on-surface-variant">Cuenta</h3>
+            <h3 className="px-1 text-[10px] font-black uppercase italic tracking-[0.4em] text-on-surface-variant/60">Cuenta</h3>
             <button
               onClick={() => setIsEditingProfile(true)}
               className="flex w-full items-center justify-between rounded-[0.95rem] bg-surface-container-low px-4 py-4 text-left transition-colors hover:bg-surface-container-high"
@@ -629,7 +634,7 @@ export const SettingsView = ({
           </div>
 
           <div className="space-y-3">
-            <h3 className="px-1 text-[10px] font-bold uppercase tracking-[0.3em] text-on-surface-variant">Objetivos de Entrenamiento</h3>
+            <h3 className="px-1 text-[10px] font-black uppercase italic tracking-[0.4em] text-on-surface-variant/60">Objetivos de Entrenamiento</h3>
             {goals ? (
               <div className="space-y-3">
                 <div className="rounded-[0.95rem] bg-surface-container-low px-4 py-4 space-y-4">
@@ -671,7 +676,7 @@ export const SettingsView = ({
           </div>
 
           <div className="space-y-3">
-            <h3 className="px-1 text-[10px] font-bold uppercase tracking-[0.3em] text-on-surface-variant">Preferencias</h3>
+            <h3 className="px-1 text-[10px] font-black uppercase italic tracking-[0.4em] text-on-surface-variant/60">Preferencias</h3>
             <div className="rounded-[0.95rem] bg-surface-container-low px-4 py-4">
               <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
@@ -699,7 +704,7 @@ export const SettingsView = ({
           </div>
 
           <div className="space-y-3">
-            <h3 className="px-1 text-[10px] font-bold uppercase tracking-[0.3em] text-on-surface-variant">Preferencias</h3>
+            <h3 className="px-1 text-[10px] font-black uppercase italic tracking-[0.4em] text-on-surface-variant/60">Preferencias</h3>
             <div className="space-y-3">
               <div className="rounded-[0.95rem] bg-surface-container-low px-4 py-4">
                 <div className="flex items-center justify-between gap-4">
@@ -724,7 +729,7 @@ export const SettingsView = ({
           </div>
 
           <div className="space-y-3">
-            <h3 className="px-1 text-[10px] font-bold uppercase tracking-[0.3em] text-on-surface-variant">Actividad</h3>
+            <h3 className="px-1 text-[10px] font-black uppercase italic tracking-[0.4em] text-on-surface-variant/60">Actividad</h3>
             <div className="grid grid-cols-2 gap-3">
               <div className="relative overflow-hidden rounded-[1rem] border-l-2 border-primary bg-surface-container-low p-5">
                 <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-on-surface-variant">Historial</p>
@@ -740,7 +745,7 @@ export const SettingsView = ({
           </div>
 
           <div className="space-y-3">
-            <h3 className="px-1 text-[10px] font-bold uppercase tracking-[0.3em] text-on-surface-variant">Perfil</h3>
+            <h3 className="px-1 text-[10px] font-black uppercase italic tracking-[0.4em] text-on-surface-variant/60">Perfil</h3>
             <div className="rounded-[0.95rem] bg-surface-container-low px-4 py-4 text-sm text-on-surface-variant">
               {bio?.trim() ? bio : 'Aun no agregaste una bio a tu perfil.'}
             </div>
@@ -754,7 +759,7 @@ export const SettingsView = ({
               className="flex w-full items-center justify-center gap-3 rounded-[0.95rem] bg-surface-container-high px-4 py-4 text-on-surface transition-all hover:bg-error-container/10 hover:text-error active:scale-[0.985] disabled:opacity-60"
             >
               <LogOut size={18} />
-              <span className="text-sm font-bold uppercase tracking-[0.18em]">
+              <span className="font-headline text-sm font-black italic uppercase tracking-[0.18em]">
                 {isLoggingOut ? 'Cerrando...' : 'Cerrar sesion'}
               </span>
             </button>

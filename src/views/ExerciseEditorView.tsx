@@ -142,7 +142,7 @@ export const ExerciseEditorView = ({
         setView={setView}
         onProfileClick={() => setView('settings')}
         onSettingsClick={() => setView('settings')}
-        contentClassName="max-w-md pb-8"
+        contentClassName="pb-8"
       >
         <section className="space-y-6 text-center">
           <h2 className="font-headline text-[2.4rem] font-semibold uppercase text-on-surface">Sin ejercicio seleccionado</h2>
@@ -161,24 +161,25 @@ export const ExerciseEditorView = ({
       setView={setView}
       onProfileClick={() => setView('settings')}
       onSettingsClick={() => setView('settings')}
-      contentClassName="max-w-md pb-8"
+      contentClassName="pb-8"
     >
-      <section className="mb-6">
-        <div className="mb-4 flex items-center gap-4">
-          <button
-            onClick={onBack}
-            className="group flex h-12 w-12 items-center justify-center rounded-2xl border border-white/5 bg-white/5 text-primary shadow-xl transition-all hover:bg-primary/10 active:scale-90"
-          >
-            <ArrowLeft size={20} strokeWidth={3} className="transition-transform group-hover:-translate-x-1" />
-          </button>
-          <div className="flex flex-col">
-            <span className="mb-1 flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] text-on-surface-variant">
-              <span className="h-2 w-2 rounded-full bg-secondary"></span>
-              Sesion activa
-            </span>
-            <h1 className="font-headline text-[2.5rem] font-semibold uppercase leading-none text-primary">Editor</h1>
+      <section className="mb-6 space-y-5">
+        <button onClick={onBack} className="flex items-center gap-3 text-on-surface-variant transition-colors hover:text-primary">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/5 transition-all group-hover:bg-primary/20">
+            <ArrowLeft size={16} strokeWidth={2.5} />
           </div>
-        </div>
+          <span className="font-headline text-[0.72rem] font-black uppercase italic tracking-[0.22em]">Volver</span>
+        </button>
+
+        <header className="space-y-3">
+          <div className="flex items-center gap-3">
+            <div className="h-1.5 w-12 rounded-full bg-secondary/80"></div>
+            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-on-surface-variant/40">SESION ACTIVA</span>
+          </div>
+          <h1 className="font-headline text-[3.2rem] font-bold uppercase italic leading-none tracking-tight text-primary">
+            Editor
+          </h1>
+        </header>
       </section>
 
       <section className="mb-6 rounded-[1.2rem] border border-white/6 bg-surface-container-low p-5 shadow-xl">

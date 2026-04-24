@@ -138,27 +138,25 @@ export const RoutineCreatorView = ({
         setView={setView}
         onProfileClick={() => setView('settings')}
         onSettingsClick={() => setView('settings')}
-        contentClassName="max-w-md pb-32"
+        contentClassName="pb-32"
       >
         <section className="space-y-8">
-          <div className="flex items-center justify-between">
-            <button
-              onClick={() => setView(navigationSource === 'routine-detail' ? 'routine-detail' : 'dashboard')}
-              className="flex items-center gap-2 text-on-surface-variant transition-colors hover:text-primary"
-            >
+          <button onClick={() => setView(navigationSource === 'routine-detail' ? 'routine-detail' : 'dashboard')} className="flex items-center gap-3 text-on-surface-variant transition-colors hover:text-primary">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/5 transition-all group-hover:bg-primary/20">
               <ArrowLeft size={16} strokeWidth={2.5} />
-              <span className="text-[0.7rem] font-bold uppercase tracking-widest">Cancelar</span>
-            </button>
-          </div>
-
-          <div className="space-y-6">
-            <div className="space-y-2">
-              <h1 className="font-headline text-[2.6rem] font-bold uppercase leading-tight tracking-tight text-on-surface">
-                {currentRoutine ? 'Editar rutina' : 'Nueva rutina'}
-              </h1>
-              <div className="h-1.5 w-16 rounded-full bg-primary/80"></div>
             </div>
-          </div>
+            <span className="font-headline text-[0.72rem] font-black uppercase italic tracking-[0.22em]">Cancelar</span>
+          </button>
+
+          <header className="space-y-3">
+             <div className="flex items-center gap-3">
+               <div className="h-1.5 w-12 rounded-full bg-primary/80"></div>
+               <span className="text-[10px] font-black uppercase tracking-[0.4em] text-on-surface-variant/40">CONFIGURACIÓN DE PLAN</span>
+             </div>
+             <h1 className="font-headline text-[3.2rem] font-bold uppercase italic leading-none tracking-tight text-on-surface">
+                {currentRoutine ? 'Editar rutina' : 'Nueva rutina'}
+             </h1>
+          </header>
           <div className="space-y-3">
             <label className="block text-[0.62rem] font-bold uppercase tracking-[0.22em] text-on-surface-variant">
               Nombre de la rutina

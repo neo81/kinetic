@@ -79,25 +79,26 @@ export const ExerciseSelectorKineticView = ({
       setView={setView}
       onProfileClick={() => setView('settings')}
       onSettingsClick={() => setView('settings')}
-      contentClassName="max-w-md space-y-5"
+      contentClassName="space-y-5"
     >
-      <section className="space-y-2">
-        <div className="mb-2">
-          <button
-            onClick={() => setView('routine-creator')}
-            className="group flex h-10 w-10 items-center justify-center rounded-2xl border border-white/5 bg-white/5 text-primary shadow-xl transition-all hover:bg-primary/10 active:scale-90"
-          >
-            <ArrowLeft size={18} strokeWidth={3} className="transition-transform group-hover:-translate-x-1" />
-          </button>
-        </div>
-        <h2 className="kinetic-gradient-text font-headline text-[4rem] font-semibold uppercase leading-[0.82] tracking-[0.02em]">
-          Target
-          <br />
-          Engine
-        </h2>
-        <p className="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-on-surface-variant">
-          Selector muscular de precision
-        </p>
+      <section className="space-y-5">
+        <button onClick={() => setView('routine-creator')} className="flex items-center gap-3 text-on-surface-variant transition-colors hover:text-primary">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/5 transition-all group-hover:bg-primary/20">
+            <ArrowLeft size={16} strokeWidth={2.5} />
+          </div>
+          <span className="font-headline text-[0.72rem] font-black uppercase italic tracking-[0.22em]">Volver</span>
+        </button>
+
+        <header className="space-y-3">
+          <div className="flex items-center gap-3">
+            <div className="h-1.5 w-12 rounded-full bg-primary/80"></div>
+            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-on-surface-variant/40">SELECTOR DE PRECISIÓN</span>
+          </div>
+          <h1 className="font-headline text-[3.2rem] font-bold uppercase italic leading-none tracking-tight text-on-surface">
+            Target<br/>
+            Engine
+          </h1>
+        </header>
       </section>
 
       <section className="panel-surface rounded-[1rem] p-4">

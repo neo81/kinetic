@@ -667,7 +667,7 @@ export const RoutineDetailKineticView = ({
           setView={setView}
           onProfileClick={() => setView('settings')}
           onSettingsClick={() => setView('settings')}
-          contentClassName="max-w-md"
+          contentClassName=""
           headerChildren={
             <div className="flex items-center gap-2">
               <button
@@ -881,7 +881,7 @@ export const RoutineDetailKineticView = ({
         setView={setView}
         onProfileClick={() => setView('settings')}
         onSettingsClick={() => setView('settings')}
-        contentClassName="max-w-md"
+        contentClassName=""
         headerChildren={
             <div className="flex items-center gap-2">
               <button
@@ -902,25 +902,26 @@ export const RoutineDetailKineticView = ({
             </div>
         }
       >
-        <section className="mb-6">
-          <button onClick={() => setView('dashboard')} className="mb-5 flex items-center gap-3 text-on-surface-variant transition-colors hover:text-primary">
-            <ArrowLeft size={18} strokeWidth={2.5} />
-            <span className="text-[0.72rem] font-bold uppercase tracking-[0.22em]">Volver al panel</span>
+        <section className="mb-6 space-y-5">
+          <button onClick={() => setView('dashboard')} className="flex items-center gap-3 text-on-surface-variant transition-colors hover:text-primary">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/5 transition-all group-hover:bg-primary/20">
+              <ArrowLeft size={16} strokeWidth={2.5} />
+            </div>
+            <span className="font-headline text-[0.72rem] font-black uppercase italic tracking-[0.22em]">Volver al panel</span>
           </button>
 
-          <div className="flex flex-col gap-4">
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                <h2 className="min-w-0 font-headline text-[2.1rem] font-semibold uppercase leading-[0.9] tracking-[0.02em] text-on-surface sm:text-[2.5rem]">
-                  {routine.name.toUpperCase()}
-                </h2>
-                {routine.syncPending ? <RoutineSyncPendingBadge className="self-start sm:self-center" /> : null}
-              </div>
-              <p className="mt-2 max-w-sm text-sm leading-relaxed text-on-surface-variant">
-                Detalle generado a partir de los datos cargados en esta rutina.
-              </p>
+          <header className="space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="h-1.5 w-12 rounded-full bg-primary/80"></div>
+              <span className="text-[10px] font-black uppercase tracking-[0.4em] text-on-surface-variant/40">DETALLE DE RUTINA</span>
             </div>
-          </div>
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              <h1 className="font-headline text-[3.2rem] font-bold uppercase italic leading-none tracking-tight text-on-surface">
+                {routine.name}
+              </h1>
+              {routine.syncPending ? <RoutineSyncPendingBadge className="self-start sm:self-center" /> : null}
+            </div>
+          </header>
         </section>
 
         <section className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">

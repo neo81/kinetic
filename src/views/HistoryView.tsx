@@ -49,19 +49,17 @@ export const HistoryView = ({ setView, profile }: { setView: (v: View) => void; 
       onProfileClick={() => setView('settings')}
       onSettingsClick={() => setView('settings')}
       profile={profile}
-      contentClassName="max-w-md"
+      contentClassName=""
     >
-      <section className="mb-8">
-        <div className="mb-2 flex items-center gap-3">
-          <div className="h-1 w-1 rounded-full bg-primary animate-pulse"></div>
-          <span className="block text-[9px] font-black uppercase tracking-[0.4em] text-primary opacity-80 sm:text-[10px]">
-            REGISTRO DE ACTIVIDAD
-          </span>
+      <header className="mb-8 space-y-3">
+        <div className="flex items-center gap-3">
+          <div className="h-1.5 w-12 rounded-full bg-primary/80"></div>
+          <span className="text-[10px] font-black uppercase tracking-[0.4em] text-on-surface-variant/40">REGISTRO DE ACTIVIDAD</span>
         </div>
-        <h2 className="font-headline text-4xl font-black uppercase italic leading-none tracking-tighter text-on-background sm:text-6xl">
+        <h1 className="font-headline text-[3.2rem] font-bold uppercase italic leading-none tracking-tight text-on-surface">
           HISTORIAL
-        </h2>
-      </section>
+        </h1>
+      </header>
 
       {/* Loading State */}
       {loading && (

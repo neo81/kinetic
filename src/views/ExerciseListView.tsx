@@ -755,31 +755,31 @@ export const ExerciseListView = ({
         contentClassName="space-y-6 sm:space-y-10"
       >
         {/* Header */}
-        <section>
-          <div className="mb-3 flex items-center gap-4">
-            <button
-              onClick={() => setView('exercise-selector')}
-              className="group flex h-12 w-12 items-center justify-center rounded-2xl border border-white/5 bg-white/5 text-primary shadow-xl transition-all hover:bg-primary/10 active:scale-90"
-            >
-              <ArrowLeft size={20} strokeWidth={3} className="transition-transform group-hover:-translate-x-1" />
-            </button>
-            <div className="flex flex-col flex-1">
-              <span className="block text-[9px] font-black uppercase tracking-[0.4em] text-primary opacity-80 sm:text-[10px]">
-                BIBLIOTECA DE MOVIMIENTOS
-              </span>
-              <div className="flex justify-between items-end w-full pr-2">
-                <h2 className="kinetic-gradient-text font-headline text-4xl font-black uppercase italic leading-none tracking-tighter drop-shadow-[0_0_30px_rgba(212,255,0,0.2)] sm:text-7xl">
-                  {muscle || 'Sin grupo'}
-                </h2>
-                <button
+        <section className="space-y-5">
+          <button onClick={() => setView('exercise-selector')} className="flex items-center gap-3 text-on-surface-variant transition-colors hover:text-primary">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/5 transition-all group-hover:bg-primary/20">
+              <ArrowLeft size={16} strokeWidth={2.5} />
+            </div>
+            <span className="font-headline text-[0.72rem] font-black uppercase italic tracking-[0.22em]">Volver a grupos</span>
+          </button>
+
+          <header className="space-y-3">
+             <div className="flex items-center justify-between pr-2">
+               <div className="flex items-center gap-3">
+                 <div className="h-1.5 w-12 rounded-full bg-primary/80"></div>
+                 <span className="text-[10px] font-black uppercase tracking-[0.4em] text-on-surface-variant/40">BIBLIOTECA DE MOVIMIENTOS</span>
+               </div>
+               <button
                   onClick={startCreate}
                   className="text-[0.7rem] sm:text-xs font-black uppercase tracking-widest text-[#FF6B00] hover:scale-105 transition-transform"
                 >
                   + Crear
-                </button>
-              </div>
-            </div>
-          </div>
+               </button>
+             </div>
+             <h1 className="font-headline text-[3.2rem] font-bold uppercase italic leading-none tracking-tight text-on-surface">
+                {muscle || 'Sin grupo'}
+             </h1>
+          </header>
         </section>
 
         {/* Create / Edit form */}
