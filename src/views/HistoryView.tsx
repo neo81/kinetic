@@ -127,7 +127,7 @@ export const HistoryView = ({ setView, profile }: { setView: (v: View) => void; 
                 // Stub for future detail view
                 console.log('Session detail:', session);
               }}
-              className="w-full rounded-[1.2rem] border border-white/8 bg-surface-container-high p-4 text-left transition-all hover:border-white/16 hover:bg-surface-container-high/80 active:scale-[0.98]"
+              className="w-full rounded-[1.2rem] border theme-hairline-border bg-surface-container-high p-4 text-left transition-all hover:border-outline hover:bg-surface-container-high/80 active:scale-[0.98]"
             >
               <div className="flex items-start justify-between gap-3 mb-3">
                 <div className="min-w-0 flex-1">

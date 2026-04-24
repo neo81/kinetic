@@ -30,14 +30,14 @@ export const ConfirmDialog = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+            className="theme-overlay fixed inset-0 backdrop-blur-sm"
             onClick={onCancel}
           />
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
-            className="relative w-full max-w-sm rounded-[2rem] border border-white/10 bg-surface-container-low p-6 shadow-2xl"
+            className="theme-elevated-surface relative w-full max-w-sm rounded-[2rem] p-6"
           >
             <div className="mb-4 flex items-start gap-4">
               <div className={`flex shrink-0 h-12 w-12 items-center justify-center rounded-2xl ${variant === 'danger' ? 'bg-red-500/10 text-red-500' : 'bg-primary/10 text-primary'}`}>
@@ -53,7 +53,7 @@ export const ConfirmDialog = ({
             <div className="flex gap-3">
               <button
                 onClick={onCancel}
-                className="flex-1 rounded-xl bg-surface-container-highest py-3 text-[10px] font-bold uppercase tracking-widest text-on-surface transition-colors hover:bg-white/10 active:scale-95"
+                className="theme-interactive-hover flex-1 rounded-xl bg-surface-container-highest py-3 text-[10px] font-bold uppercase tracking-widest text-on-surface active:scale-95"
               >
                 {cancelText}
               </button>

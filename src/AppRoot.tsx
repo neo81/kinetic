@@ -46,14 +46,14 @@ export default function AppRoot() {
         <div className="fixed top-4 left-0 right-0 z-[100] px-4 pointer-events-none">
            <button 
              onClick={handleReturnToSession}
-             className="mx-auto max-w-sm w-full flex items-center justify-between gap-3 rounded-full bg-primary text-black px-4 py-2 pointer-events-auto shadow-[0_8px_30px_rgba(209,252,0,0.3)] hover:scale-[1.02] active:scale-[0.98] transition-transform border border-white/20"
+             className="mx-auto flex w-full max-w-sm items-center justify-between gap-3 rounded-full border border-primary/25 bg-primary px-4 py-2 text-black pointer-events-auto shadow-[0_8px_30px_color-mix(in_srgb,var(--color-primary)_30%,transparent)] transition-transform hover:scale-[1.02] active:scale-[0.98]"
            >
               <div className="flex items-center gap-3">
-                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-black text-primary animate-pulse">
+                <div className="theme-inverted-surface flex h-7 w-7 items-center justify-center rounded-full text-primary animate-pulse">
                   <Play size={12} fill="currentColor" className="ml-0.5" />
                 </div>
                 <div className="text-left">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-black/70 leading-none mb-0.5">Entrenamiento Activo</p>
+                  <p className="mb-0.5 text-[9px] font-black uppercase leading-none tracking-widest text-black/70">Entrenamiento Activo</p>
                   <p className="text-xs font-bold leading-tight">{app.activeSession.routineName}</p>
                 </div>
               </div>
@@ -106,6 +106,9 @@ export default function AppRoot() {
             onSwitchSessionDay={app.switchSessionDay}
             onCreateExerciseGroup={app.createExerciseGroup}
             onRemoveExerciseGroup={app.removeExerciseGroup}
+            themePreference={app.themePreference}
+            resolvedTheme={app.resolvedTheme}
+            onThemeChange={app.handleThemeChange}
           />
         </motion.div>
       </AnimatePresence>

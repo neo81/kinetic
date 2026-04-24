@@ -54,7 +54,7 @@ const DeleteConfirmModal = ({
     initial={{ opacity: 0 }}
     animate={{ opacity: 1 }}
     exit={{ opacity: 0 }}
-    className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm px-4 pb-8"
+    className="theme-overlay fixed inset-0 z-50 flex items-end justify-center px-4 pb-8 backdrop-blur-sm"
     onClick={onCancel}
   >
     <motion.div
@@ -62,7 +62,7 @@ const DeleteConfirmModal = ({
       animate={{ y: 0, opacity: 1 }}
       exit={{ y: 60, opacity: 0 }}
       transition={{ type: 'spring', stiffness: 280, damping: 28 }}
-      className="w-full max-w-sm rounded-[2rem] border border-white/10 bg-surface-container-high p-6 shadow-2xl"
+      className="theme-elevated-surface w-full max-w-sm rounded-[2rem] p-6"
       onClick={(e) => e.stopPropagation()}
     >
       <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-500/10 text-red-400">
@@ -78,14 +78,14 @@ const DeleteConfirmModal = ({
       <div className="flex gap-3">
         <button
           onClick={onCancel}
-          className="flex-1 rounded-xl bg-white/5 py-3 text-xs font-bold uppercase tracking-widest text-on-surface-variant hover:bg-white/10 transition-colors"
+          className="theme-muted-surface theme-interactive-hover flex-1 rounded-xl py-3 text-xs font-bold uppercase tracking-widest text-on-surface-variant transition-colors"
         >
           Cancelar
         </button>
         <button
           onClick={onConfirm}
           disabled={isDeleting}
-          className="flex-1 rounded-xl bg-red-500/80 py-3 text-xs font-bold uppercase tracking-widest text-white hover:bg-red-500 disabled:opacity-50 transition-colors"
+          className="flex-1 rounded-xl bg-red-500/80 py-3 text-xs font-bold uppercase tracking-widest text-on-background hover:bg-red-500 disabled:opacity-50 transition-colors"
         >
           {isDeleting ? 'Eliminando...' : 'Eliminar'}
         </button>
@@ -127,7 +127,7 @@ const FilterPanel = ({
           className={`flex items-center gap-2 rounded-full border px-4 py-2 text-[11px] font-black uppercase tracking-widest transition-all ${
             hasActiveFilters
               ? 'border-primary bg-primary/10 text-primary'
-              : 'border-white/10 bg-white/5 text-on-surface-variant hover:border-white/20'
+              : 'theme-hairline-border theme-muted-surface text-on-surface-variant hover:border-outline'
           }`}
         >
           <SlidersHorizontal size={13} strokeWidth={2.5} />
@@ -158,7 +158,7 @@ const FilterPanel = ({
             exit={{ opacity: 0, height: 0 }}
             className="overflow-hidden"
           >
-            <div className="rounded-[1.5rem] border border-white/8 bg-white/5 p-5 space-y-5 backdrop-blur-sm">
+            <div className="theme-hairline-border theme-muted-surface rounded-[1.5rem] border p-5 space-y-5 backdrop-blur-sm">
 
               {/* Equipamiento */}
               <div>
@@ -173,7 +173,7 @@ const FilterPanel = ({
                       className={`rounded-full border px-3 py-1.5 text-[10px] font-black uppercase tracking-wider transition-all ${
                         filters.equipment === opt
                           ? 'border-primary bg-primary text-black shadow-md'
-                          : 'border-white/10 bg-white/5 text-on-surface-variant hover:border-white/20'
+                          : 'theme-hairline-border theme-muted-surface text-on-surface-variant hover:border-outline'
                       }`}
                     >
                       {opt}
@@ -199,7 +199,7 @@ const FilterPanel = ({
                       className={`flex-1 rounded-xl border py-2 text-[10px] font-black uppercase tracking-wider transition-all ${
                         filters.source === val
                           ? 'border-primary bg-primary text-black'
-                          : 'border-white/10 bg-white/5 text-on-surface-variant hover:border-white/20'
+                          : 'theme-hairline-border theme-muted-surface text-on-surface-variant hover:border-outline'
                       }`}
                     >
                       {label}
@@ -218,11 +218,11 @@ const FilterPanel = ({
                   className={`flex h-7 w-12 items-center rounded-full border px-1 transition-all ${
                     filters.onlyFavorites
                       ? 'border-primary bg-primary justify-end'
-                      : 'border-white/10 bg-white/10 justify-start'
+                      : 'theme-hairline-border theme-muted-surface justify-start'
                   }`}
                 >
                   <span className={`h-5 w-5 rounded-full shadow transition-all ${
-                    filters.onlyFavorites ? 'bg-black' : 'bg-on-surface-variant/40'
+                    filters.onlyFavorites ? 'theme-inverted-surface' : 'bg-on-surface-variant/40'
                   }`} />
                 </button>
               </div>
@@ -272,19 +272,19 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
     initial={{ opacity: 0, y: 30 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ delay: index * 0.04, type: 'spring', stiffness: 100 }}
-    className="group relative flex cursor-pointer flex-col overflow-hidden rounded-[1.2rem] border border-white/5 bg-surface-container-low transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_20px_50px_rgba(0,0,0,0.4)]"
+    className="group relative flex cursor-pointer flex-col overflow-hidden rounded-[1.2rem] border theme-hairline-border bg-surface-container-low transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_20px_50px_color-mix(in_srgb,var(--strong-foreground)_18%,transparent)]"
   >
     {/* Image area */}
     <div
-      className="relative flex w-full aspect-[4/3] items-center justify-center bg-white p-2"
+      className="theme-contrast-surface relative flex aspect-[4/3] w-full items-center justify-center p-2"
       onClick={() => onSelect(exercise)}
     >
       {/* Favorite button */}
       <button
         className={`absolute right-2.5 top-2.5 z-10 flex h-7 w-7 items-center justify-center rounded-full border transition-all active:scale-90 ${
           exercise.isFavorite
-            ? 'border-[#FF6B00]/30 bg-[#FF6B00]/10 text-[#FF6B00]'
-            : 'border-black/10 bg-black/5 text-black/20 hover:text-[#FF6B00]'
+            ? 'border-secondary/30 bg-secondary/10 text-secondary'
+            : 'theme-hairline-border theme-inverted-surface text-on-background/25 hover:text-secondary'
         } ${isTogglingFavorite ? 'pointer-events-none opacity-50' : ''}`}
         onClick={(ev) => { ev.stopPropagation(); onToggleFavorite(exercise); }}
         title={exercise.isFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}
@@ -304,7 +304,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
 
     {/* Info area */}
     <div
-      className="flex w-full flex-col p-4 bg-[#141414]"
+      className="flex w-full flex-col bg-surface-container p-4"
       onClick={() => onSelect(exercise)}
     >
       <div className="flex items-start justify-between">
@@ -327,10 +327,10 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
 
     {/* Custom exercise actions */}
     {exercise.isCustom && (
-      <div className="flex border-t border-white/5 bg-[#0f0f0f]">
+      <div className="theme-hairline-top flex border-t bg-surface-container-low">
         <button
           onClick={(ev) => onEdit(exercise, ev)}
-          className="flex flex-1 items-center justify-center gap-1.5 py-2.5 text-[9px] font-black uppercase tracking-wider text-on-surface-variant hover:text-primary transition-colors border-r border-white/5"
+          className="theme-hairline-right flex flex-1 items-center justify-center gap-1.5 border-r py-2.5 text-[9px] font-black uppercase tracking-wider text-on-surface-variant transition-colors hover:text-primary"
         >
           <Edit2 size={10} strokeWidth={2.5} />
           Editar
@@ -383,14 +383,14 @@ const ExerciseForm = ({
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.95 }}
-      className="rounded-[2rem] border border-white/10 bg-surface-container-high p-6 shadow-2xl"
+      className="theme-elevated-surface rounded-[2rem] p-6"
     >
       <h3 className="mb-4 font-headline text-xl font-black uppercase italic tracking-widest text-on-surface">
         {editingId ? 'Editar Ejercicio' : 'Crear Nuevo'}
       </h3>
       <div className="space-y-3">
         {/* Grupo muscular (readonly) */}
-        <div className="flex w-full rounded-xl border border-white/5 bg-black/40 px-5 py-4 text-sm text-on-surface opacity-70">
+        <div className="theme-hairline-border theme-input-surface flex w-full rounded-xl border px-5 py-4 text-sm text-on-surface opacity-70">
           <span className="mr-2 self-center text-xs font-bold uppercase tracking-widest text-on-surface-variant/70">Grupo:</span>
           <span className="font-black uppercase text-primary">{muscle}</span>
         </div>
@@ -403,8 +403,8 @@ const ExerciseForm = ({
             onChange={(e) => setName(e.target.value)}
             placeholder="Nombre del ejercicio (mín. 3 caracteres)"
             maxLength={60}
-            className={`w-full rounded-xl border bg-black/40 px-5 py-4 text-sm text-on-surface outline-none transition-colors focus:border-primary/50 ${
-              nameError ? 'border-red-500/60' : 'border-white/5'
+            className={`theme-input-surface w-full rounded-xl border px-5 py-4 text-sm text-on-surface outline-none transition-colors focus:border-primary/50 ${
+              nameError ? 'border-red-500/60' : 'theme-hairline-border'
             }`}
           />
           <div className="mt-1 flex justify-between px-1">
@@ -413,7 +413,7 @@ const ExerciseForm = ({
             ) : (
               <span />
             )}
-            <span className={`text-[10px] font-medium ${name.length > 55 ? 'text-[#FF6B00]' : 'text-on-surface-variant/30'}`}>
+            <span className={`text-[10px] font-medium ${name.length > 55 ? 'text-secondary' : 'text-on-surface-variant/30'}`}>
               {name.length}/60
             </span>
           </div>
@@ -423,7 +423,7 @@ const ExerciseForm = ({
         <select
           value={equipment}
           onChange={(e) => setEquipment(e.target.value)}
-          className="w-full appearance-none rounded-xl border border-white/5 bg-black/40 px-5 py-4 text-sm text-on-surface outline-none focus:border-primary/50"
+          className="theme-hairline-border theme-input-surface w-full appearance-none rounded-xl border px-5 py-4 text-sm text-on-surface outline-none focus:border-primary/50"
         >
           <option value="Peso corporal">Peso corporal</option>
           <option value="Barra">Barra</option>
@@ -436,7 +436,7 @@ const ExerciseForm = ({
         <div className="flex gap-3 pt-2">
           <button
             onClick={onCancel}
-            className="flex-1 rounded-xl bg-white/5 py-3 text-xs font-bold uppercase tracking-widest text-on-surface-variant hover:bg-white/10 transition-colors"
+            className="theme-muted-surface theme-interactive-hover flex-1 rounded-xl py-3 text-xs font-bold uppercase tracking-widest text-on-surface-variant transition-colors"
           >
             Cancelar
           </button>
@@ -757,7 +757,7 @@ export const ExerciseListView = ({
         {/* Header */}
         <section className="space-y-5">
           <button onClick={() => setView('exercise-selector')} className="flex items-center gap-3 text-on-surface-variant transition-colors hover:text-primary">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/5 transition-all group-hover:bg-primary/20">
+            <div className="theme-muted-surface flex h-8 w-8 items-center justify-center rounded-full transition-all group-hover:bg-primary/20">
               <ArrowLeft size={16} strokeWidth={2.5} />
             </div>
             <span className="font-headline text-[0.72rem] font-black uppercase italic tracking-[0.22em]">Volver a grupos</span>
@@ -771,7 +771,7 @@ export const ExerciseListView = ({
                </div>
                <button
                   onClick={startCreate}
-                  className="text-[0.7rem] sm:text-xs font-black uppercase tracking-widest text-[#FF6B00] hover:scale-105 transition-transform"
+                  className="text-[0.7rem] font-black uppercase tracking-widest text-secondary transition-transform hover:scale-105 sm:text-xs"
                 >
                   + Crear
                </button>
@@ -806,7 +806,7 @@ export const ExerciseListView = ({
           <input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full rounded-[2.5rem] border border-white/5 bg-white/5 py-5 pl-14 pr-6 font-headline text-sm font-black uppercase tracking-[0.2em] text-on-surface shadow-2xl backdrop-blur-xl transition-all placeholder:text-on-surface-variant/20 focus:ring-2 focus:ring-primary/30"
+            className="theme-hairline-border theme-muted-surface w-full rounded-[2.5rem] border py-5 pl-14 pr-6 font-headline text-sm font-black uppercase tracking-[0.2em] text-on-surface shadow-2xl backdrop-blur-xl transition-all placeholder:text-on-surface-variant/20 focus:ring-2 focus:ring-primary/30"
             placeholder="Buscar movimiento..."
             type="text"
           />
@@ -858,8 +858,8 @@ export const ExerciseListView = ({
               </p>
             </div>
           ) : filteredExercises.length === 0 ? (
-            <div className="rounded-[4rem] border-2 border-dashed border-white/5 bg-white/5 py-24 text-center opacity-70">
-              <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-white/5">
+            <div className="theme-muted-surface rounded-[4rem] border-2 border-dashed theme-hairline-border py-24 text-center opacity-70">
+              <div className="theme-muted-surface mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full">
                 <Search size={32} className="text-on-surface-variant/20" />
               </div>
               <p className="px-8 text-[11px] font-black uppercase italic tracking-[0.2em] text-on-surface-variant/40">

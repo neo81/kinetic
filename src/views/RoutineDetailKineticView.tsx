@@ -114,8 +114,8 @@ const PopupShell = ({
   onClose: () => void;
   children: ReactNode;
 }) => (
-  <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm">
-    <div className="relative w-full max-w-[22rem] overflow-hidden rounded-[1.6rem] border border-white/6 bg-[#101318] shadow-[0_32px_90px_rgba(0,0,0,0.55)]">
+  <div className="theme-overlay fixed inset-0 z-[70] flex items-center justify-center px-4 backdrop-blur-sm">
+    <div className="theme-elevated-surface relative w-full max-w-[22rem] overflow-hidden rounded-[1.6rem]">
       <div className={`absolute left-0 top-0 h-1 w-16 ${accent === 'primary' ? 'bg-primary' : 'bg-secondary'}`}></div>
       <div className={`absolute bottom-0 right-0 h-1 w-16 ${accent === 'primary' ? 'bg-primary' : 'bg-secondary'}`}></div>
       <div className="p-6">
@@ -215,7 +215,7 @@ const RestTimerModal = ({ open, onClose }: { open: boolean; onClose: () => void 
           <button
             key={item.label}
             onClick={() => adjustTimer(item.value)}
-            className="rounded-[0.85rem] bg-surface-container-high px-2 py-3 text-sm font-bold text-on-surface-variant transition-colors hover:text-on-surface hover:bg-white/5 active:scale-95"
+            className="theme-interactive-hover rounded-[0.85rem] bg-surface-container-high px-2 py-3 text-sm font-bold text-on-surface-variant transition-colors hover:text-on-surface active:scale-95"
           >
             {item.label}
           </button>
@@ -235,7 +235,7 @@ const RestTimerModal = ({ open, onClose }: { open: boolean; onClose: () => void 
             setIsRunning(false);
             setRemainingSeconds(0);
           }}
-          className="rounded-[0.95rem] border border-white/12 py-4 text-sm font-bold uppercase tracking-[0.18em] text-on-surface-variant transition-colors hover:text-on-surface"
+          className="theme-hairline-border rounded-[0.95rem] border py-4 text-sm font-bold uppercase tracking-[0.18em] text-on-surface-variant transition-colors hover:text-on-surface"
         >
           Omitir
         </button>
@@ -292,7 +292,7 @@ const SessionStopwatchModal = ({
         </button>
         <button
           onClick={onReset}
-          className="flex items-center justify-center gap-2 rounded-[0.95rem] border border-white/12 py-4 text-sm font-bold uppercase tracking-[0.18em] text-on-surface-variant transition-colors hover:text-on-surface"
+          className="theme-hairline-border flex items-center justify-center gap-2 rounded-[0.95rem] border py-4 text-sm font-bold uppercase tracking-[0.18em] text-on-surface-variant transition-colors hover:text-on-surface"
         >
           <RotateCcw size={15} />
           Reiniciar
@@ -420,7 +420,7 @@ const SetCaptureOverlay = ({
 
         <button
           onClick={onClose}
-          className="w-full rounded-[0.95rem] border border-white/12 py-4 text-sm font-bold uppercase tracking-[0.18em] text-on-surface-variant transition-colors hover:text-on-surface"
+          className="theme-hairline-border w-full rounded-[0.95rem] border py-4 text-sm font-bold uppercase tracking-[0.18em] text-on-surface-variant transition-colors hover:text-on-surface"
         >
           Cancelar
         </button>
@@ -445,10 +445,10 @@ const ConfirmDialog = ({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 px-6 backdrop-blur-md">
-      <div className="relative w-full max-w-sm rounded-[1.8rem] border border-white/10 bg-[#12151a] p-8 shadow-[0_40px_100px_rgba(0,0,0,0.7)]">
+    <div className="theme-overlay fixed inset-0 z-[100] flex items-center justify-center px-6 backdrop-blur-md">
+      <div className="theme-elevated-surface relative w-full max-w-sm rounded-[1.8rem] p-8">
         <div className="absolute left-0 top-0 h-1.5 w-20 bg-secondary"></div>
-        <h3 className="font-headline text-[1.8rem] font-bold uppercase tracking-tight text-white leading-tight">
+        <h3 className="font-headline text-[1.8rem] font-bold uppercase leading-tight tracking-tight text-on-surface">
           {title}
         </h3>
         <p className="mt-4 text-sm leading-relaxed text-on-surface-variant/85">
@@ -463,7 +463,7 @@ const ConfirmDialog = ({
           </button>
           <button
             onClick={onCancel}
-            className="flex w-full items-center justify-center rounded-[1rem] border border-white/12 py-4 font-headline text-[0.9rem] font-bold uppercase tracking-[0.2em] text-on-surface-variant transition-colors hover:bg-white/5 active:scale-95"
+            className="theme-hairline-border theme-interactive-hover flex w-full items-center justify-center rounded-[1rem] border py-4 font-headline text-[0.9rem] font-bold uppercase tracking-[0.2em] text-on-surface-variant transition-colors active:scale-95"
           >
             Cancelar
           </button>
@@ -680,7 +680,7 @@ export const RoutineDetailKineticView = ({
               </button>
               <button
                 onClick={() => setIsSessionTimerOpen(true)}
-                className="flex items-center justify-center p-2.5 rounded-full border border-white/10 bg-surface-container-high text-on-surface-variant hover:text-white hover:bg-white/10 transition-colors"
+                                  className="theme-hairline-border theme-interactive-hover flex items-center justify-center rounded-full border bg-surface-container-high p-2.5 text-on-surface-variant transition-colors hover:text-on-surface"
                 title="Cronómetro temporal"
               >
                 <Timer size={18} />
@@ -776,10 +776,10 @@ export const RoutineDetailKineticView = ({
                 disabled={isAlreadyGrouped}
                 className={`mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-bold transition-colors ${
                   isAlreadyGrouped
-                    ? 'cursor-not-allowed border-white/8 bg-surface-container-high text-on-surface-variant/35'
+                                ? 'theme-hairline-border cursor-not-allowed bg-surface-container-high text-on-surface-variant/35'
                     : isSelectedForGroup
                     ? 'border-primary bg-primary text-black'
-                    : 'border-white/15 bg-black/30 text-on-surface-variant hover:border-primary/45'
+                                : 'theme-hairline-border theme-input-surface text-on-surface-variant hover:border-primary/45'
                 }`}
                 title={isAlreadyGrouped ? 'Este ejercicio ya está dentro de un bloque' : isSelectedForGroup ? 'Quitar de la selección' : 'Seleccionar para agrupar'}
               >
@@ -804,7 +804,7 @@ export const RoutineDetailKineticView = ({
                     onSelectRoutineDay(day.id);
                     onEditExercise(dayEx.exercise, dayEx.id, day.id);
                   }}
-                  className="flex h-8 w-8 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:bg-white/10"
+                    className="theme-interactive-hover flex h-8 w-8 items-center justify-center rounded-full text-on-surface-variant transition-colors"
                 >
                   <Edit2 size={14} />
                 </button>
@@ -850,7 +850,7 @@ export const RoutineDetailKineticView = ({
                     className={`rounded-full border px-3 py-2 text-xs font-bold uppercase tracking-[0.18em] transition-all ${
                       isCaptured
                         ? 'border-primary bg-primary text-black shadow-[0_0_15px_rgba(209,252,0,0.28)]'
-                        : 'border-white/10 bg-surface-container-high text-on-surface-variant hover:border-primary/45 hover:text-on-surface'
+                                    : 'theme-hairline-border bg-surface-container-high text-on-surface-variant hover:border-primary/45 hover:text-on-surface'
                     }`}
                     title={isCaptured ? 'Quitar set realizado' : 'Registrar set'}
                   >
@@ -863,13 +863,13 @@ export const RoutineDetailKineticView = ({
         )}
 
         {dayEx.exercise.sets[0]?.notes && (
-          <div className="mt-4 rounded-lg border border-white/5 bg-white/5 p-3">
+                          <div className="theme-hairline-border theme-muted-surface mt-4 rounded-lg border p-3">
             <p className="mb-1 text-[8px] font-bold uppercase tracking-widest text-primary/70">Notas de entrenamiento</p>
             <p className="text-xs italic leading-relaxed text-on-surface-variant/90">"{dayEx.exercise.sets[0].notes}"</p>
           </div>
         )}
 
-        {!grouped && index < totalCount - 1 && <div className="mt-4 h-px bg-white/6"></div>}
+                        {!grouped && index < totalCount - 1 && <div className="theme-divider mt-4 h-px"></div>}
       </div>
     );
   };
@@ -894,7 +894,7 @@ export const RoutineDetailKineticView = ({
               </button>
               <button
                 onClick={() => setIsSessionTimerOpen(true)}
-                className="flex items-center justify-center p-2.5 rounded-full border border-white/10 bg-surface-container-high text-on-surface-variant hover:text-white hover:bg-white/10 transition-colors"
+                                  className="theme-hairline-border theme-interactive-hover flex items-center justify-center rounded-full border bg-surface-container-high p-2.5 text-on-surface-variant transition-colors hover:text-on-surface"
                 title="Cronómetro temporal"
               >
                 <Timer size={18} />
@@ -904,7 +904,7 @@ export const RoutineDetailKineticView = ({
       >
         <section className="mb-6 space-y-5">
           <button onClick={() => setView('dashboard')} className="flex items-center gap-3 text-on-surface-variant transition-colors hover:text-primary">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/5 transition-all group-hover:bg-primary/20">
+            <div className="theme-muted-surface flex h-8 w-8 items-center justify-center rounded-full transition-all group-hover:bg-primary/20">
               <ArrowLeft size={16} strokeWidth={2.5} />
             </div>
             <span className="font-headline text-[0.72rem] font-black uppercase italic tracking-[0.22em]">Volver al panel</span>
@@ -938,7 +938,7 @@ export const RoutineDetailKineticView = ({
             <p className="mt-1 font-headline text-[1.8rem] font-semibold leading-none text-on-surface">
               {volume.toFixed(0)} <span className="text-xs font-medium text-on-surface-variant">kg totales</span>
             </p>
-            <Dumbbell className="absolute -bottom-4 right-0 h-14 w-14 text-white/8" />
+            <Dumbbell className="absolute -bottom-4 right-0 h-14 w-14 text-on-surface-variant/15" />
           </div>
           <div className="col-span-2 flex items-center justify-between gap-3 rounded-[1rem] bg-surface-container-high p-4 sm:col-span-4">
             <div className="min-w-0">
@@ -976,7 +976,7 @@ export const RoutineDetailKineticView = ({
                     className={`shrink-0 rounded-full px-4 py-2 font-headline text-sm font-semibold uppercase tracking-wide transition-all whitespace-nowrap ${
                       isActive
                         ? 'bg-primary text-black shadow-[0_0_15px_rgba(212,255,0,0.4)]'
-                        : 'bg-surface-container-high text-on-surface-variant hover:bg-white/10'
+                        : 'bg-surface-container-high text-on-surface-variant theme-interactive-hover'
                     }`}
                   >
                     {day.dayType === 'core' ? '⚡ Core' : `Día ${day.dayNumber}`}
@@ -1032,7 +1032,7 @@ export const RoutineDetailKineticView = ({
                 {isOpen && (
                   <div className="space-y-6 px-4 pb-4 sm:px-5 sm:pb-5">
                     {activeSession?.routineId === routine.id && (
-                      <div className="rounded-[1rem] border border-white/8 bg-surface-container-low p-3">
+                      <div className="theme-hairline-border rounded-[1rem] border bg-surface-container-low p-3">
                         <div className="flex flex-wrap items-center justify-between gap-3">
                           <div>
                             <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">Bloques del día</p>
@@ -1054,7 +1054,7 @@ export const RoutineDetailKineticView = ({
                             <div className="flex flex-wrap gap-2">
                               <button
                                 onClick={resetGroupingMode}
-                                className="rounded-full border border-white/12 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-on-surface-variant transition-colors hover:text-on-surface"
+                                className="theme-hairline-border rounded-full border px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-on-surface-variant transition-colors hover:text-on-surface"
                               >
                                 Cancelar
                               </button>
@@ -1098,7 +1098,7 @@ export const RoutineDetailKineticView = ({
                                 </div>
                                 <button
                                   onClick={() => onRemoveExerciseGroup(day.id, item.group.id)}
-                                  className="rounded-full border border-white/10 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant transition-colors hover:text-on-surface"
+                                  className="theme-hairline-border rounded-full border px-3 py-2 text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant transition-colors hover:text-on-surface"
                                 >
                                   Desagrupar
                                 </button>
@@ -1107,7 +1107,7 @@ export const RoutineDetailKineticView = ({
                                 {item.exercises.map((exercise, exerciseIndex) => (
                                   <div key={exercise.id}>
                                     {renderExerciseCard(day, exercise, exerciseIndex, item.exercises.length, true)}
-                                    {exerciseIndex < item.exercises.length - 1 && <div className="mt-4 h-px bg-white/8"></div>}
+                                    {exerciseIndex < item.exercises.length - 1 && <div className="theme-divider mt-4 h-px"></div>}
                                   </div>
                                 ))}
                               </div>

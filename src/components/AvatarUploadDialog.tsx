@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, type ChangeEvent } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Upload, X, Check, AlertCircle, Loader, ZoomIn, ZoomOut } from 'lucide-react';
 
@@ -24,7 +24,7 @@ export const AvatarUploadDialog = ({
   const [scale, setScale] = useState<number>(1);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -93,7 +93,7 @@ export const AvatarUploadDialog = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={handleClose}
-            className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm"
+            className="theme-overlay fixed inset-0 z-[100] backdrop-blur-sm"
           />
 
           {/* Dialog */}
@@ -103,7 +103,7 @@ export const AvatarUploadDialog = ({
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             className="fixed top-1/2 left-1/2 z-[101] w-full max-w-sm -translate-x-1/2 -translate-y-1/2"
           >
-            <div className="rounded-2xl border border-white/10 bg-surface-container-low p-6 shadow-2xl backdrop-blur-xl">
+            <div className="theme-elevated-surface rounded-2xl p-6 backdrop-blur-xl">
               {/* Header */}
               <div className="mb-6 flex items-center justify-between">
                 <h2 className="font-headline text-lg font-bold uppercase tracking-tight text-on-surface">
@@ -112,7 +112,7 @@ export const AvatarUploadDialog = ({
                 <button
                   onClick={handleClose}
                   disabled={state === 'uploading'}
-                  className="flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-white/10 disabled:opacity-50"
+                  className="theme-interactive-hover flex h-8 w-8 items-center justify-center rounded-full transition-colors disabled:opacity-50"
                 >
                   <X size={18} />
                 </button>
@@ -147,7 +147,7 @@ export const AvatarUploadDialog = ({
               {state === 'preview' && preview && (
                 <div className="space-y-4">
                   <div className="flex justify-center">
-                    <div className="relative h-48 w-48 overflow-hidden rounded-full border-4 border-primary/30 bg-black/20">
+                    <div className="theme-dialog-preview relative h-48 w-48 overflow-hidden rounded-full border-4 border-primary/30">
                       <img
                         src={preview}
                         alt="Preview"
@@ -162,7 +162,7 @@ export const AvatarUploadDialog = ({
                     <button
                       onClick={() => setScale(Math.max(0.5, scale - 0.1))}
                       disabled={scale <= 0.5}
-                      className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 transition-colors hover:bg-white/5 disabled:opacity-30"
+                      className="theme-hairline-border theme-interactive-hover flex h-8 w-8 items-center justify-center rounded-full border transition-colors disabled:opacity-30"
                       title="Zoom out"
                     >
                       <ZoomOut size={16} />
@@ -181,7 +181,7 @@ export const AvatarUploadDialog = ({
                     <button
                       onClick={() => setScale(Math.min(3, scale + 0.1))}
                       disabled={scale >= 3}
-                      className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 transition-colors hover:bg-white/5 disabled:opacity-30"
+                      className="theme-hairline-border theme-interactive-hover flex h-8 w-8 items-center justify-center rounded-full border transition-colors disabled:opacity-30"
                       title="Zoom in"
                     >
                       <ZoomIn size={16} />
@@ -198,7 +198,7 @@ export const AvatarUploadDialog = ({
                         fileInputRef.current?.click();
                       }}
                       disabled={isLoading}
-                      className="flex-1 rounded-lg border border-white/10 bg-transparent py-2.5 text-sm font-bold uppercase tracking-wider text-on-surface transition-colors hover:bg-white/5 disabled:opacity-50"
+                      className="theme-hairline-border theme-interactive-hover flex-1 rounded-lg border bg-transparent py-2.5 text-sm font-bold uppercase tracking-wider text-on-surface transition-colors disabled:opacity-50"
                     >
                       Cambiar imagen
                     </button>

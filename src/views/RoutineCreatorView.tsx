@@ -142,7 +142,7 @@ export const RoutineCreatorView = ({
       >
         <section className="space-y-8">
           <button onClick={() => setView(navigationSource === 'routine-detail' ? 'routine-detail' : 'dashboard')} className="flex items-center gap-3 text-on-surface-variant transition-colors hover:text-primary">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/5 transition-all group-hover:bg-primary/20">
+            <div className="theme-muted-surface flex h-8 w-8 items-center justify-center rounded-full transition-all group-hover:bg-primary/20">
               <ArrowLeft size={16} strokeWidth={2.5} />
             </div>
             <span className="font-headline text-[0.72rem] font-black uppercase italic tracking-[0.22em]">Cancelar</span>
@@ -278,7 +278,7 @@ export const RoutineCreatorView = ({
 
           {localActiveDayNum !== null && (
             <div className="space-y-6">
-              <section className="rounded-[1.2rem] bg-surface-container-low/40 p-5 space-y-4 border border-white/5">
+              <section className="rounded-[1.2rem] border theme-hairline-border bg-surface-container-low/40 p-5 space-y-4">
                 <div className="flex items-center justify-between">
                   <label className="block text-[0.62rem] font-bold uppercase tracking-[0.22em] text-on-surface-variant">
                     Ejercicios de {localActiveDayNum === 'core' ? 'CORE' : `Día ${localActiveDayNum}`}
@@ -301,7 +301,7 @@ export const RoutineCreatorView = ({
                           exit={{ opacity: 0, scale: 0.95 }}
                           whileHover={{ scale: 1.01, backgroundColor: 'rgba(255, 255, 255, 0.03)' }}
                           key={item.id} 
-                          className="group relative flex items-center justify-between rounded-[1rem] border border-white/5 bg-surface-container-low/60 px-5 py-4 transition-shadow hover:shadow-[0_8px_30px_rgb(0,0,0,0.4)] hover:border-primary/20"
+                          className="group relative flex items-center justify-between rounded-[1rem] border theme-hairline-border bg-surface-container-low/60 px-5 py-4 transition-shadow hover:border-primary/20 hover:shadow-[0_8px_30px_color-mix(in_srgb,var(--strong-foreground)_16%,transparent)]"
                         >
                           <div className="min-w-0 flex-1 pr-3">
                             <div className="text-[0.9rem] font-bold text-on-surface truncate tracking-tight">{item.exercise.name}</div>
@@ -309,7 +309,7 @@ export const RoutineCreatorView = ({
                               <span className="text-[0.62rem] font-black uppercase tracking-[0.15em] text-primary bg-primary/10 px-1.5 py-0.5 rounded">
                                 {item.exercise.sets.length} Series
                               </span>
-                              <span className="h-1 w-1 rounded-full bg-white/20"></span>
+                              <span className="theme-muted-surface h-1 w-1 rounded-full"></span>
                               <span className="text-[0.65rem] font-medium text-on-surface-variant italic">
                                 {item.exercise.muscle || item.exercise.muscleGroup}
                               </span>
@@ -343,7 +343,7 @@ export const RoutineCreatorView = ({
                       <motion.div 
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        className="rounded-[1rem] border border-dashed border-white/10 px-4 py-10 text-center"
+                        className="rounded-[1rem] border border-dashed theme-hairline-border px-4 py-10 text-center"
                       >
                         <p className="text-[0.65rem] font-bold uppercase tracking-[0.2em] text-on-surface-variant/40">
                           Todavía no hay ejercicios cargados

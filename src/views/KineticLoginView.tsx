@@ -51,7 +51,7 @@ export const KineticLoginView = ({
       showProfile={false}
       contentClassName="max-w-6xl px-0 pb-0 pt-4 md:pt-20 sm:px-0"
     >
-      <div className="relative overflow-hidden rounded-b-[2rem] border-b border-white/6 md:rounded-[2rem] md:border md:border-white/6 md:bg-surface-container-low/35 md:shadow-[0_30px_90px_rgba(0,0,0,0.36)]">
+      <div className="relative overflow-hidden rounded-b-[2rem] border-b theme-hairline-border md:rounded-[2rem] md:border md:theme-hairline-border md:bg-surface-container-low/35 md:shadow-[0_30px_90px_color-mix(in_srgb,var(--strong-foreground)_16%,transparent)]">
         <div className="pointer-events-none absolute inset-0 opacity-90">
           <div className="absolute left-[-8rem] top-24 h-64 w-64 rounded-full bg-primary/12 blur-[110px]"></div>
           <div className="absolute bottom-[-3rem] right-[-4rem] h-72 w-72 rounded-full bg-secondary/10 blur-[140px]"></div>
@@ -62,10 +62,10 @@ export const KineticLoginView = ({
             <img
               src="https://lh3.googleusercontent.com/aida-public/AB6AXuAD9EXvQ6Oh0Ilv_TZqXrRdI0WQCxNgtvZDNX_MsZYFLiHp0_TDuKkVLzFv3JUJfv-Rcmzhgmv7YpzhW4icKHKcczQTHpDkrxEP6CTOcN8vptnZ_xOd4cbR5zUrVagt6256Dg1u4X5sEJOolIrcSiNY5vZ3eIjx7Ui_WFX0Ie-N5FzHjWRTqYS0VhvF5emyeKPZLHjAVFB3NqcNmdERoREr6WLPO2AVIUq4ma7Tv_IesIod1plMsG_rPSFTK7Gxa4FKuTSpwTEa1oFb"
               alt="Atleta entrenando"
-              className="h-full w-full object-cover grayscale contrast-125 brightness-[0.42]"
+              className="theme-hero-image h-full w-full object-cover"
               referrerPolicy="no-referrer"
             />
-            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(6,7,8,0.12)_0%,rgba(7,8,10,0.44)_42%,rgba(8,9,11,0.96)_100%)] md:bg-[linear-gradient(90deg,rgba(6,7,8,0.24)_0%,rgba(7,8,10,0.28)_38%,rgba(8,9,11,0.74)_100%)]"></div>
+            <div className="theme-hero-image-overlay absolute inset-0"></div>
             <div className="absolute inset-x-0 bottom-0 p-6 pb-8 sm:p-8 md:inset-0 md:flex md:flex-col md:justify-end md:p-12 lg:p-16">
               <div className="max-w-xl">
                 <span className="tech-pill mb-5">Telemetria de rendimiento</span>
@@ -78,7 +78,7 @@ export const KineticLoginView = ({
             </div>
           </section>
 
-          <section className="relative z-20 flex items-start justify-center rounded-t-[2rem] bg-surface-container-low px-5 pb-8 pt-6 sm:px-6 md:min-h-full md:items-center md:rounded-none md:border-l md:border-white/6 md:bg-surface-container-low/92 md:px-8 md:py-10 lg:px-10">
+          <section className="relative z-20 flex items-start justify-center rounded-t-[2rem] bg-surface-container-low px-5 pb-8 pt-6 sm:px-6 md:min-h-full md:items-center md:rounded-none md:border-l md:theme-hairline-border md:bg-surface-container-low/92 md:px-8 md:py-10 lg:px-10">
             <div className="w-full max-w-md">
               <div className="mb-5">
                 <div className="mb-1 font-headline text-[1.8rem] font-semibold uppercase tracking-[0.05em] text-primary sm:text-[2.2rem]">Kinetic Volt</div>
@@ -104,11 +104,11 @@ export const KineticLoginView = ({
               </button>
 
               <div className="mb-4 flex items-center gap-4">
-                <div className="h-px flex-1 bg-white/8"></div>
+                <div className="theme-divider h-px flex-1"></div>
                 <span className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-on-surface-variant/80 sm:text-[0.72rem]">
                   O mediante correo
                 </span>
-                <div className="h-px flex-1 bg-white/8"></div>
+                <div className="theme-divider h-px flex-1"></div>
               </div>
 
               <form className="space-y-5" onSubmit={handleSubmit}>
@@ -168,7 +168,7 @@ export const KineticLoginView = ({
                 </button>
               </p>
 
-              <div className="mt-10 grid grid-cols-2 gap-4 border-t border-white/6 pt-6 text-center sm:gap-6 sm:pt-8">
+              <div className="mt-10 grid grid-cols-2 gap-4 border-t theme-hairline-border pt-6 text-center sm:gap-6 sm:pt-8">
                 <div>
                   <div className="mb-2 text-[0.7rem] font-medium uppercase tracking-[0.2em] text-on-surface-variant">Estado</div>
                   <div className="flex items-center justify-center gap-2 text-on-surface-variant">

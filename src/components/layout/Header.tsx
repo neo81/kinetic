@@ -12,13 +12,13 @@ export const Header = ({
   onProfileClick?: () => void;
   avatarUrl?: string | null;
 }) => (
-  <header className="fixed top-0 z-[60] w-full border-b border-white/6 bg-background/80 backdrop-blur-xl">
+  <header className="fixed top-0 z-[60] w-full border-b theme-hairline-border bg-background/80 backdrop-blur-xl">
     <div className="mx-auto flex h-[4.5rem] w-full max-w-2xl items-center justify-between px-5 sm:px-6">
       <div className="flex items-center gap-3">
         {showProfile && (
           <button
             onClick={onProfileClick}
-            className="h-11 w-11 overflow-hidden rounded-full border border-primary/20 shadow-[0_10px_30px_rgba(0,0,0,0.4)] transition-all hover:scale-105 hover:border-primary/40 active:scale-95 flex items-center justify-center"
+            className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-primary/20 shadow-[0_10px_30px_color-mix(in_srgb,var(--strong-foreground)_18%,transparent)] transition-all hover:scale-105 hover:border-primary/40 active:scale-95"
           >
             {avatarUrl ? (
               <img

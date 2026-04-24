@@ -165,7 +165,7 @@ export const ExerciseEditorView = ({
     >
       <section className="mb-6 space-y-5">
         <button onClick={onBack} className="flex items-center gap-3 text-on-surface-variant transition-colors hover:text-primary">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/5 transition-all group-hover:bg-primary/20">
+          <div className="theme-muted-surface flex h-8 w-8 items-center justify-center rounded-full transition-all group-hover:bg-primary/20">
             <ArrowLeft size={16} strokeWidth={2.5} />
           </div>
           <span className="font-headline text-[0.72rem] font-black uppercase italic tracking-[0.22em]">Volver</span>
@@ -182,7 +182,7 @@ export const ExerciseEditorView = ({
         </header>
       </section>
 
-      <section className="mb-6 rounded-[1.2rem] border border-white/6 bg-surface-container-low p-5 shadow-xl">
+      <section className="mb-6 rounded-[1.2rem] border theme-hairline-border bg-surface-container-low p-5 shadow-xl">
         <div className="mb-4 flex items-start justify-between gap-4">
           <div className="min-w-0">
             <p className="mb-1 text-[10px] uppercase tracking-[0.16em] text-on-surface-variant">Ejercicio actual</p>
@@ -252,7 +252,7 @@ export const ExerciseEditorView = ({
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
-              className="grid grid-cols-[3rem_1fr_1fr_2.5rem] items-center gap-2 rounded-xl border border-white/6 bg-surface-container-high/40 p-2"
+              className="grid grid-cols-[3rem_1fr_1fr_2.5rem] items-center gap-2 rounded-xl border theme-hairline-border bg-surface-container-high/40 p-2"
             >
               <span className="pl-2 font-headline text-sm font-semibold text-on-surface-variant">{String(index + 1).padStart(2, '0')}</span>
 
@@ -307,7 +307,7 @@ export const ExerciseEditorView = ({
           </span>
         </button>
 
-        <div className="rounded-xl border border-white/5 bg-surface-container-highest/20 p-4">
+        <div className="rounded-xl border theme-hairline-border bg-surface-container-highest/20 p-4">
           <div className="mb-2 flex items-center gap-2">
             <span className="text-[9px] uppercase tracking-widest text-secondary font-bold">Notas de entrenamiento</span>
           </div>

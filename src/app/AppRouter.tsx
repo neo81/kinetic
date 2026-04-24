@@ -9,6 +9,7 @@ import { RoutineDetailKineticView } from '../views/RoutineDetailKineticView';
 import { SettingsView } from '../views/SettingsView';
 import { RoutinesListView } from '../views/RoutinesListView';
 import type { ActiveSession, Exercise, Routine, UserProfile, View } from '../types';
+import type { ResolvedTheme, ThemePreference } from '../theme/theme';
 
 type AppRouterProps = {
   view: View;
@@ -32,6 +33,7 @@ type AppRouterProps = {
     bio: string;
     fitnessLevel: string;
     unitSystem: 'kg' | 'lb';
+    avatarUrl?: string;
   }) => Promise<unknown>;
   onNewRoutine: () => void;
   onSaveRoutine: (routineData: Partial<Routine>) => void;
@@ -53,6 +55,9 @@ type AppRouterProps = {
   onSwitchSessionDay: (dayId: string) => void;
   onCreateExerciseGroup: (dayId: string, exerciseIds: string[]) => void;
   onRemoveExerciseGroup: (dayId: string, groupId: string) => void;
+  themePreference: ThemePreference;
+  resolvedTheme: ResolvedTheme;
+  onThemeChange: (theme: ThemePreference) => Promise<void>;
 };
 
 export const AppRouter = ({
@@ -92,6 +97,9 @@ export const AppRouter = ({
   onSwitchSessionDay,
   onCreateExerciseGroup,
   onRemoveExerciseGroup,
+  themePreference,
+  resolvedTheme,
+  onThemeChange,
 }: AppRouterProps) => {
   switch (view) {
     case 'login':
@@ -216,6 +224,9 @@ export const AppRouter = ({
           userEmail={userEmail}
           onLogout={onLogout}
           onSaveProfile={onSaveProfile}
+          themePreference={themePreference}
+          resolvedTheme={resolvedTheme}
+          onThemeChange={onThemeChange}
         />
       );
     default:

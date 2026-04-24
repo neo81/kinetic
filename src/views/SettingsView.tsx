@@ -9,6 +9,7 @@ import { routinesRepository } from '../features/routines/repository';
 import { avatarStorageService } from '../services/avatarStorageService';
 import { usernameValidationService, type UsernameValidationResult } from '../services/usernameValidationService';
 import type { UserProfile, View, UserGoals } from '../types';
+import type { ResolvedTheme, ThemePreference } from '../theme/theme';
 
 type SettingsViewProps = {
   setView: (view: View) => void;
@@ -23,6 +24,9 @@ type SettingsViewProps = {
     unitSystem: 'kg' | 'lb';
     avatarUrl?: string;
   }) => Promise<unknown>;
+  themePreference: ThemePreference;
+  resolvedTheme: ResolvedTheme;
+  onThemeChange: (theme: ThemePreference) => Promise<void>;
 };
 
 type FeedbackState = 'idle' | 'saving' | 'success' | 'error';
@@ -35,6 +39,9 @@ export const SettingsView = ({
   userEmail,
   onLogout,
   onSaveProfile,
+  themePreference,
+  resolvedTheme,
+  onThemeChange,
 }: SettingsViewProps) => {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isEditingGoals, setIsEditingGoals] = useState(false);
@@ -42,6 +49,7 @@ export const SettingsView = ({
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isSavingGoals, setIsSavingGoals] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [isUpdatingTheme, setIsUpdatingTheme] = useState(false);
   const [isAvatarDialogOpen, setIsAvatarDialogOpen] = useState(false);
   const [fullName, setFullName] = useState('');
   const [username, setUsername] = useState('');
@@ -234,6 +242,28 @@ export const SettingsView = ({
     }
   };
 
+  const handleThemePreferenceChange = async (nextTheme: ThemePreference) => {
+    if (isUpdatingTheme || themePreference === nextTheme) {
+      return;
+    }
+
+    setIsUpdatingTheme(true);
+    try {
+      await onThemeChange(nextTheme);
+    } catch (error) {
+      console.error('No se pudo actualizar el tema:', error);
+    } finally {
+      setIsUpdatingTheme(false);
+    }
+  };
+
+  const themeLabel =
+    themePreference === 'auto'
+      ? `Auto (${resolvedTheme === 'dark' ? 'oscuro' : 'claro'})`
+      : themePreference === 'dark'
+        ? 'Oscuro'
+        : 'Claro';
+
   const handleAvatarUpload = async (file: File): Promise<string> => {
     if (!profile?.id) {
       throw new Error('User ID not available');
@@ -273,7 +303,7 @@ export const SettingsView = ({
       showHeader={false}
       contentClassName="pt-24 pb-24"
     >
-      <div className="fixed top-0 left-0 z-[60] w-full border-b border-white/6 bg-background/80 backdrop-blur-xl">
+      <div className="fixed top-0 left-0 z-[60] w-full border-b theme-hairline-border bg-background/80 backdrop-blur-xl">
         <div className="mx-auto flex h-[4.5rem] w-full max-w-2xl items-center justify-between px-5 sm:px-6">
           <div className="flex items-center gap-4">
             <button
@@ -287,7 +317,7 @@ export const SettingsView = ({
                   setView('dashboard');
                 }
               }}
-              className="flex h-10 w-10 items-center justify-center rounded-full text-on-surface-variant transition-all hover:bg-white/5 hover:text-primary active:scale-95"
+              className="flex h-10 w-10 items-center justify-center rounded-full text-on-surface-variant transition-all theme-interactive-hover hover:text-primary active:scale-95"
             >
               <ArrowLeft size={20} strokeWidth={2.5} />
             </button>
@@ -421,7 +451,7 @@ export const SettingsView = ({
                     type="button"
                     onClick={() => setFitnessLevel(level)}
                     className={`rounded-full px-4 py-2 text-[0.72rem] font-bold uppercase tracking-[0.12em] transition-all ${
-                      fitnessLevel === level ? 'bg-primary text-black shadow-[0_0_24px_rgba(209,252,0,0.24)]' : 'border border-white/10 bg-surface-container-low text-on-surface'
+                      fitnessLevel === level ? 'bg-primary text-black shadow-[0_0_24px_rgba(209,252,0,0.24)]' : 'theme-hairline-border border bg-surface-container-low text-on-surface'
                     }`}
                   >
                     {level}
@@ -644,13 +674,13 @@ export const SettingsView = ({
                       <p className="mt-1 text-2xl font-black text-primary">{Math.round(goals.weeklyVolumeTarget / 1000)}k kg</p>
                     </div>
                   </div>
-                  <div className="border-t border-white/5 pt-4 flex items-center justify-between">
+                  <div className="border-t theme-hairline-border pt-4 flex items-center justify-between">
                     <div>
                       <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-on-surface-variant">Ejercicios</p>
                       <p className="mt-1 text-2xl font-black text-secondary">{goals.weeklyExercisesTarget}</p>
                     </div>
                   </div>
-                  <div className="border-t border-white/5 pt-4 flex items-center justify-between">
+                  <div className="border-t theme-hairline-border pt-4 flex items-center justify-between">
                     <div>
                       <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-on-surface-variant">Tiempo</p>
                       <p className="mt-1 text-2xl font-black text-primary">{goals.weeklyDurationTarget}m</p>
@@ -710,10 +740,35 @@ export const SettingsView = ({
                 <div className="flex items-center justify-between gap-4">
                   <span className="font-medium text-on-surface">Tema</span>
                   <div className="text-sm text-on-surface-variant bg-surface-container-highest px-3 py-1 rounded-full">
-                    Oscuro
+                    {themeLabel}
                   </div>
                 </div>
-                <p className="text-[9px] text-on-surface-variant/60 mt-2">Tema claro/oscuro (coming soon)</p>
+                <div className="mt-3 flex rounded-[0.75rem] bg-surface-container-highest p-1">
+                  {([
+                    { value: 'light', label: 'Claro' },
+                    { value: 'dark', label: 'Oscuro' },
+                    { value: 'auto', label: 'Auto' },
+                  ] as { value: ThemePreference; label: string }[]).map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => void handleThemePreferenceChange(option.value)}
+                      disabled={isUpdatingTheme}
+                      className={`flex-1 rounded-[0.55rem] px-3 py-2 text-[10px] font-bold uppercase transition-all ${
+                        themePreference === option.value
+                          ? 'bg-primary text-black'
+                          : 'text-on-surface-variant theme-interactive-hover'
+                      } ${isUpdatingTheme ? 'opacity-60' : ''}`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+                <p className="mt-2 text-[9px] text-on-surface-variant/60">
+                  {themePreference === 'auto'
+                    ? `Se adapta al sistema. Tema efectivo actual: ${resolvedTheme === 'dark' ? 'oscuro' : 'claro'}.`
+                    : 'Preferencia visual aplicada en toda la app.'}
+                </p>
               </div>
               
               <div className="rounded-[0.95rem] bg-surface-container-low px-4 py-4">

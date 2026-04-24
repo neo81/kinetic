@@ -11,8 +11,8 @@ export const BottomNav = ({ active, setView }: { active: View; setView: (v: View
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 z-50 w-full border-t border-white/6 bg-[linear-gradient(180deg,rgba(8,9,11,0.45),rgba(8,9,11,0.96))] px-3 pb-[calc(env(safe-area-inset-bottom)+1.35rem)] pt-3 backdrop-blur-2xl shadow-[0_-18px_50px_rgba(0,0,0,0.62)]">
-      <div className="mx-auto flex w-full max-w-2xl items-center justify-around rounded-[2rem] border border-white/6 bg-surface-container-high/75 px-2 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+    <nav className="theme-bottom-nav fixed bottom-0 left-0 z-50 w-full px-3 pb-[calc(env(safe-area-inset-bottom)+1.35rem)] pt-3 backdrop-blur-2xl">
+      <div className="theme-bottom-nav-inner mx-auto flex w-full max-w-2xl items-center justify-around rounded-[2rem] px-2 py-2">
         {items.map((item) => (
           <button
             key={item.id}
@@ -23,7 +23,7 @@ export const BottomNav = ({ active, setView }: { active: View; setView: (v: View
           >
             <div
               className={`rounded-[1.2rem] p-3 transition-all duration-500 ${
-                active === item.id ? 'scale-105 bg-primary/12 shadow-[0_0_0_1px_rgba(212,255,0,0.12)]' : 'group-hover:bg-white/5'
+                active === item.id ? 'theme-bottom-nav-active scale-105 bg-primary/12' : 'theme-bottom-nav-item-hover'
               }`}
             >
               {item.isMaterial ? (
@@ -47,7 +47,7 @@ export const BottomNav = ({ active, setView }: { active: View; setView: (v: View
             {active === item.id && (
               <motion.div
                 layoutId="nav-indicator"
-                className="absolute -top-1 h-1 w-12 rounded-full bg-primary shadow-[0_0_22px_rgba(212,255,0,0.8)]"
+                className="theme-bottom-nav-indicator absolute -top-1 h-1 w-12 rounded-full bg-primary"
                 transition={{ type: 'spring', stiffness: 300, damping: 30 }}
               />
             )}

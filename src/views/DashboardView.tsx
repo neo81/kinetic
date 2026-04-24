@@ -47,7 +47,7 @@ const ProgressBar = ({ current, target, label }: { current: number; target: numb
         <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-on-surface-variant/60">{label}</p>
         <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-primary">{Math.round(percent)}%</p>
       </div>
-      <div className="h-1.5 w-full rounded-full bg-white/5 overflow-hidden">
+      <div className="theme-muted-surface h-1.5 w-full overflow-hidden rounded-full">
         <motion.div
           className="h-full rounded-full bg-gradient-to-r from-primary to-primary/70"
           initial={{ width: 0 }}
@@ -132,7 +132,7 @@ export const DashboardView = ({
               </div>
               <button
                 onClick={() => setView('routines-list')}
-                className="flex items-center gap-2 rounded-full bg-white/5 py-1.5 pl-4 pr-2 text-[9px] font-black uppercase tracking-widest text-primary transition-all hover:bg-primary/10 active:scale-95"
+                className="theme-muted-surface flex items-center gap-2 rounded-full py-1.5 pl-4 pr-2 text-[9px] font-black uppercase tracking-widest text-primary transition-all hover:bg-primary/10 active:scale-95"
               >
                 Ver todas
                 <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-black">
@@ -149,7 +149,7 @@ export const DashboardView = ({
                   setCurrentRoutine(lastActiveRoutine);
                   setView('routine-detail');
                 }}
-                className="group relative cursor-pointer overflow-hidden rounded-[3rem] border border-white/5 bg-surface-container-low/40 p-10 shadow-2xl backdrop-blur-xl transition-all active:scale-[0.985] hover:bg-white/5"
+                className="group theme-interactive-hover relative cursor-pointer overflow-hidden rounded-[3rem] border theme-hairline-border bg-surface-container-low/40 p-10 shadow-2xl backdrop-blur-xl transition-all active:scale-[0.985]"
               >
                 <div className="absolute top-0 right-0 -mr-32 -mt-32 h-64 w-64 rounded-full bg-primary/10 opacity-0 blur-[100px] transition-opacity duration-700 group-hover:opacity-100"></div>
 
@@ -173,7 +173,7 @@ export const DashboardView = ({
                 </div>
               </motion.div>
             ) : (
-              <div className="rounded-[3rem] border border-dashed border-white/8 bg-surface-container-low/35 p-12 text-center backdrop-blur-xl">
+              <div className="rounded-[3rem] border border-dashed theme-hairline-border bg-surface-container-low/35 p-12 text-center backdrop-blur-xl">
                 <p className="font-headline text-2xl font-black uppercase italic text-on-surface opacity-40 leading-tight">No tienes rutinas activas</p>
                 <p className="mt-3 text-sm text-on-surface-variant/60">Carga tu primer plan de entrenamiento para empezar.</p>
               </div>
@@ -182,7 +182,7 @@ export const DashboardView = ({
         </section>
 
         {/* Main Performance Card - ESTA SEMANA */}
-        <section className="mt-14 group relative overflow-hidden rounded-[3rem] border border-white/5 bg-surface-container-low/40 p-10 shadow-2xl backdrop-blur-xl">
+        <section className="group relative mt-14 overflow-hidden rounded-[3rem] border theme-hairline-border bg-surface-container-low/40 p-10 shadow-2xl backdrop-blur-xl">
           <div className="absolute top-0 right-0 -mr-32 -mt-32 h-64 w-64 rounded-full bg-primary/5 opacity-0 blur-[100px] transition-opacity duration-700 group-hover:opacity-40"></div>
 
           <div className="relative z-10 space-y-10">
@@ -211,7 +211,7 @@ export const DashboardView = ({
                       </p>
                       <p className="text-[9px] font-bold text-on-surface-variant/40 mt-1 uppercase tracking-widest">kg esta semana</p>
                     </div>
-                    <div className="border-l border-white/5 pl-4">
+                    <div className="border-l theme-hairline-border pl-4">
                       <p className="text-2xl font-black italic text-primary tracking-tighter">
                         {dashboardData.goals.weeklyVolumeTarget > 0 ? `${Math.round(dashboardData.goals.weeklyVolumeTarget / 1000)}k` : '0'}
                       </p>
@@ -226,7 +226,7 @@ export const DashboardView = ({
                 </div>
 
                 {/* Secondary Metric: EJERCICIOS COMPLETADOS */}
-                <div className="space-y-4 border-t border-white/5 pt-6">
+                <div className="space-y-4 border-t theme-hairline-border pt-6">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="h-5 w-1 rounded-full bg-secondary/60"></div>
@@ -241,7 +241,7 @@ export const DashboardView = ({
                       </p>
                       <p className="text-[9px] font-bold text-on-surface-variant/40 mt-1 uppercase tracking-widest">ejercicios (7d)</p>
                     </div>
-                    <div className="border-l border-white/5 pl-4">
+                    <div className="border-l theme-hairline-border pl-4">
                       <p className="text-2xl font-black italic text-secondary tracking-tighter">
                         {dashboardData.goals.weeklyExercisesTarget}
                       </p>
@@ -256,7 +256,7 @@ export const DashboardView = ({
                 </div>
 
                 {/* Tertiary Metric: TIEMPO DE ENTRENAMIENTO */}
-                <div className="space-y-4 border-t border-white/5 pt-6">
+                <div className="space-y-4 border-t theme-hairline-border pt-6">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="h-5 w-1 rounded-full bg-primary/40"></div>
@@ -271,7 +271,7 @@ export const DashboardView = ({
                       </p>
                       <p className="text-[9px] font-bold text-on-surface-variant/40 mt-1 uppercase tracking-widest">prom. por sesión</p>
                     </div>
-                    <div className="border-l border-white/5 pl-4">
+                    <div className="border-l theme-hairline-border pl-4">
                       <p className="text-2xl font-black italic text-primary tracking-tighter">
                         {dashboardData.goals.weeklyDurationTarget}m
                       </p>
@@ -286,7 +286,7 @@ export const DashboardView = ({
                 </div>
 
                 {/* Session count */}
-                <div className="border-t border-white/5 pt-6 text-center">
+                <div className="border-t theme-hairline-border pt-6 text-center">
                   <p className="text-[10px] font-black uppercase tracking-[0.2em] text-on-surface-variant/40">
                     {dashboardData.thisWeek.sessions} sesiones completadas esta semana
                   </p>

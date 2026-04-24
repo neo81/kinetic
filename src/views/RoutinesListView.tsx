@@ -42,7 +42,7 @@ export const RoutinesListView = ({
             onClick={() => setView('dashboard')} 
             className="flex items-center gap-3 text-on-surface-variant transition-colors hover:text-primary group"
           >
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/5 transition-all group-hover:bg-primary/20">
+            <div className="theme-muted-surface flex h-8 w-8 items-center justify-center rounded-full transition-all group-hover:bg-primary/20">
               <ArrowLeft size={16} strokeWidth={2.5} />
             </div>
             <span className="font-headline text-[0.72rem] font-black uppercase italic tracking-[0.22em]">Volver al panel</span>
@@ -64,7 +64,7 @@ export const RoutinesListView = ({
             onClick={onNewRoutine}
             className="flex w-full items-center justify-center gap-4 rounded-[2rem] bg-primary p-6 text-black shadow-[0_20px_40px_rgba(212,255,0,0.15)] transition-all hover:scale-[1.02] active:scale-[0.98] group"
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-black/10 transition-transform group-hover:rotate-90">
+            <div className="theme-inverted-surface flex h-10 w-10 items-center justify-center rounded-xl transition-transform group-hover:rotate-90">
               <Plus size={24} strokeWidth={3} />
             </div>
             <span className="font-headline text-xl font-black uppercase italic tracking-wider">Crear Nueva Rutina</span>
@@ -78,7 +78,7 @@ export const RoutinesListView = ({
           </div>
 
           {routines.length === 0 ? (
-            <div className="rounded-[3rem] border border-dashed border-white/8 bg-surface-container-low/35 p-12 text-center backdrop-blur-xl">
+            <div className="rounded-[3rem] border border-dashed theme-hairline-border bg-surface-container-low/35 p-12 text-center backdrop-blur-xl">
               <p className="font-headline text-2xl font-black uppercase italic text-on-surface opacity-40 leading-tight">Sin rutinas cargadas</p>
               <p className="mt-3 text-sm text-on-surface-variant/60">Usa el botón superior para crear tu primer plan de entrenamiento.</p>
             </div>
@@ -94,7 +94,7 @@ export const RoutinesListView = ({
                     setCurrentRoutine(routine);
                     setView('routine-detail');
                   }}
-                  className="group relative cursor-pointer overflow-hidden rounded-[2.5rem] border border-white/5 bg-surface-container-low/40 p-8 shadow-2xl backdrop-blur-xl transition-all active:scale-[0.985] hover:bg-white/5"
+                  className="group relative cursor-pointer overflow-hidden rounded-[2.5rem] border theme-hairline-border bg-surface-container-low/40 p-8 shadow-2xl backdrop-blur-xl transition-all active:scale-[0.985] theme-interactive-hover"
                 >
                   <div className="relative z-10 flex items-start justify-between gap-4">
                     <div className="min-w-0 flex-1 space-y-6">
@@ -123,7 +123,7 @@ export const RoutinesListView = ({
                       </div>
                     </div>
 
-                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-white/5 bg-white/5 shadow-xl transition-all duration-500 group-hover:scale-105 group-hover:border-primary group-hover:bg-primary group-hover:text-black">
+                    <div className="theme-muted-surface flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border theme-hairline-border shadow-xl transition-all duration-500 group-hover:scale-105 group-hover:border-primary group-hover:bg-primary group-hover:text-black">
                       <Play size={24} fill="currentColor" className="ml-0.5" />
                     </div>
                   </div>
@@ -135,7 +135,7 @@ export const RoutinesListView = ({
                         setCurrentRoutine(routine);
                         setView('routine-creator');
                       }}
-                      className="flex h-10 px-4 items-center justify-center gap-2 rounded-xl bg-white/5 text-[10px] font-black uppercase tracking-widest text-on-surface transition-all hover:bg-primary hover:text-black active:scale-90"
+                      className="theme-muted-surface flex h-10 items-center justify-center gap-2 rounded-xl px-4 text-[10px] font-black uppercase tracking-widest text-on-surface transition-all hover:bg-primary hover:text-black active:scale-90"
                     >
                       <Edit2 size={14} />
                       Editar
@@ -145,7 +145,7 @@ export const RoutinesListView = ({
                         e.stopPropagation();
                         setRoutineToTrash(routine);
                       }}
-                      className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/5 text-on-surface-variant transition-all hover:bg-red-500/20 hover:text-red-500 active:scale-90"
+                      className="theme-muted-surface flex h-10 w-10 items-center justify-center rounded-xl text-on-surface-variant transition-all hover:bg-red-500/20 hover:text-red-500 active:scale-90"
                     >
                       <Trash2 size={14} />
                     </button>

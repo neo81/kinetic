@@ -83,7 +83,7 @@ export const ExerciseSelectorKineticView = ({
     >
       <section className="space-y-5">
         <button onClick={() => setView('routine-creator')} className="flex items-center gap-3 text-on-surface-variant transition-colors hover:text-primary">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/5 transition-all group-hover:bg-primary/20">
+          <div className="theme-muted-surface flex h-8 w-8 items-center justify-center rounded-full transition-all group-hover:bg-primary/20">
             <ArrowLeft size={16} strokeWidth={2.5} />
           </div>
           <span className="font-headline text-[0.72rem] font-black uppercase italic tracking-[0.22em]">Volver</span>
@@ -108,7 +108,7 @@ export const ExerciseSelectorKineticView = ({
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
             placeholder="Buscar grupo muscular..."
-            className="h-12 w-full rounded-full border border-white/6 bg-surface-container-high px-11 text-sm text-on-surface outline-none transition-all focus:border-primary/35 focus:ring-2 focus:ring-primary/12"
+            className="h-12 w-full rounded-full border theme-hairline-border bg-surface-container-high px-11 text-sm text-on-surface outline-none transition-all focus:border-primary/35 focus:ring-2 focus:ring-primary/12"
           />
         </div>
       </section>
@@ -120,7 +120,7 @@ export const ExerciseSelectorKineticView = ({
             className="h-full w-full object-cover"
             src={selectorData[side].image}
           />
-          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(10,9,18,0.08)_0%,rgba(13,11,26,0.28)_55%,rgba(11,10,20,0.48)_100%)]" />
+          <div className="theme-hero-image-overlay pointer-events-none absolute inset-0" />
           <div
             className="pointer-events-none absolute inset-0 opacity-[0.12]"
             style={{
@@ -168,10 +168,10 @@ export const ExerciseSelectorKineticView = ({
                     : { left: `${target.labelPos.x}%` }),
                 }}
               >
-                <span className={`px-1 pb-0.5 font-headline text-[0.75rem] font-medium text-white drop-shadow-md transition-colors group-hover:text-primary ${target.align === 'left' ? 'text-right' : 'text-left'}`}>
+                <span className={`px-1 pb-0.5 font-headline text-[0.75rem] font-medium text-on-background drop-shadow-md transition-colors group-hover:text-primary ${target.align === 'left' ? 'text-right' : 'text-left'}`}>
                   {target.label}
                 </span>
-                <div className="h-[1.5px] w-full bg-white/70 transition-colors group-hover:bg-primary" />
+                <div className="h-[1.5px] w-full bg-on-background/60 transition-colors group-hover:bg-primary" />
               </button>
             );
           })}
@@ -188,7 +188,7 @@ export const ExerciseSelectorKineticView = ({
             onClick={() => setSide('front')}
             className={`flex w-full items-center justify-between rounded-[0.9rem] px-4 py-3 font-headline text-[1.05rem] font-semibold uppercase tracking-[0.12em] transition-all active:scale-[0.985] ${side === 'front'
               ? 'neon-button shadow-[0_8px_24px_rgba(212,255,0,0.24)]'
-              : 'border border-white/8 bg-surface-container-low text-on-surface-variant hover:border-primary/25 hover:text-on-surface'
+              : 'border theme-hairline-border bg-surface-container-low text-on-surface-variant hover:border-primary/25 hover:text-on-surface'
               }`}
           >
             Frente
@@ -199,7 +199,7 @@ export const ExerciseSelectorKineticView = ({
             onClick={() => setSide('back')}
             className={`flex w-full items-center justify-between rounded-[0.9rem] px-4 py-3 font-headline text-[1.05rem] font-semibold uppercase tracking-[0.12em] transition-all active:scale-[0.985] ${side === 'back'
               ? 'neon-button shadow-[0_8px_24px_rgba(212,255,0,0.24)]'
-              : 'border border-white/8 bg-surface-container-low text-on-surface-variant hover:border-primary/25 hover:text-on-surface'
+              : 'border theme-hairline-border bg-surface-container-low text-on-surface-variant hover:border-primary/25 hover:text-on-surface'
               }`}
           >
             Espalda

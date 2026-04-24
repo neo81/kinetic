@@ -9,6 +9,9 @@ import type { ActiveSession, Exercise, Routine, UserProfile, View } from '../typ
 import { syncQueue } from '../services/syncQueue';
 import { exportSessionDataForRPC } from '../services/sessionCompletion/exportSessionData';
 import { ensureWeeklyStatsBackfilled } from '../services/dataBackfill/backfillWeeklyStats';
+import { preferencesService } from '../services/preferencesService';
+import { useTheme } from '../hooks/useTheme';
+import type { ThemePreference } from '../theme/theme';
 
 type AppBannerState = {
   level: 'error' | 'warning';
@@ -100,6 +103,11 @@ const persistActiveSession = (session: ActiveSession | null) => {
 };
 
 export const useAppState = () => {
+  const {
+    themePreference,
+    resolvedTheme,
+    setThemePreference,
+  } = useTheme();
   const [view, setView] = useState<View>('login');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState<User | null>(null);
@@ -173,6 +181,17 @@ export const useAppState = () => {
     return mapped;
   }, []);
 
+  const loadThemePreference = useCallback(async (userId: string) => {
+    const preferences = await preferencesService.getPreferences(userId);
+    if (!preferences?.theme) {
+      setThemePreference('dark');
+      return 'dark' as ThemePreference;
+    }
+
+    setThemePreference(preferences.theme);
+    return preferences.theme;
+  }, [setThemePreference]);
+
   const syncActiveSessionFromStorage = useCallback(async () => {
     if (!supabase) return;
 
@@ -223,7 +242,10 @@ export const useAppState = () => {
         if (isNowLoggedIn) {
           try {
             await ensureProfileExists(session.user);
-            await loadProfile(session.user.id);
+            await Promise.all([
+              loadProfile(session.user.id),
+              loadThemePreference(session.user.id),
+            ]);
             // Backfill weekly statistics from completed sessions on first login
             await ensureWeeklyStatsBackfilled(session.user.id);
           } catch (error) {
@@ -266,7 +288,29 @@ export const useAppState = () => {
       clearTimeout(fallbackTimeout);
       subscription.unsubscribe();
     };
-  }, [ensureProfileExists, loadProfile, syncActiveSessionFromStorage, syncRoutines]);
+  }, [ensureProfileExists, loadProfile, loadThemePreference, syncActiveSessionFromStorage, syncRoutines]);
+
+  const handleThemeChange = useCallback(async (nextTheme: ThemePreference) => {
+    const previousTheme = themePreference;
+    setThemePreference(nextTheme);
+
+    if (!user?.id) {
+      return;
+    }
+
+    try {
+      const existingPreferences = await preferencesService.getPreferences(user.id);
+      if (!existingPreferences) {
+        await preferencesService.createDefaultPreferences(user.id);
+      }
+
+      await preferencesService.updatePreferences(user.id, { theme: nextTheme });
+    } catch (error) {
+      console.error('No se pudo actualizar el tema:', error);
+      setThemePreference(previousTheme);
+      throw error;
+    }
+  }, [setThemePreference, themePreference, user?.id]);
 
   const handleLoginWithGoogle = async (): Promise<{ started: boolean; error?: string }> => {
     if (!supabase) {
@@ -425,7 +469,7 @@ export const useAppState = () => {
     }
   };
 
-  const toggleExerciseComplete = (exerciseInstanceId: string) => {
+  const toggleExerciseComplete = useCallback((exerciseInstanceId: string) => {
     setActiveSession((prev) => {
       if (!prev) return prev;
       const isCompleted = prev.completedExercises.includes(exerciseInstanceId);
@@ -438,9 +482,9 @@ export const useAppState = () => {
       persistActiveSession(nextSession);
       return nextSession;
     });
-  };
+  }, []);
 
-  const captureSetPerformance = (
+  const captureSetPerformance = useCallback((
     exerciseId: string,
     setNumber: number,
     actualReps: number | null,
@@ -478,9 +522,9 @@ export const useAppState = () => {
       persistActiveSession(nextSession);
       return nextSession;
     });
-  };
+  }, []);
 
-  const clearCapturedSetPerformance = (
+  const clearCapturedSetPerformance = useCallback((
     exerciseId: string,
     setNumber: number,
     totalSets?: number,
@@ -514,9 +558,9 @@ export const useAppState = () => {
       persistActiveSession(nextSession);
       return nextSession;
     });
-  };
+  }, []);
 
-  const createExerciseGroup = (dayId: string, exerciseIds: string[]) => {
+  const createExerciseGroup = useCallback((dayId: string, exerciseIds: string[]) => {
     setActiveSession((prev) => {
       if (!prev || exerciseIds.length < 2) return prev;
 
@@ -544,9 +588,9 @@ export const useAppState = () => {
       persistActiveSession(nextSession);
       return nextSession;
     });
-  };
+  }, []);
 
-  const removeExerciseGroup = (dayId: string, groupId: string) => {
+  const removeExerciseGroup = useCallback((dayId: string, groupId: string) => {
     setActiveSession((prev) => {
       if (!prev) return prev;
 
@@ -565,9 +609,9 @@ export const useAppState = () => {
       persistActiveSession(nextSession);
       return nextSession;
     });
-  };
+  }, []);
 
-  const switchSessionDay = (dayId: string) => {
+  const switchSessionDay = useCallback((dayId: string) => {
     setActiveSession((prev) => {
       if (!prev || !prev.routineDayIds.includes(dayId)) return prev;
       const nextSession = {
@@ -577,7 +621,7 @@ export const useAppState = () => {
       persistActiveSession(nextSession);
       return nextSession;
     });
-  };
+  }, []);
 
   const endSession = async () => {
     if (!supabase || !activeSession) return;
@@ -837,5 +881,8 @@ export const useAppState = () => {
     createExerciseGroup,
     removeExerciseGroup,
     isAppLoading,
+    themePreference,
+    resolvedTheme,
+    handleThemeChange,
   };
 };

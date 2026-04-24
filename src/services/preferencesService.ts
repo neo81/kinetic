@@ -21,8 +21,8 @@ export const preferencesService = {
     if (!supabase) return null;
 
     try {
-      const { data, error } = await supabase
-        .from('user_preferences')
+      const { data, error } = await (supabase
+        .from('user_preferences') as any)
         .select('*')
         .eq('user_id', userId)
         .single();
@@ -58,8 +58,8 @@ export const preferencesService = {
     }
 
     try {
-      const { data, error } = await supabase
-        .from('user_preferences')
+      const { data, error } = await (supabase
+        .from('user_preferences') as any)
         .update({
           ...updates,
           updated_at: new Date().toISOString(),
@@ -91,8 +91,8 @@ export const preferencesService = {
     }
 
     try {
-      const { data, error } = await supabase
-        .from('user_preferences')
+      const { data, error } = await (supabase
+        .from('user_preferences') as any)
         .insert({
           user_id: userId,
           theme: 'dark',
