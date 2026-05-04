@@ -62,7 +62,7 @@ export const RoutinesListView = ({
         <section>
           <button
             onClick={onNewRoutine}
-            className="flex w-full items-center justify-center gap-4 rounded-[2rem] bg-primary p-6 text-black shadow-[0_20px_40px_rgba(212,255,0,0.15)] transition-all hover:scale-[1.02] active:scale-[0.98] group"
+            className="theme-primary-shadow-strong flex w-full items-center justify-center gap-4 rounded-[2rem] bg-primary p-6 text-black transition-all hover:scale-[1.02] active:scale-[0.98] group"
           >
             <div className="theme-inverted-surface flex h-10 w-10 items-center justify-center rounded-xl transition-transform group-hover:rotate-90">
               <Plus size={24} strokeWidth={3} />
@@ -73,7 +73,7 @@ export const RoutinesListView = ({
 
         <div className="space-y-6">
           <div className="flex items-center gap-3 px-2">
-            <div className="h-6 w-1 rounded-full bg-primary/40 shadow-[0_0_10px_rgba(212,255,0,0.2)]"></div>
+            <div className="theme-primary-indicator-glow h-6 w-1 rounded-full bg-primary/40"></div>
             <h3 className="text-[10px] font-black uppercase italic tracking-[0.4em] text-on-surface-variant/60">BIBLIOTECA ACTIVA</h3>
           </div>
 
@@ -118,7 +118,7 @@ export const RoutinesListView = ({
                         </div>
                         <div className="flex flex-col">
                           <span className="mb-1 text-[8px] font-black uppercase italic tracking-[0.3em] text-on-surface-variant/20">ENFOQUE</span>
-                          <span className="text-[11px] font-black uppercase italic text-primary">{routine.focus || 'GENERAL'}</span>
+                      <span className="theme-primary-text text-[11px] font-black uppercase italic">{routine.focus || 'GENERAL'}</span>
                         </div>
                       </div>
                     </div>

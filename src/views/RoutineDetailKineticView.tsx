@@ -195,10 +195,10 @@ const RestTimerModal = ({ open, onClose }: { open: boolean; onClose: () => void 
   return (
     <PopupShell title="Reloj de descanso" accent="primary" onClose={closeAndReset}>
       <div className="text-center">
-        <div className="font-headline text-[5rem] font-semibold leading-none tracking-[0.02em] text-primary drop-shadow-[0_0_22px_rgba(212,255,0,0.42)]">
+<div className="theme-primary-text font-headline text-[5rem] font-semibold leading-none tracking-[0.02em]">
           {formatCountdown(remainingSeconds)}
         </div>
-        <p className="mt-2 text-[0.68rem] font-bold uppercase tracking-[0.3em] text-primary/55">
+<p className="theme-primary-text-soft mt-2 text-[0.68rem] font-bold uppercase tracking-[0.3em]">
           {remainingSeconds > 0 ? 'Descanso activo' : 'Descanso finalizado'}
         </p>
       </div>
@@ -272,7 +272,7 @@ const SessionStopwatchModal = ({
   return (
     <PopupShell title="Cronometro de sesion" accent="secondary" onClose={onClose}>
       <div className="text-center">
-        <div className="font-headline text-[4.2rem] font-semibold leading-none tracking-[0.02em] text-primary drop-shadow-[0_0_18px_rgba(212,255,0,0.38)] sm:text-[4.8rem]">
+<div className="theme-primary-text font-headline text-[4.2rem] font-semibold leading-none tracking-[0.02em] sm:text-[4.8rem]">
           {formatStopwatch(elapsedMs)}
         </div>
         <div className="mt-3 grid grid-cols-3 text-[0.62rem] font-bold uppercase tracking-[0.32em] text-on-surface-variant/60">
@@ -790,7 +790,7 @@ export const RoutineDetailKineticView = ({
               <h4 className={`font-sans text-[1.15rem] font-semibold leading-tight text-on-surface ${isCompleted ? 'line-through' : ''}`}>{dayEx.exercise.name}</h4>
               <p className="mt-0.5 text-[9px] font-bold uppercase tracking-widest text-on-surface-variant/60">{dayEx.exercise.muscleGroup || dayEx.exercise.muscle}</p>
               {activeSession?.routineId === routine.id && (
-                <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.18em] text-primary/70">
+<p className="theme-primary-text-soft mt-2 text-[10px] font-bold uppercase tracking-[0.18em]">
                   {completedSetCount}/{dayEx.exercise.sets.length} sets
                 </p>
               )}
@@ -849,7 +849,7 @@ export const RoutineDetailKineticView = ({
                     onClick={() => handleSetChipClick(dayEx, setIndex)}
                     className={`rounded-full border px-3 py-2 text-xs font-bold uppercase tracking-[0.18em] transition-all ${
                       isCaptured
-                        ? 'border-primary bg-primary text-black shadow-[0_0_15px_rgba(209,252,0,0.28)]'
+? 'theme-primary-shadow-soft border-primary bg-primary text-black'
                                     : 'theme-hairline-border bg-surface-container-high text-on-surface-variant hover:border-primary/45 hover:text-on-surface'
                     }`}
                     title={isCaptured ? 'Quitar set realizado' : 'Registrar set'}
@@ -864,7 +864,7 @@ export const RoutineDetailKineticView = ({
 
         {dayEx.exercise.sets[0]?.notes && (
                           <div className="theme-hairline-border theme-muted-surface mt-4 rounded-lg border p-3">
-            <p className="mb-1 text-[8px] font-bold uppercase tracking-widest text-primary/70">Notas de entrenamiento</p>
+<p className="theme-primary-text-soft mb-1 text-[8px] font-bold uppercase tracking-widest">Notas de entrenamiento</p>
             <p className="text-xs italic leading-relaxed text-on-surface-variant/90">"{dayEx.exercise.sets[0].notes}"</p>
           </div>
         )}
@@ -975,7 +975,7 @@ export const RoutineDetailKineticView = ({
                     }}
                     className={`shrink-0 rounded-full px-4 py-2 font-headline text-sm font-semibold uppercase tracking-wide transition-all whitespace-nowrap ${
                       isActive
-                        ? 'bg-primary text-black shadow-[0_0_15px_rgba(212,255,0,0.4)]'
+? 'theme-primary-shadow-soft bg-primary text-black'
                         : 'bg-surface-container-high text-on-surface-variant theme-interactive-hover'
                     }`}
                   >
@@ -1073,7 +1073,7 @@ export const RoutineDetailKineticView = ({
                           )}
                         </div>
                         {isGroupingMode && (
-                          <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.18em] text-primary/70">
+<p className="theme-primary-text-soft mt-3 text-[10px] font-bold uppercase tracking-[0.18em]">
                             Seleccionados: {selectedGroupExerciseIds.length}
                           </p>
                         )}
@@ -1089,7 +1089,7 @@ export const RoutineDetailKineticView = ({
                             <div key={item.group.id} className="rounded-[1.1rem] border border-primary/18 bg-primary/5 p-4">
                               <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
                                 <div>
-                                  <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-primary/70">
+<p className="theme-primary-text-soft text-[10px] font-bold uppercase tracking-[0.22em]">
                                     Bloque {index + 1} · {getGroupLabel(item.exercises.length)}
                                   </p>
                                   <p className="mt-1 text-sm text-on-surface-variant">
@@ -1150,7 +1150,7 @@ export const RoutineDetailKineticView = ({
           {activeSession?.routineId === routine.id ? (
             <button
                onClick={() => setConfirmEndSession(true)}
-               className="pointer-events-auto w-full max-w-md h-[4.5rem] rounded-[1.2rem] bg-secondary text-black shadow-[0_20px_40px_rgba(209,252,0,0.25),_0_-10px_30px_rgba(0,0,0,0.6)] transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3 font-headline text-[1.15rem] leading-none font-bold uppercase tracking-[0.15em] border border-secondary/50"
+className="pointer-events-auto w-full max-w-md h-[4.5rem] rounded-[1.2rem] bg-secondary text-black shadow-[0_20px_40px_color-mix(in_srgb,var(--color-secondary)_25%,transparent),_0_-10px_30px_rgba(0,0,0,0.6)] transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3 font-headline text-[1.15rem] leading-none font-bold uppercase tracking-[0.15em] border border-secondary/50"
             >
                <X strokeWidth={3} size={22} className="mt-0.5" />
                Finalizar Entrenamiento
@@ -1167,7 +1167,7 @@ export const RoutineDetailKineticView = ({
                 }
               }}
               disabled={!openDayId}
-              className={`pointer-events-auto w-full max-w-md h-[4.5rem] rounded-[1.2rem] bg-primary text-black shadow-[0_20px_40px_rgba(255,107,0,0.3),_0_-10px_30px_rgba(0,0,0,0.6)] transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3 font-headline text-[1.15rem] leading-none font-bold uppercase tracking-[0.15em] border border-primary/20 ${!openDayId ? 'opacity-50 grayscale' : ''}`}
+className={`theme-primary-shadow-strong pointer-events-auto w-full max-w-md h-[4.5rem] rounded-[1.2rem] bg-primary text-black transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3 font-headline text-[1.15rem] leading-none font-bold uppercase tracking-[0.15em] border border-primary/20 ${!openDayId ? 'opacity-50 grayscale' : ''}`}
             >
               <Play fill="currentColor" size={22} className="mt-0.5" />
               {openDayId ? 'Iniciar Entrenamiento' : 'Selecciona un día'}

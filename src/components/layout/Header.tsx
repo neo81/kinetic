@@ -35,7 +35,7 @@ export const Header = ({
           </button>
         )}
         <div className="flex items-center gap-3">
-          <div className="h-2 w-2 rounded-full bg-primary shadow-[0_0_12px_rgba(212,255,0,0.9)]"></div>
+          <div className="theme-primary-indicator-glow h-2 w-2 rounded-full bg-primary"></div>
           <div className="leading-none">
             <span className="block font-headline text-[1.6rem] font-semibold uppercase tracking-[0.16em] text-primary">KINETIC</span>
             <span className="block text-[0.55rem] font-semibold uppercase tracking-[0.34em] text-on-surface-variant/70">Performance Engine</span>

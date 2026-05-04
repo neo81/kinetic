@@ -45,7 +45,7 @@ const ProgressBar = ({ current, target, label }: { current: number; target: numb
     <div className="w-full space-y-1">
       <div className="flex justify-between items-center">
         <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-on-surface-variant/60">{label}</p>
-        <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-primary">{Math.round(percent)}%</p>
+        <p className="theme-primary-text text-[9px] font-bold uppercase tracking-[0.1em]">{Math.round(percent)}%</p>
       </div>
       <div className="theme-muted-surface h-1.5 w-full overflow-hidden rounded-full">
         <motion.div
@@ -127,12 +127,12 @@ export const DashboardView = ({
           <div className="space-y-6">
             <div className="flex items-center justify-between px-2">
               <div className="flex items-center gap-3">
-                <div className="h-6 w-1 rounded-full bg-primary shadow-[0_0_10px_rgba(212,255,0,0.4)]"></div>
+                <div className="theme-primary-indicator-glow h-6 w-1 rounded-full bg-primary"></div>
                 <h3 className="text-[10px] font-black uppercase italic tracking-[0.4em] text-on-surface-variant/60">PRÓXIMO PASO</h3>
               </div>
               <button
                 onClick={() => setView('routines-list')}
-                className="theme-muted-surface flex items-center gap-2 rounded-full py-1.5 pl-4 pr-2 text-[9px] font-black uppercase tracking-widest text-primary transition-all hover:bg-primary/10 active:scale-95"
+                className="theme-muted-surface theme-primary-text flex items-center gap-2 rounded-full py-1.5 pl-4 pr-2 text-[9px] font-black uppercase tracking-widest transition-all hover:bg-primary/10 active:scale-95"
               >
                 Ver todas
                 <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-black">
@@ -155,7 +155,7 @@ export const DashboardView = ({
 
                 <div className="relative z-10 space-y-8">
                   <div>
-                    <div className="mb-2 text-[10px] font-black uppercase italic tracking-[0.5em] text-primary">CONTINUAR ENTRENAMIENTO</div>
+                    <div className="theme-primary-text-soft mb-2 text-[10px] font-black uppercase italic tracking-[0.5em]">CONTINUAR ENTRENAMIENTO</div>
                     <h4 className="font-headline text-4xl font-black uppercase italic leading-none tracking-tight text-on-background sm:text-5xl">
                       {lastActiveRoutine.name}
                     </h4>
@@ -165,7 +165,7 @@ export const DashboardView = ({
                   </div>
 
                   <button
-                     className="flex items-center gap-3 rounded-2xl bg-primary px-8 py-4 text-[12px] font-black uppercase tracking-[0.2em] text-black shadow-[0_15px_30px_rgba(212,255,0,0.25)] transition-all hover:scale-105 active:scale-95"
+                     className="theme-primary-shadow-strong flex items-center gap-3 rounded-2xl bg-primary px-8 py-4 text-[12px] font-black uppercase tracking-[0.2em] text-black transition-all hover:scale-105 active:scale-95"
                   >
                     <Activity size={18} fill="currentColor" />
                     Entrenar Ahora
@@ -187,7 +187,7 @@ export const DashboardView = ({
 
           <div className="relative z-10 space-y-10">
             <div className="space-y-2">
-              <span className="block text-[9px] font-black uppercase italic tracking-[0.4em] text-primary sm:text-[10px]">ESTA SEMANA - TU RENDIMIENTO</span>
+              <span className="theme-primary-text-soft block text-[9px] font-black uppercase italic tracking-[0.4em] sm:text-[10px]">ESTA SEMANA - TU RENDIMIENTO</span>
               <h3 className="font-headline text-3xl font-black italic leading-none tracking-tighter text-on-background sm:text-4xl">
                 {dashboardData ? formatSessionVolume(Math.round(dashboardData.thisWeek.volume), dashboardData.thisWeek.volumeMinutes) : 'Cargando...'}
               </h3>
@@ -212,7 +212,7 @@ export const DashboardView = ({
                       <p className="text-[9px] font-bold text-on-surface-variant/40 mt-1 uppercase tracking-widest">kg esta semana</p>
                     </div>
                     <div className="border-l theme-hairline-border pl-4">
-                      <p className="text-2xl font-black italic text-primary tracking-tighter">
+                      <p className="theme-primary-text text-2xl font-black italic tracking-tighter">
                         {dashboardData.goals.weeklyVolumeTarget > 0 ? `${Math.round(dashboardData.goals.weeklyVolumeTarget / 1000)}k` : '0'}
                       </p>
                       <p className="text-[9px] font-bold text-on-surface-variant/40 mt-1 uppercase tracking-widest">meta semanal</p>
@@ -272,7 +272,7 @@ export const DashboardView = ({
                       <p className="text-[9px] font-bold text-on-surface-variant/40 mt-1 uppercase tracking-widest">prom. por sesión</p>
                     </div>
                     <div className="border-l theme-hairline-border pl-4">
-                      <p className="text-2xl font-black italic text-primary tracking-tighter">
+                      <p className="theme-primary-text text-2xl font-black italic tracking-tighter">
                         {dashboardData.goals.weeklyDurationTarget}m
                       </p>
                       <p className="text-[9px] font-bold text-on-surface-variant/40 mt-1 uppercase tracking-widest">meta semanal</p>

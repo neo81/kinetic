@@ -66,6 +66,19 @@
   --app-grid-mask: linear-gradient(180deg, rgba(0, 0, 0, 0.45), transparent 75%);
   --app-shell-glow-left: rgba(212, 255, 0, 0.12);
   --app-shell-glow-right: rgba(212, 255, 0, 0.06);
+  --primary-gradient-start: #dfff00;
+  --primary-gradient-end: #c4f000;
+  --primary-shadow-soft: 0 10px 30px color-mix(in srgb, var(--color-primary) 28%, transparent);
+  --primary-shadow-strong: 0 18px 40px color-mix(in srgb, var(--color-primary) 24%, transparent);
+  --primary-shadow-hover: 0 24px 52px color-mix(in srgb, var(--color-primary) 32%, transparent);
+  --primary-indicator-glow: 0 0 12px color-mix(in srgb, var(--color-primary) 70%, transparent);
+  --primary-ink: color-mix(in srgb, var(--color-primary) 88%, var(--color-on-surface) 12%);
+  --primary-ink-soft: color-mix(in srgb, var(--color-primary) 72%, var(--color-on-surface) 28%);
+  --primary-tint-soft: color-mix(in srgb, var(--color-primary) 8%, transparent);
+  --primary-tint: color-mix(in srgb, var(--color-primary) 12%, transparent);
+  --primary-border-soft: color-mix(in srgb, var(--color-primary) 24%, transparent);
+  --primary-orbit-gradient: conic-gradient(from 210deg, var(--color-secondary), var(--color-primary), var(--color-secondary));
+  --primary-orbit-shadow: 0 0 30px color-mix(in srgb, var(--color-primary) 16%, transparent);
 
   --panel-bg: rgba(16, 19, 24, 0.82);
   --panel-border: rgba(255, 255, 255, 0.06);
@@ -104,6 +117,9 @@
   --color-on-background: #151912;
   --color-surface: #ffffff;
   --color-on-surface: #151912;
+  --color-primary: #ff6a00;
+  --color-primary-container: #ff9a47;
+  --color-on-primary-container: #231000;
   --color-surface-container: #f2f4ed;
   --color-surface-container-low: #fcfdf9;
   --color-surface-container-high: #e9ede2;
@@ -116,20 +132,33 @@
 
   --app-background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.38)),
-    radial-gradient(circle at top left, rgba(212, 255, 0, 0.18), transparent 34%),
+    radial-gradient(circle at top left, rgba(255, 106, 0, 0.12), transparent 34%),
     radial-gradient(circle at bottom right, rgba(255, 92, 0, 0.08), transparent 28%),
     linear-gradient(180deg, #fafcf7 0%, #f4f6f2 100%);
   --app-html-background:
-    radial-gradient(circle at top left, rgba(212, 255, 0, 0.14), transparent 28%),
+    radial-gradient(circle at top left, rgba(255, 106, 0, 0.1), transparent 28%),
     radial-gradient(circle at bottom right, rgba(255, 92, 0, 0.06), transparent 24%),
     linear-gradient(180deg, #fafcf7 0%, #f4f6f2 100%);
-  --app-background-top-glow: rgba(212, 255, 0, 0.16);
+  --app-background-top-glow: rgba(255, 106, 0, 0.12);
   --app-background-bottom-glow: rgba(255, 92, 0, 0.1);
   --app-grid-line: rgba(21, 25, 18, 0.05);
   --app-grid-line-secondary: rgba(21, 25, 18, 0.035);
   --app-grid-mask: linear-gradient(180deg, rgba(0, 0, 0, 0.18), transparent 75%);
-  --app-shell-glow-left: rgba(212, 255, 0, 0.16);
+  --app-shell-glow-left: rgba(255, 106, 0, 0.14);
   --app-shell-glow-right: rgba(255, 92, 0, 0.08);
+  --primary-gradient-start: #ff9a3d;
+  --primary-gradient-end: #ff6500;
+  --primary-shadow-soft: 0 8px 22px rgba(255, 106, 0, 0.16);
+  --primary-shadow-strong: 0 14px 28px rgba(255, 106, 0, 0.22);
+  --primary-shadow-hover: 0 18px 34px rgba(255, 106, 0, 0.28);
+  --primary-indicator-glow: 0 0 9px rgba(255, 106, 0, 0.4);
+  --primary-ink: color-mix(in srgb, var(--color-primary) 82%, var(--color-on-surface) 18%);
+  --primary-ink-soft: color-mix(in srgb, var(--color-primary) 64%, var(--color-on-surface) 36%);
+  --primary-tint-soft: rgba(255, 106, 0, 0.045);
+  --primary-tint: rgba(255, 106, 0, 0.08);
+  --primary-border-soft: rgba(255, 106, 0, 0.2);
+  --primary-orbit-gradient: conic-gradient(from 210deg, #ffb56f, var(--color-primary), #ff8440);
+  --primary-orbit-shadow: 0 0 26px rgba(255, 106, 0, 0.14);
 
   --panel-bg: rgba(255, 255, 255, 0.82);
   --panel-border: rgba(117, 128, 104, 0.18);
@@ -247,18 +276,18 @@ textarea::placeholder {
   font-weight: 700;
   letter-spacing: 0.24em;
   text-transform: uppercase;
-  box-shadow: 0 10px 30px color-mix(in srgb, var(--color-primary) 28%, transparent);
+  box-shadow: var(--primary-shadow-soft);
 }
 
 .neon-button {
-  background: linear-gradient(180deg, #dfff00 0%, #c4f000 100%);
+  background: linear-gradient(180deg, var(--primary-gradient-start) 0%, var(--primary-gradient-end) 100%);
   color: #111300;
-  box-shadow: 0 18px 40px color-mix(in srgb, var(--color-primary) 24%, transparent);
+  box-shadow: var(--primary-shadow-strong);
 }
 
 .neon-button:hover {
   filter: brightness(1.05);
-  box-shadow: 0 24px 52px color-mix(in srgb, var(--color-primary) 32%, transparent);
+  box-shadow: var(--primary-shadow-hover);
 }
 
 .control-shell {
@@ -273,11 +302,11 @@ textarea::placeholder {
 }
 
 .kinetic-gradient {
-  background: linear-gradient(135deg, #d4ff00 0%, #b8e000 100%);
+  background: linear-gradient(135deg, var(--primary-gradient-start) 0%, var(--primary-gradient-end) 100%);
 }
 
 .kinetic-gradient-text {
-  background: linear-gradient(135deg, #d4ff00 0%, #b8e000 100%);
+  background: linear-gradient(135deg, var(--primary-gradient-start) 0%, var(--primary-gradient-end) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -335,6 +364,43 @@ textarea::placeholder {
 
 .theme-divider {
   background: var(--hairline-border);
+}
+
+.theme-primary-shadow-soft {
+  box-shadow: var(--primary-shadow-soft);
+}
+
+.theme-primary-shadow-strong {
+  box-shadow: var(--primary-shadow-strong);
+}
+
+.theme-primary-indicator-glow {
+  box-shadow: var(--primary-indicator-glow);
+}
+
+.theme-primary-text {
+  color: var(--primary-ink);
+}
+
+.theme-primary-text-soft {
+  color: var(--primary-ink-soft);
+}
+
+.theme-primary-tint-soft {
+  background: var(--primary-tint-soft);
+}
+
+.theme-primary-tint {
+  background: var(--primary-tint);
+}
+
+.theme-primary-border-soft {
+  border-color: var(--primary-border-soft);
+}
+
+.theme-primary-orbit {
+  background: var(--primary-orbit-gradient);
+  box-shadow: var(--primary-orbit-shadow);
 }
 
 .theme-contrast-surface {

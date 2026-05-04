@@ -321,7 +321,7 @@ export const ExerciseEditorView = ({
 
         <button
           onClick={handleSave}
-          className="neon-button mt-6 flex w-full items-center justify-center gap-3 rounded-2xl py-5 text-black shadow-[0_20px_40px_rgba(212,255,0,0.15)] transition-all active:scale-[0.98]"
+                className="neon-button theme-primary-shadow-strong mt-6 flex w-full items-center justify-center gap-3 rounded-2xl py-5 text-black transition-all active:scale-[0.98]"
         >
           <span className="font-headline text-lg font-bold uppercase tracking-tight">Guardar ejercicio</span>
           <ArrowRight size={20} strokeWidth={2.8} />

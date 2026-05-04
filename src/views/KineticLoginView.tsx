@@ -72,7 +72,7 @@ export const KineticLoginView = ({
                 <h1 className="font-headline text-[3.4rem] font-semibold uppercase leading-[0.82] tracking-[0.02em] text-on-background sm:text-[4.8rem] md:text-[6rem] lg:text-[7.5rem]">
                   Lleva tu
                   <br />
-                  <span className="text-primary">limite</span>
+                  <span className="theme-primary-text">limite</span>
                 </h1>
               </div>
             </div>
@@ -81,7 +81,7 @@ export const KineticLoginView = ({
           <section className="relative z-20 flex items-start justify-center rounded-t-[2rem] bg-surface-container-low px-5 pb-8 pt-6 sm:px-6 md:min-h-full md:items-center md:rounded-none md:border-l md:theme-hairline-border md:bg-surface-container-low/92 md:px-8 md:py-10 lg:px-10">
             <div className="w-full max-w-md">
               <div className="mb-5">
-                <div className="mb-1 font-headline text-[1.8rem] font-semibold uppercase tracking-[0.05em] text-primary sm:text-[2.2rem]">Kinetic Volt</div>
+                <div className="theme-primary-text mb-1 font-headline text-[1.8rem] font-semibold uppercase tracking-[0.05em] sm:text-[2.2rem]">Kinetic Volt</div>
                 <h2 className="font-sans text-[2.15rem] font-extrabold leading-none tracking-[-0.03em] text-on-surface sm:text-[2.7rem]">
                   {isRegistering ? 'Únete al motor' : 'Bienvenido de nuevo'}
                 </h2>
@@ -162,7 +162,7 @@ export const KineticLoginView = ({
                 <button 
                   type="button" 
                   onClick={() => setIsRegistering(!isRegistering)}
-                  className="font-semibold text-primary transition-colors hover:text-primary/80"
+                  className="theme-primary-text font-semibold transition-colors hover:opacity-80"
                 >
                   {isRegistering ? 'Inicia sesión' : 'Regístrate aquí'}
                 </button>
@@ -172,7 +172,7 @@ export const KineticLoginView = ({
                 <div>
                   <div className="mb-2 text-[0.7rem] font-medium uppercase tracking-[0.2em] text-on-surface-variant">Estado</div>
                   <div className="flex items-center justify-center gap-2 text-on-surface-variant">
-                    <div className="h-2 w-2 rounded-full bg-primary shadow-[0_0_10px_rgba(212,255,0,0.8)]"></div>
+                    <div className="theme-primary-indicator-glow h-2 w-2 rounded-full bg-primary"></div>
                     <span className="text-[0.92rem]">Sistema nominal</span>
                   </div>
                 </div>

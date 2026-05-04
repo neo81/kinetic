@@ -344,7 +344,7 @@ export const SettingsView = ({
             </button>
           ) : (
             <div className="flex items-center gap-3">
-              <div className="h-2 w-2 rounded-full bg-primary shadow-[0_0_12px_rgba(212,255,0,0.9)]"></div>
+                <div className="theme-primary-indicator-glow h-2 w-2 rounded-full bg-primary"></div>
               <div className="leading-none text-right">
                 <span className="block font-headline text-[1.6rem] font-semibold uppercase tracking-[0.16em] text-primary">KINETIC</span>
                 <span className="block text-[0.55rem] font-semibold uppercase tracking-[0.34em] text-on-surface-variant/70">Performance Engine</span>
@@ -451,7 +451,7 @@ export const SettingsView = ({
                     type="button"
                     onClick={() => setFitnessLevel(level)}
                     className={`rounded-full px-4 py-2 text-[0.72rem] font-bold uppercase tracking-[0.12em] transition-all ${
-                      fitnessLevel === level ? 'bg-primary text-black shadow-[0_0_24px_rgba(209,252,0,0.24)]' : 'theme-hairline-border border bg-surface-container-low text-on-surface'
+                      fitnessLevel === level ? 'theme-primary-shadow-soft bg-primary text-black' : 'theme-hairline-border border bg-surface-container-low text-on-surface'
                     }`}
                   >
                     {level}
@@ -487,7 +487,7 @@ export const SettingsView = ({
                         ? 'bg-green-500/10 border border-green-500/30 text-green-400'
                         : profileFeedback.state === 'error'
                         ? 'bg-red-500/10 border border-red-500/30 text-red-400'
-                        : 'bg-primary/10 border border-primary/30 text-primary'
+                        : 'theme-primary-border-soft theme-primary-text border theme-primary-tint'
                     }`}
                   >
                     {profileFeedback.state === 'success' && <Check size={16} />}
@@ -504,7 +504,7 @@ export const SettingsView = ({
       {isEditingGoals && (
         <section className="space-y-8 pb-8">
           <div className="flex flex-col items-center">
-            <div className="h-20 w-20 rounded-full bg-[conic-gradient(from_210deg,#ff7439,#d1fc00,#ff7439)] p-1 shadow-[0_0_30px_rgba(209,252,0,0.16)]">
+            <div className="theme-primary-orbit h-20 w-20 rounded-full p-1">
               <div className="flex h-full w-full items-center justify-center rounded-full bg-surface-container text-primary">
                 <Target size={32} strokeWidth={1.8} />
               </div>
@@ -611,7 +611,7 @@ export const SettingsView = ({
                         ? 'bg-green-500/10 border border-green-500/30 text-green-400'
                         : goalsFeedback.state === 'error'
                         ? 'bg-red-500/10 border border-red-500/30 text-red-400'
-                        : 'bg-primary/10 border border-primary/30 text-primary'
+                        : 'theme-primary-border-soft theme-primary-text border theme-primary-tint'
                     }`}
                   >
                     {goalsFeedback.state === 'success' && <Check size={16} />}
