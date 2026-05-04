@@ -8,6 +8,7 @@ import { RoutineRepositoryError } from '../features/routines/errors';
 import type { ActiveSession, Exercise, Routine, UserProfile, View } from '../types';
 import { syncQueue } from '../services/syncQueue';
 import { exportSessionDataForRPC } from '../services/sessionCompletion/exportSessionData';
+import { invokeEndSession } from '../services/sessionCompletion/invokeEndSession';
 import { ensureWeeklyStatsBackfilled } from '../services/dataBackfill/backfillWeeklyStats';
 import { preferencesService } from '../services/preferencesService';
 import { useTheme } from '../hooks/useTheme';
@@ -637,16 +638,11 @@ export const useAppState = () => {
         // Prepare session data for RPC transaction
         const sessionData = exportSessionDataForRPC(activeSession, activeRoutine);
 
-        // Call atomic RPC transaction
-        const { error: rpcError } = await supabase.rpc('end_session_transaction', {
-          p_session_id: activeSession.id,
-          p_ended_at: endedAt,
-          p_session_data: sessionData as unknown as Json,
+        await invokeEndSession({
+          sessionId: activeSession.id,
+          endedAt,
+          sessionData: sessionData as unknown as Json,
         });
-
-        if (rpcError) {
-          throw rpcError;
-        }
 
         didQueueSuccessfully = true;
       }
