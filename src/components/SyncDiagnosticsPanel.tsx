@@ -80,7 +80,7 @@ export const SyncDiagnosticsPanel: React.FC = () => {
           </div>
         </div>
 
-        {isPending && (
+        {(isPending || hasError) && (
           <button
             onClick={triggerManualSync}
             disabled={isSyncing}

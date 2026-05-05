@@ -61,6 +61,11 @@ Deno.serve(async req => {
     return jsonResponse({ error: 'Missing required session payload fields' }, 400, origin);
   }
 
+  // Log payload size for debugging
+  const payloadSize = JSON.stringify(payload).length;
+  const payloadSizeMB = (payloadSize / 1024 / 1024).toFixed(3);
+  console.log(`[end-session] Received payload size: ${payloadSizeMB}MB (${payloadSize} bytes)`);
+
   try {
     const supabaseUrl = getSupabaseEnv('SUPABASE_URL');
     const supabaseAnonKey = getSupabaseEnv('SUPABASE_ANON_KEY');

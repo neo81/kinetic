@@ -39,6 +39,17 @@ export async function invokeEndSession(input: InvokeEndSessionInput): Promise<vo
   const payloadSizeKB = (payloadSize / 1024).toFixed(2);
   console.log(`[invokeEndSession] Session ${input.sessionId} payload size: ${payloadSizeKB}KB`);
 
+  // Warn if payload is very large (might cause issues on iOS)
+  const MAX_SAFE_PAYLOAD_KB = 500;
+  const MAX_SAFE_PAYLOAD_BYTES = MAX_SAFE_PAYLOAD_KB * 1024;
+  
+  if (payloadSize > MAX_SAFE_PAYLOAD_BYTES) {
+    console.warn(
+      `[invokeEndSession] WARNING: Payload is ${payloadSizeKB}KB (> ${MAX_SAFE_PAYLOAD_KB}KB). ` +
+      `This may cause issues on iOS PWA. Consider archiving old data.`
+    );
+  }
+
   // Retry configuration for iOS (3 attempts with increasing delays)
   const maxRetries = 3;
   const retryDelays = [1000, 3000, 5000]; // ms between retries

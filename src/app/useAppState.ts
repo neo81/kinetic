@@ -671,14 +671,16 @@ export const useAppState = () => {
         didQueueSuccessfully = true;
       }
     } catch (error) {
-      console.error('[endSession] Failed to save directly, queuing for retry:', error);
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error('[endSession] Failed to save directly, queuing for retry:', errorMsg);
 
       // CRITICAL: Ensure session is queued even if everything fails
       if (activeSession) {
         let queueAttempts = 0;
         const maxQueueAttempts = 3;
 
-        while (queueAttempts < maxQueueAttempts) {
+        while (queueAttempts < maxQueueAttempts && !didQueueSuccessfully) {
+          queueAttempts++;
           try {
             const activeRoutine =
               currentRoutine?.id === activeSession.routineId
@@ -687,8 +689,13 @@ export const useAppState = () => {
             const sessionData = exportSessionDataForRPC(activeSession, activeRoutine);
 
             console.log(
-              `[endSession] Queuing session (attempt ${queueAttempts + 1}/${maxQueueAttempts})`
+              `[endSession] Queuing session (attempt ${queueAttempts}/${maxQueueAttempts})`
             );
+
+            // Ensure syncQueue is available
+            if (!syncQueue) {
+              throw new Error('SyncQueue not available');
+            }
 
             syncQueue.add({
               type: 'session_end',
@@ -704,39 +711,58 @@ export const useAppState = () => {
 
             console.log('[endSession] ✓ Session queued successfully for retry');
             didQueueSuccessfully = true;
-            break; // Success, exit retry loop
           } catch (queueError) {
-            queueAttempts++;
+            const queueErrorMsg = queueError instanceof Error ? queueError.message : String(queueError);
             console.error(
-              `[endSession] Queue attempt ${queueAttempts} failed:`,
-              queueError instanceof Error ? queueError.message : String(queueError)
+              `[endSession] Queue attempt ${queueAttempts}/${maxQueueAttempts} failed: ${queueErrorMsg}`
             );
 
             if (queueAttempts < maxQueueAttempts) {
-              // Wait before retrying
-              await new Promise(resolve => setTimeout(resolve, 500 * queueAttempts));
+              // Exponential backoff before retrying
+              const delay = Math.pow(2, queueAttempts) * 500; // 1s, 2s, 4s
+              console.log(`[endSession] Retrying in ${delay}ms...`);
+              await new Promise(resolve => setTimeout(resolve, delay));
             }
           }
         }
 
         if (!didQueueSuccessfully) {
-          // Last resort: show error
-          console.error('[endSession] CRITICAL: Could not queue session after all attempts');
-          setAppBanner({
-            level: 'error',
-            title: '⚠️ Error crítico al guardar',
-            message:
-              'Tu sesión no pudo ser guardada. Reinicia la app o contacta soporte.',
-          });
-          return;
+          // FALLBACK: Try one last time with minimal payload
+          try {
+            console.log('[endSession] CRITICAL: Attempting minimal queue payload');
+            syncQueue.add({
+              type: 'session_end',
+              priority: 'high',
+              payload: {
+                sessionId: activeSession.id,
+                endedAt,
+                sessionData: { sessionExercises: [] }, // Minimal payload
+              },
+              createdAt: Date.now(),
+              attemptCount: 1,
+            });
+            console.log('[endSession] ✓ Minimal payload queued');
+            didQueueSuccessfully = true;
+          } catch (fallbackError) {
+            console.error('[endSession] CRITICAL: All queue attempts failed:', fallbackError);
+          }
         }
       }
 
-      setAppBanner({
-        level: 'warning',
-        title: '⏱️ Sesión en cola',
-        message: 'Tu entrenamiento se guardará cuando haya conexión.',
-      });
+      // Always show banner, even if queueing failed
+      if (!didQueueSuccessfully) {
+        setAppBanner({
+          level: 'error',
+          title: '⚠️ Error al guardar sesión',
+          message: 'No pudimos guardar tu entrenamiento. Intenta nuevamente desde Configuración.',
+        });
+      } else {
+        setAppBanner({
+          level: 'warning',
+          title: '⏱️ Sesión en cola',
+          message: 'Tu entrenamiento se guardará cuando haya conexión.',
+        });
+      }
       return;
     } finally {
       if (didQueueSuccessfully) {
@@ -746,7 +772,6 @@ export const useAppState = () => {
           syncRoutines();
         } catch (persistError) {
           console.error('[endSession] Error cleaning up session:', persistError);
-          // Even if cleanup fails, show success message since session was queued or completed
         }
         setAppBanner({
           level: 'warning',
