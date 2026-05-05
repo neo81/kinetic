@@ -36,9 +36,9 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({
 
   if (compact) {
     return (
-      <div className="flex items-center gap-2 text-xs">
+      <div className="flex items-center gap-1.5 rounded-full bg-surface-container px-2.5 py-1.5 text-xs">
         <div className={`h-2 w-2 rounded-full ${getStatusColor()}`} />
-        <span className="text-on-surface-variant">{getStatusText()}</span>
+        <span className="hidden text-on-surface-variant sm:inline">{getStatusText()}</span>
       </div>
     );
   }

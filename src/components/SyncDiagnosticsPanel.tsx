@@ -59,19 +59,23 @@ export const SyncDiagnosticsPanel: React.FC = () => {
     return 'text-green-500';
   };
 
+  const getStatusMessage = () => {
+    if (isSyncing) return 'Sincronizando datos...';
+    if (hasError) return 'Hay errores de sincronización';
+    if (isPending) return 'Datos pendientes de guardar';
+    return 'Todo está sincronizado';
+  };
+
   return (
     <div className="space-y-4 rounded-lg border border-outline/30 bg-surface-container p-4">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-outline/20 pb-3">
+      <div className="flex flex-col gap-3 border-b border-outline/20 pb-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2">
           <span className={`text-2xl ${getStatusColor()}`}>{getStatusIcon()}</span>
           <div>
             <h3 className="font-semibold text-on-surface">Estado de Sincronización</h3>
             <p className="text-xs text-on-surface-variant">
-              {isSyncing && 'Sincronizando datos...'}
-              {hasError && 'Hay errores de sincronización'}
-              {isPending && 'Datos pendientes de guardar'}
-              {!isSyncing && !hasError && !isPending && 'Todo está sincronizado'}
+              {getStatusMessage()}
             </p>
           </div>
         </div>
@@ -80,7 +84,7 @@ export const SyncDiagnosticsPanel: React.FC = () => {
           <button
             onClick={triggerManualSync}
             disabled={isSyncing}
-            className="control-shell rounded px-3 py-2 text-sm font-semibold uppercase tracking-wide hover:bg-surface-container-highest disabled:opacity-50"
+            className="control-shell whitespace-nowrap rounded px-3 py-2 text-sm font-semibold uppercase tracking-wide hover:bg-surface-container-highest disabled:opacity-50 sm:px-4"
           >
             {isSyncing ? 'Sincronizando...' : 'Resincronizar Ahora'}
           </button>
@@ -104,11 +108,13 @@ export const SyncDiagnosticsPanel: React.FC = () => {
         </div>
 
         {status.lastError && (
-          <div className="rounded bg-error/10 p-2 text-error">
-            <div className="text-xs font-semibold">Último error:</div>
-            <div className="font-mono text-xs">{status.lastError}</div>
-            <div className="text-xs">
-              Hace {Math.round((Date.now() - (status.lastErrorAt ?? 0)) / 1000)}s
+          <div className="rounded bg-error/10 p-3 text-error">
+            <div className="mb-1.5 text-xs font-semibold">Último error:</div>
+            <div className="mb-2 flex flex-col gap-1.5 rounded bg-error/5 p-2">
+              <div className="break-words font-mono text-xs">{status.lastError}</div>
+              <div className="text-xs text-error/80">
+                Hace {Math.round((Date.now() - (status.lastErrorAt ?? 0)) / 1000)}s
+              </div>
             </div>
           </div>
         )}
@@ -116,15 +122,15 @@ export const SyncDiagnosticsPanel: React.FC = () => {
 
       {/* Queue Breakdown */}
       {status.totalPending > 0 && (
-        <div className="rounded bg-surface-container-high p-2">
-          <div className="mb-1 text-xs font-semibold text-on-surface">Detalles por tipo:</div>
-          <div className="font-mono text-xs text-on-surface-variant">
+        <div className="rounded bg-surface-container-high p-3">
+          <div className="mb-2 text-xs font-semibold text-on-surface">Detalles por tipo:</div>
+          <div className="space-y-1.5 font-mono text-xs text-on-surface-variant">
             {Object.entries(status.byType)
               .filter(([, count]) => count > 0)
               .map(([type, count]) => (
-                <div key={type} className="flex justify-between">
-                  <span>• {type}:</span>
-                  <span>{count}</span>
+                <div key={type} className="flex items-center justify-between gap-2 rounded bg-surface/50 px-2 py-1">
+                  <span className="truncate">• {type}:</span>
+                  <span className="whitespace-nowrap">{count}</span>
                 </div>
               ))}
           </div>
@@ -139,25 +145,25 @@ export const SyncDiagnosticsPanel: React.FC = () => {
       )}
 
       {/* Action Buttons */}
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2 sm:flex-nowrap">
         <button
           onClick={handleExportState}
-          className="control-shell flex-1 rounded px-3 py-2 text-xs font-semibold uppercase tracking-wide hover:bg-surface-container-highest"
+          className="control-shell flex-1 rounded px-2 py-2 text-xs font-semibold uppercase tracking-wide hover:bg-surface-container-highest sm:px-3"
         >
-          📥 Exportar Diagnóstico
+          📥 Exportar
         </button>
 
         <button
           onClick={() => setShowDebugInfo(!showDebugInfo)}
-          className="control-shell flex-1 rounded px-3 py-2 text-xs font-semibold uppercase tracking-wide hover:bg-surface-container-highest"
+          className="control-shell flex-1 rounded px-2 py-2 text-xs font-semibold uppercase tracking-wide hover:bg-surface-container-highest sm:px-3"
         >
-          {showDebugInfo ? '🔍 Ocultar' : '🔍 Detalles'}
+          {showDebugInfo ? '✕ Ocultar' : '🔍 Detalles'}
         </button>
 
         {status.totalPending > 0 && (
           <button
             onClick={handleClearQueue}
-            className="control-shell rounded px-3 py-2 text-xs font-semibold uppercase tracking-wide text-error hover:bg-error/10"
+            className="control-shell flex-1 rounded px-2 py-2 text-xs font-semibold uppercase tracking-wide text-error hover:bg-error/10 sm:px-3"
           >
             🗑️ Limpiar
           </button>
