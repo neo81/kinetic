@@ -26,8 +26,8 @@ const formatStopwatch = (elapsedMs: number) => {
   const safeMs = Math.max(elapsedMs, 0);
   const minutes = Math.floor(safeMs / 60000);
   const seconds = Math.floor((safeMs % 60000) / 1000);
-  const milliseconds = safeMs % 1000;
-  return `${formatClock(minutes)}:${formatClock(seconds)}:${String(milliseconds).padStart(3, '0')}`;
+  const milliseconds = Math.floor((safeMs % 1000) / 10);
+  return `${formatClock(minutes)}:${formatClock(seconds)}:${String(milliseconds).padStart(2, '0')}`;
 };
 
 const formatCountdown = (totalSeconds: number) => {
@@ -78,10 +78,10 @@ const playAlertTone = async () => {
     const startAt = audioContext.currentTime + index * 0.18;
     const endAt = startAt + 0.12;
 
-    oscillator.type = 'sine';
+    oscillator.type = 'triangle';
     oscillator.frequency.setValueAtTime(frequency, startAt);
     gain.gain.setValueAtTime(0.0001, startAt);
-    gain.gain.exponentialRampToValueAtTime(0.22, startAt + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.8, startAt + 0.02);
     gain.gain.exponentialRampToValueAtTime(0.0001, endAt);
 
     oscillator.connect(gain);
@@ -97,7 +97,11 @@ const playAlertTone = async () => {
 
 const triggerCompletionFeedback = async () => {
   if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
-    navigator.vibrate([220, 120, 220, 120, 420]);
+    try {
+      navigator.vibrate([220, 120, 220, 120, 420]);
+    } catch (e) {
+      // ignore
+    }
   }
 
   await playAlertTone();
@@ -140,12 +144,15 @@ const PopupShell = ({
 const RestTimerModal = ({ open, onClose }: { open: boolean; onClose: () => void }) => {
   const [remainingSeconds, setRemainingSeconds] = useState(DEFAULT_REST_SECONDS);
   const [isRunning, setIsRunning] = useState(false);
+  const [isFlashing, setIsFlashing] = useState(false);
   const completedRef = useRef(false);
+  const previousSecondsRef = useRef(remainingSeconds);
 
   useEffect(() => {
     if (!open) {
       setIsRunning(false);
       completedRef.current = false;
+      setIsFlashing(false);
       return;
     }
 
@@ -167,19 +174,29 @@ const RestTimerModal = ({ open, onClose }: { open: boolean; onClose: () => void 
   }, [isRunning, open]);
 
   useEffect(() => {
-    if (!open || remainingSeconds !== 0 || completedRef.current) {
+    if (!open) {
+      previousSecondsRef.current = DEFAULT_REST_SECONDS;
       return;
     }
 
-    completedRef.current = true;
-    setIsRunning(false);
-    triggerCompletionFeedback().catch(() => undefined);
+    if (remainingSeconds === 0 && previousSecondsRef.current > 0 && !completedRef.current) {
+      completedRef.current = true;
+      setIsRunning(false);
+      triggerCompletionFeedback().catch(() => undefined);
+      
+      setIsFlashing(true);
+      const flashTimer = setTimeout(() => setIsFlashing(false), 2000);
+      return () => clearTimeout(flashTimer);
+    }
+
+    previousSecondsRef.current = remainingSeconds;
   }, [open, remainingSeconds]);
 
   const closeAndReset = () => {
     setIsRunning(false);
     setRemainingSeconds(DEFAULT_REST_SECONDS);
     completedRef.current = false;
+    setIsFlashing(false);
     onClose();
   };
 
@@ -193,7 +210,11 @@ const RestTimerModal = ({ open, onClose }: { open: boolean; onClose: () => void 
   }
 
   return (
-    <PopupShell title="Reloj de descanso" accent="primary" onClose={closeAndReset}>
+    <>
+      {isFlashing && (
+        <div className="fixed inset-0 z-[100] pointer-events-none bg-primary/40 animate-pulse mix-blend-screen" />
+      )}
+      <PopupShell title="Reloj de descanso" accent="primary" onClose={closeAndReset}>
       <div className="text-center">
 <div className="theme-primary-text font-headline text-[5rem] font-semibold leading-none tracking-[0.02em]">
           {formatCountdown(remainingSeconds)}
@@ -247,6 +268,7 @@ const RestTimerModal = ({ open, onClose }: { open: boolean; onClose: () => void 
         </button>
       </div>
     </PopupShell>
+    </>
   );
 };
 
