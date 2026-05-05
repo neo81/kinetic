@@ -1,5 +1,6 @@
 import type React from 'react';
 import { User } from 'lucide-react';
+import { SyncStatusIndicator } from '../SyncStatusIndicator';
 
 export const Header = ({
   children,
@@ -43,6 +44,7 @@ export const Header = ({
         </div>
       </div>
       <div className="flex items-center gap-3">
+        <SyncStatusIndicator compact={true} />
         {children}
       </div>
     </div>

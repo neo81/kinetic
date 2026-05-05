@@ -1,5 +1,6 @@
 import { syncQueue, SyncQueueItem } from './SyncQueue';
 import { syncStateManager } from './SyncStateManager';
+import { syncStatusManager } from './SyncStatusManager';
 import { getNextRetryTime, isTransientError, shouldRetry } from './retryStrategy';
 
 export interface SyncResult {
@@ -144,6 +145,7 @@ export class SyncProcessor {
       console.log(`[SyncProcessor] Successfully synced ${item.type}`, item.id);
       syncQueue.remove(item.id);
       syncStateManager.markSyncSuccess();
+      syncStatusManager.recordSyncSuccess();
 
       return { itemId: item.id, success: true };
     } catch (error) {
@@ -154,6 +156,9 @@ export class SyncProcessor {
         err.message,
         item.id
       );
+
+      // Record error in status manager for UI visibility
+      syncStatusManager.recordSyncError(err);
 
       // Decide if we should retry
       const shouldRetryOp = shouldRetry(item.attemptCount, err, this.MAX_RETRIES);

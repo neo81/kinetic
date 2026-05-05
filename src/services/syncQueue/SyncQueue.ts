@@ -162,7 +162,43 @@ export class SyncQueue {
       };
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(state));
     } catch (error) {
-      console.error('Error persisting sync queue:', error);
+      if (error instanceof DOMException && error.code === 22) {
+        console.error('[SyncQueue] localStorage quota exceeded');
+        // Attempt to free up space by removing oldest low-priority items
+        const items = Array.from(this.items.values());
+        const sortedByPriority = items.sort((a, b) => {
+          // Remove low-priority items first (oldest first)
+          if (a.priority !== b.priority) {
+            return a.priority === 'high' ? 1 : -1;
+          }
+          return a.createdAt - b.createdAt;
+        });
+
+        // Remove up to 25% of low-priority items
+        const itemsToRemove = sortedByPriority
+          .filter(item => item.priority === 'normal')
+          .slice(0, Math.max(1, Math.floor(items.length * 0.25)));
+
+        itemsToRemove.forEach(item => {
+          this.items.delete(item.id);
+          console.log(`[SyncQueue] Removed item ${item.id} to free space`);
+        });
+
+        // Try again
+        try {
+          const state: SyncQueueState = {
+            version: this.VERSION,
+            items: Array.from(this.items.values()),
+            lastPersistAt: Date.now(),
+          };
+          localStorage.setItem(this.STORAGE_KEY, JSON.stringify(state));
+          console.log('[SyncQueue] Persisted after cleanup');
+        } catch (retryError) {
+          console.error('[SyncQueue] Failed to persist even after cleanup:', retryError);
+        }
+      } else {
+        console.error('[SyncQueue] Error persisting sync queue:', error);
+      }
     }
   }
 

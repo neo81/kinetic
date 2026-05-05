@@ -1,4 +1,5 @@
 import { syncProcessor } from './syncProcessor';
+import { syncStatusManager } from './SyncStatusManager';
 import { routinesRepository } from '../../features/routines/repository';
 import type { SyncQueueItem } from './SyncQueue';
 import type { Json } from '../../lib/supabase/database.types';

@@ -9,6 +9,7 @@ import { routinesRepository } from '../features/routines/repository';
 import { avatarStorageService } from '../services/avatarStorageService';
 import { usernameValidationService, type UsernameValidationResult } from '../services/usernameValidationService';
 import type { UserProfile, View, UserGoals } from '../types';
+import { SyncDiagnosticsPanel } from '../components/SyncDiagnosticsPanel';
 import type { ResolvedTheme, ThemePreference } from '../theme/theme';
 
 type SettingsViewProps = {
@@ -796,6 +797,13 @@ export const SettingsView = ({
                 <p className="mt-2 text-2xl font-black text-on-surface">0</p>
                 <p className="text-[11px] text-on-surface-variant">PR registrados</p>
               </div>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <h3 className="px-1 text-[10px] font-black uppercase italic tracking-[0.4em] text-on-surface-variant/60">Sincronización</h3>
+            <div className="rounded-[0.95rem] bg-surface-container-low px-4 py-4">
+              <SyncDiagnosticsPanel />
             </div>
           </div>
 

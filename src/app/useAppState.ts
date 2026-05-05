@@ -95,12 +95,33 @@ const loadPersistedActiveSession = (): ActiveSession | null => {
 const persistActiveSession = (session: ActiveSession | null) => {
   if (typeof window === 'undefined') return;
 
-  if (!session) {
-    window.localStorage.removeItem(ACTIVE_SESSION_STORAGE_KEY);
-    return;
-  }
+  try {
+    if (!session) {
+      window.localStorage.removeItem(ACTIVE_SESSION_STORAGE_KEY);
+      return;
+    }
 
-  window.localStorage.setItem(ACTIVE_SESSION_STORAGE_KEY, JSON.stringify(session));
+    window.localStorage.setItem(ACTIVE_SESSION_STORAGE_KEY, JSON.stringify(session));
+  } catch (error) {
+    // Handle QuotaExceededError specifically
+    if (error instanceof DOMException && error.code === 22) {
+      console.error('[persistActiveSession] localStorage quota exceeded, attempting cleanup');
+      
+      // Try to free up space by clearing routines cache (non-critical data)
+      try {
+        window.localStorage.removeItem('kinetic:v1:routines-local-cache');
+        // Retry persisting the session after cleanup
+        window.localStorage.setItem(ACTIVE_SESSION_STORAGE_KEY, JSON.stringify(session));
+        console.log('[persistActiveSession] Session saved after cache cleanup');
+      } catch (retryError) {
+        console.error('[persistActiveSession] Failed to save session even after cache cleanup:', retryError);
+        throw new Error('Unable to save session: storage quota exceeded');
+      }
+    } else {
+      console.error('[persistActiveSession] Unexpected error:', error);
+      throw error;
+    }
+  }
 };
 
 export const useAppState = () => {
@@ -651,27 +672,37 @@ export const useAppState = () => {
 
       // Add to sync queue for retry with exponential backoff
       if (activeSession) {
-        const endedAt = new Date().toISOString();
-        const activeRoutine =
-          currentRoutine?.id === activeSession.routineId
-            ? currentRoutine
-            : routines.find((routine) => routine.id === activeSession.routineId) ?? null;
-        const sessionData = exportSessionDataForRPC(activeSession, activeRoutine);
+        try {
+          const endedAt = new Date().toISOString();
+          const activeRoutine =
+            currentRoutine?.id === activeSession.routineId
+              ? currentRoutine
+              : routines.find((routine) => routine.id === activeSession.routineId) ?? null;
+          const sessionData = exportSessionDataForRPC(activeSession, activeRoutine);
 
-        syncQueue.add({
-          type: 'session_end',
-          priority: 'high',
-          payload: {
-            sessionId: activeSession.id,
-            endedAt,
-            sessionData,
-          },
-          createdAt: Date.now(),
-          attemptCount: 1
-        });
+          syncQueue.add({
+            type: 'session_end',
+            priority: 'high',
+            payload: {
+              sessionId: activeSession.id,
+              endedAt,
+              sessionData,
+            },
+            createdAt: Date.now(),
+            attemptCount: 1
+          });
 
-        console.log('[endSession] Session end queued for retry');
-        didQueueSuccessfully = true;  // Mark as queued, not failed
+          console.log('[endSession] Session end queued for retry');
+          didQueueSuccessfully = true;  // Mark as queued, not failed
+        } catch (queueError) {
+          console.error('[endSession] Failed to add to sync queue:', queueError);
+          setAppBanner({
+            level: 'error',
+            title: 'Error al guardar sesión',
+            message: 'No pudimos guardar tu sesión. Por favor intenta nuevamente.',
+          });
+          return;
+        }
       }
 
       setAppBanner({
@@ -682,13 +713,18 @@ export const useAppState = () => {
       return;
     } finally {
       if (didQueueSuccessfully) {
-        setActiveSession(null);
-        persistActiveSession(null);
-        syncRoutines();
+        try {
+          setActiveSession(null);
+          persistActiveSession(null);
+          syncRoutines();
+        } catch (persistError) {
+          console.error('[endSession] Error cleaning up session:', persistError);
+          // Even if cleanup fails, show success message since session was queued or completed
+        }
         setAppBanner({
           level: 'warning',
           title: 'Entrenamiento Finalizado',
-          message: 'Excelente trabajo. Sesion guardada.',
+          message: 'Excelente trabajo. Sesión guardada.',
         });
       }
     }

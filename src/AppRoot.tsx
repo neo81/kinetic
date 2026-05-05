@@ -1,5 +1,7 @@
 import { AnimatePresence, motion } from 'motion/react';
 import { Play } from 'lucide-react';
+import { useEffect } from 'react';
+import { remoteLogger } from './services/remoteLogger';
 import { AppRouter } from './app/AppRouter';
 import { useAppState } from './app/useAppState';
 import { useSync } from './hooks/useSync';
@@ -12,6 +14,21 @@ export default function AppRoot() {
   const app = useAppState();
   useSync();
   const syncState = useSyncState();
+
+  useEffect(() => {
+    // Enable remote logging for diagnostics (optional)
+    try {
+      remoteLogger.enable();
+    } catch (err) {
+      // ignore
+    }
+
+    return () => {
+      try {
+        remoteLogger.disable();
+      } catch (_e) {}
+    };
+  }, []);
 
   const handleReturnToSession = () => {
     if (app.activeSession?.routineId) {
