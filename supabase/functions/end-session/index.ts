@@ -156,20 +156,36 @@ Deno.serve(async req => {
         }
       });
 
-    const { error: rpcError } = await supabaseUser.rpc('end_session_transaction', {
-      p_session_id: payload.sessionId,
-      p_ended_at: payload.endedAt,
-      p_session_data: payload.sessionData,
-    });
+    // Execute RPC with timeout handling (Deno function timeout is 5 minutes)
+    let rpcError: any = null;
+    try {
+      // Use Promise.race to enforce a 30s timeout on the RPC call itself
+      const rpcPromise = supabaseUser.rpc('end_session_transaction', {
+        p_session_id: payload.sessionId,
+        p_ended_at: payload.endedAt,
+        p_session_data: payload.sessionData,
+      });
+
+      // Timeout after 30s (iOS PWA may be slow)
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('RPC execution timeout')), 30000)
+      );
+
+      await Promise.race([rpcPromise, timeoutPromise]);
+      console.log('[end-session] ✓ RPC completed successfully');
+    } catch (err) {
+      rpcError = err;
+      console.error('[end-session] RPC error:', err);
+    }
 
     if (rpcError) {
-      console.error('[end-session] RPC failed', rpcError);
+      const errorMsg = rpcError instanceof Error ? rpcError.message : String(rpcError);
       return jsonResponse(
         {
-          error: rpcError.message,
-          code: rpcError.code ?? null,
+          error: errorMsg,
+          code: rpcError?.code ?? null,
         },
-        rpcError.code === '42501' ? 403 : 400,
+        rpcError?.code === '42501' ? 403 : 400,
         origin,
       );
     }

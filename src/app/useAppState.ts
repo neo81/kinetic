@@ -648,8 +648,9 @@ export const useAppState = () => {
   const endSession = async () => {
     if (!supabase || !activeSession) return;
     let didQueueSuccessfully = false;
+    const endedAt = new Date().toISOString();
+
     try {
-      const endedAt = new Date().toISOString();
       const activeRoutine =
         currentRoutine?.id === activeSession.routineId
           ? currentRoutine
@@ -659,47 +660,73 @@ export const useAppState = () => {
         // Prepare session data for RPC transaction
         const sessionData = exportSessionDataForRPC(activeSession, activeRoutine);
 
+        console.log('[endSession] Attempting direct invoke of end-session function');
         await invokeEndSession({
           sessionId: activeSession.id,
           endedAt,
           sessionData: sessionData as unknown as Json,
         });
 
+        console.log('[endSession] ✓ Session saved directly to server');
         didQueueSuccessfully = true;
       }
     } catch (error) {
-      console.error('Error finalizando sesión', error);
+      console.error('[endSession] Failed to save directly, queuing for retry:', error);
 
-      // Add to sync queue for retry with exponential backoff
+      // CRITICAL: Ensure session is queued even if everything fails
       if (activeSession) {
-        try {
-          const endedAt = new Date().toISOString();
-          const activeRoutine =
-            currentRoutine?.id === activeSession.routineId
-              ? currentRoutine
-              : routines.find((routine) => routine.id === activeSession.routineId) ?? null;
-          const sessionData = exportSessionDataForRPC(activeSession, activeRoutine);
+        let queueAttempts = 0;
+        const maxQueueAttempts = 3;
 
-          syncQueue.add({
-            type: 'session_end',
-            priority: 'high',
-            payload: {
-              sessionId: activeSession.id,
-              endedAt,
-              sessionData,
-            },
-            createdAt: Date.now(),
-            attemptCount: 1
-          });
+        while (queueAttempts < maxQueueAttempts) {
+          try {
+            const activeRoutine =
+              currentRoutine?.id === activeSession.routineId
+                ? currentRoutine
+                : routines.find((routine) => routine.id === activeSession.routineId) ?? null;
+            const sessionData = exportSessionDataForRPC(activeSession, activeRoutine);
 
-          console.log('[endSession] Session end queued for retry');
-          didQueueSuccessfully = true;  // Mark as queued, not failed
-        } catch (queueError) {
-          console.error('[endSession] Failed to add to sync queue:', queueError);
+            console.log(
+              `[endSession] Queuing session (attempt ${queueAttempts + 1}/${maxQueueAttempts})`
+            );
+
+            syncQueue.add({
+              type: 'session_end',
+              priority: 'high',
+              payload: {
+                sessionId: activeSession.id,
+                endedAt,
+                sessionData,
+              },
+              createdAt: Date.now(),
+              attemptCount: 1,
+            });
+
+            console.log('[endSession] ✓ Session queued successfully for retry');
+            didQueueSuccessfully = true;
+            break; // Success, exit retry loop
+          } catch (queueError) {
+            queueAttempts++;
+            console.error(
+              `[endSession] Queue attempt ${queueAttempts} failed:`,
+              queueError instanceof Error ? queueError.message : String(queueError)
+            );
+
+            if (queueAttempts < maxQueueAttempts) {
+              // Wait before retrying
+              await new Promise(resolve => setTimeout(resolve, 500 * queueAttempts));
+            }
+          }
+        }
+
+        if (!didQueueSuccessfully) {
+          // Last resort: show error
+          console.error('[endSession] CRITICAL: Could not queue session after all attempts');
           setAppBanner({
             level: 'error',
-            title: 'Error al guardar sesión',
-            message: 'No pudimos guardar tu sesión. Por favor intenta nuevamente.',
+            title: '⚠️ Error crítico al guardar',
+            message:
+              'Tu sesión no pudo ser guardada. Reinicia la app o contacta soporte.',
           });
           return;
         }
@@ -707,7 +734,7 @@ export const useAppState = () => {
 
       setAppBanner({
         level: 'warning',
-        title: 'Sesión en cola',
+        title: '⏱️ Sesión en cola',
         message: 'Tu entrenamiento se guardará cuando haya conexión.',
       });
       return;
@@ -723,7 +750,7 @@ export const useAppState = () => {
         }
         setAppBanner({
           level: 'warning',
-          title: 'Entrenamiento Finalizado',
+          title: '✅ Entrenamiento Finalizado',
           message: 'Excelente trabajo. Sesión guardada.',
         });
       }
