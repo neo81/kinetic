@@ -36,6 +36,8 @@ function getSupabaseEnv(name: string): string {
 
 Deno.serve(async req => {
   const origin = req.headers.get('origin');
+  const userAgent = req.headers.get('user-agent') ?? 'unknown';
+  console.log(`[end-session] Request ${req.method} origin=${origin ?? 'null'} ua=${userAgent}`);
 
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: buildCorsHeaders(origin) });

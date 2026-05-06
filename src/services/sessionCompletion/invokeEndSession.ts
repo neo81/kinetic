@@ -50,11 +50,12 @@ export async function invokeEndSession(input: InvokeEndSessionInput): Promise<vo
     );
   }
 
-  // Retry configuration for iOS (3 attempts with increasing delays)
+  // Retry configuration for iOS (3 retries + 1 initial attempt = 4 internal attempts)
   const maxRetries = 3;
+  const maxAttempts = maxRetries + 1;
   const retryDelays = [1000, 3000, 5000]; // ms between retries
 
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
     try {
       // Longer timeout for iOS PWA (60s, server has 300s)
       const timeoutMs = 65000;
@@ -62,7 +63,7 @@ export async function invokeEndSession(input: InvokeEndSessionInput): Promise<vo
       const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
       console.log(
-        `[invokeEndSession] Attempt ${attempt + 1}/${maxRetries + 1} - invoking end-session (${payloadSizeKB}KB)`
+        `[invokeEndSession] Attempt ${attempt + 1}/${maxAttempts} - invoking end-session (${payloadSizeKB}KB)`
       );
 
       const { error, data } = await supabase.functions.invoke('end-session', {
@@ -98,7 +99,7 @@ export async function invokeEndSession(input: InvokeEndSessionInput): Promise<vo
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') {
         console.error(
-          `[invokeEndSession] Timeout (${65000}ms) on attempt ${attempt + 1}/${maxRetries + 1}`
+          `[invokeEndSession] Timeout (${65000}ms) on attempt ${attempt + 1}/${maxAttempts}`
         );
         
         if (attempt < maxRetries) {
@@ -128,8 +129,10 @@ export async function invokeEndSession(input: InvokeEndSessionInput): Promise<vo
 
       // Final attempt failed
       if (attempt === maxRetries) {
-        console.error(`[invokeEndSession] All ${maxRetries + 1} attempts failed:`, errMsg);
-        throw new Error(`Failed to invoke end-session after ${maxRetries + 1} attempts: ${errMsg}`);
+        console.error(`[invokeEndSession] All ${maxAttempts} internal attempts failed:`, errMsg);
+        throw new Error(
+          `Failed to invoke end-session in this sync call after ${maxAttempts} internal attempts: ${errMsg}`
+        );
       }
 
       throw err;

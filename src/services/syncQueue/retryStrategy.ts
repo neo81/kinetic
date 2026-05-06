@@ -89,8 +89,8 @@ export function shouldRetry(
   error: unknown,
   maxRetries: number = 5
 ): boolean {
-  // Max retries exceeded?
-  if (attemptCount > maxRetries) {
+  // Max retries reached?
+  if (attemptCount >= maxRetries) {
     return false;
   }
 
@@ -99,8 +99,8 @@ export function shouldRetry(
     return false;
   }
 
-  // Transient error? Retry
-  return isTransientError(error) || attemptCount <= maxRetries;
+  // Retry only for transient failures.
+  return isTransientError(error);
 }
 
 /**

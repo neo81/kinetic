@@ -35,11 +35,18 @@ export function setupSyncHandlers() {
       throw new Error('Invalid session end payload structure');
     }
 
-    await invokeEndSession({
-      sessionId,
-      endedAt,
-      sessionData: sessionData as unknown as Json,
-    });
+    try {
+      await invokeEndSession({
+        sessionId,
+        endedAt,
+        sessionData: sessionData as unknown as Json,
+      });
+    } catch (error) {
+      const baseMessage = error instanceof Error ? error.message : String(error);
+      throw new Error(
+        `[queue attempt ${item.attemptCount}] ${baseMessage}`
+      );
+    }
 
     console.log('[setupSyncHandlers] Session end completed via Edge Function:', sessionId);
   });
