@@ -6,7 +6,7 @@ import { initialRoutines } from './initialData';
 import { consumeRoutinesRepositoryNotice, routinesRepository } from '../features/routines/repository';
 import { RoutineRepositoryError } from '../features/routines/errors';
 import type { ActiveSession, Exercise, Routine, UserProfile, View } from '../types';
-import { syncQueue } from '../services/syncQueue';
+import { syncQueue, syncStatusManager } from '../services/syncQueue';
 import { exportSessionDataForRPC } from '../services/sessionCompletion/exportSessionData';
 import { invokeEndSession } from '../services/sessionCompletion/invokeEndSession';
 import { ensureWeeklyStatsBackfilled } from '../services/dataBackfill/backfillWeeklyStats';
@@ -648,17 +648,42 @@ export const useAppState = () => {
   const endSession = async () => {
     if (!supabase || !activeSession) return;
     let didQueueSuccessfully = false;
+    let wasDirectlySaved = false;
     const endedAt = new Date().toISOString();
 
     try {
-      const activeRoutine =
-        currentRoutine?.id === activeSession.routineId
-          ? currentRoutine
-          : routines.find((routine) => routine.id === activeSession.routineId) ?? null;
+      // IMPROVED: Better routine lookup with validation
+      let activeRoutine: Routine | null = null;
+      try {
+        // First try: currentRoutine if ID matches
+        if (currentRoutine?.id === activeSession.routineId) {
+          activeRoutine = currentRoutine;
+        } else {
+          // Second try: find in routines array
+          activeRoutine = routines.find((routine) => routine.id === activeSession.routineId) ?? null;
+        }
+        
+        if (!activeRoutine) {
+          console.warn('[endSession] WARNING: Could not find active routine, data may be incomplete');
+          // Continue anyway with null - exportSessionDataForRPC handles this
+        }
+      } catch (lookupError) {
+        console.error('[endSession] Error looking up active routine:', lookupError);
+        activeRoutine = null;
+      }
 
       if (activeSession.id) {
         // Prepare session data for RPC transaction
         const sessionData = exportSessionDataForRPC(activeSession, activeRoutine);
+        const payloadSize = JSON.stringify(sessionData).length;
+        const payloadSizeKB = (payloadSize / 1024).toFixed(2);
+        console.log(`[endSession] Session payload size: ${payloadSizeKB}KB`);
+
+        // IMPROVED: Warn if payload is large
+        if (payloadSize > 500 * 1024) {
+          console.warn(`[endSession] WARNING: Payload is ${payloadSizeKB}KB, may cause issues. Queuing instead of direct invoke.`);
+          throw new Error('Payload too large, will queue instead');
+        }
 
         console.log('[endSession] Attempting direct invoke of end-session function');
         await invokeEndSession({
@@ -669,6 +694,7 @@ export const useAppState = () => {
 
         console.log('[endSession] ✓ Session saved directly to server');
         didQueueSuccessfully = true;
+        wasDirectlySaved = true;
       }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
@@ -682,10 +708,18 @@ export const useAppState = () => {
         while (queueAttempts < maxQueueAttempts && !didQueueSuccessfully) {
           queueAttempts++;
           try {
-            const activeRoutine =
-              currentRoutine?.id === activeSession.routineId
-                ? currentRoutine
-                : routines.find((routine) => routine.id === activeSession.routineId) ?? null;
+            // IMPROVED: Same routine lookup logic
+            let activeRoutine: Routine | null = null;
+            try {
+              if (currentRoutine?.id === activeSession.routineId) {
+                activeRoutine = currentRoutine;
+              } else {
+                activeRoutine = routines.find((routine) => routine.id === activeSession.routineId) ?? null;
+              }
+            } catch (lookupError) {
+              console.error('[endSession] Error looking up routine during queue attempt:', lookupError);
+            }
+            
             const sessionData = exportSessionDataForRPC(activeSession, activeRoutine);
 
             console.log(
@@ -736,7 +770,7 @@ export const useAppState = () => {
               payload: {
                 sessionId: activeSession.id,
                 endedAt,
-                sessionData: { sessionExercises: [] }, // Minimal payload
+                sessionData: { days: [], exercises: [], sets: [] }, // Minimal valid payload
               },
               createdAt: Date.now(),
               attemptCount: 1,
@@ -745,6 +779,12 @@ export const useAppState = () => {
             didQueueSuccessfully = true;
           } catch (fallbackError) {
             console.error('[endSession] CRITICAL: All queue attempts failed:', fallbackError);
+            // IMPROVED: Record error even if queue fails
+            syncStatusManager.recordSyncError(
+              fallbackError instanceof Error 
+                ? fallbackError 
+                : new Error('[endSession] Failed to queue session: ' + String(fallbackError))
+            );
           }
         }
       }
@@ -756,6 +796,10 @@ export const useAppState = () => {
           title: '⚠️ Error al guardar sesión',
           message: 'No pudimos guardar tu entrenamiento. Intenta nuevamente desde Configuración.',
         });
+        // IMPROVED: Record error in sync status manager
+        syncStatusManager.recordSyncError(
+          new Error(error instanceof Error ? error.message : String(error))
+        );
       } else {
         setAppBanner({
           level: 'warning',
@@ -763,21 +807,24 @@ export const useAppState = () => {
           message: 'Tu entrenamiento se guardará cuando haya conexión.',
         });
       }
-      return;
     } finally {
-      if (didQueueSuccessfully) {
+      // IMPROVED: Clean up session only after successful direct save or successful queue
+      if (didQueueSuccessfully || wasDirectlySaved) {
         try {
           setActiveSession(null);
           persistActiveSession(null);
           syncRoutines();
+          
+          if (wasDirectlySaved) {
+            setAppBanner({
+              level: 'warning',
+              title: '✅ Entrenamiento Finalizado',
+              message: 'Excelente trabajo. Sesión guardada.',
+            });
+          }
         } catch (persistError) {
           console.error('[endSession] Error cleaning up session:', persistError);
         }
-        setAppBanner({
-          level: 'warning',
-          title: '✅ Entrenamiento Finalizado',
-          message: 'Excelente trabajo. Sesión guardada.',
-        });
       }
     }
   };
