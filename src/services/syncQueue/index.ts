@@ -7,5 +7,8 @@ export { getNextRetryTime, isTransientError, isPermanentError, shouldRetry, getR
 // Sync State Manager exports
 export { SyncStateManager, syncStateManager, type SyncState, type SyncStatus } from './SyncStateManager';
 
+// Sync Status Manager exports
+export { SyncStatusManager, syncStatusManager, type SyncStatus as SyncStatusType } from './SyncStatusManager';
+
 // Sync Processor exports
 export { SyncProcessor, syncProcessor, type SyncHandler, type SyncResult } from './syncProcessor';
