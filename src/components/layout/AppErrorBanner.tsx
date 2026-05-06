@@ -1,4 +1,5 @@
 import { motion } from 'motion/react';
+import { useEffect } from 'react';
 
 type AppErrorBannerProps = {
   level?: 'error' | 'warning';
@@ -11,6 +12,15 @@ export const AppErrorBanner = ({ level = 'error', title, message, onDismiss }: A
   const titleClassName = level === 'warning' ? 'text-secondary' : 'text-error';
   const borderClassName = level === 'warning' ? 'border-secondary/60' : 'border-error/60';
   const dismissLabel = level === 'warning' ? 'Cerrar aviso' : 'Cerrar mensaje de error';
+  const AUTO_DISMISS_MS = 5000;
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      onDismiss();
+    }, AUTO_DISMISS_MS);
+
+    return () => window.clearTimeout(timer);
+  }, [level, title, message, onDismiss]);
 
   return (
     <motion.div

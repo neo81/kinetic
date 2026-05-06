@@ -37,6 +37,8 @@ type AppRouterProps = {
   }) => Promise<unknown>;
   onNewRoutine: () => void;
   onSaveRoutine: (routineData: Partial<Routine>) => void;
+  onEditRoutine: (routine: Routine) => void;
+  onDeleteRoutineFromDashboard: (routineId: string) => void;
   onSelectMuscle: (muscle: string) => void;
   onSelectExercise: (exercise: Exercise, instanceId?: string) => void;
   onSaveExercise: (exercise: Exercise) => void;
@@ -50,6 +52,7 @@ type AppRouterProps = {
   activeSession: ActiveSession | null;
   startSession: (routineId: string, routineName: string, routineDayId: string | string[]) => Promise<void>;
   endSession: () => Promise<void>;
+  cancelSession: () => Promise<void>;
   onCaptureSetPerformance: (exerciseId: string, setNumber: number, reps: number | null, weight: number | null, durationMin: number | null, durationSec: number | null, totalSets?: number) => void;
   onClearCapturedSetPerformance: (exerciseId: string, setNumber: number, totalSets?: number) => void;
   onSwitchSessionDay: (dayId: string) => void;
@@ -79,6 +82,8 @@ export const AppRouter = ({
   onSaveProfile,
   onNewRoutine,
   onSaveRoutine,
+  onEditRoutine,
+  onDeleteRoutineFromDashboard,
   onSelectMuscle,
   onSelectExercise,
   onSaveExercise,
@@ -92,6 +97,7 @@ export const AppRouter = ({
   activeSession,
   startSession,
   endSession,
+  cancelSession,
   onCaptureSetPerformance,
   onClearCapturedSetPerformance,
   onSwitchSessionDay,
@@ -117,6 +123,9 @@ export const AppRouter = ({
           routines={routines}
           onNewRoutine={onNewRoutine}
           profile={profile}
+          currentRoutine={currentRoutine}
+          onEditRoutine={onEditRoutine}
+          onDeleteRoutine={onDeleteRoutineFromDashboard}
           setCurrentRoutine={(routine) => {
             setCurrentRoutine(routine);
             setSelectedRoutineDayId(null);
@@ -189,6 +198,7 @@ export const AppRouter = ({
           activeSession={activeSession}
           onStartSession={startSession}
           onEndSession={endSession}
+          onCancelSession={cancelSession}
           onCaptureSetPerformance={onCaptureSetPerformance}
           onClearCapturedSetPerformance={onClearCapturedSetPerformance}
           onSwitchSessionDay={onSwitchSessionDay}

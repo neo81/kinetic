@@ -12,7 +12,8 @@ import {
   Trash2,
   X,
   Timer,
-  Check
+  Check,
+  Loader2
 } from 'lucide-react';
 import { RoutineSyncPendingBadge } from '../components/RoutineSyncPendingBadge';
 import { PageShell } from '../components/layout/PageShell';
@@ -457,12 +458,18 @@ const ConfirmDialog = ({
   message,
   onConfirm,
   onCancel,
+  confirmLabel = 'Confirmar',
+  cancelLabel = 'Cancelar',
+  isConfirming = false,
 }: {
   open: boolean;
   title: string;
   message: string;
   onConfirm: () => void;
   onCancel: () => void;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  isConfirming?: boolean;
 }) => {
   if (!open) return null;
 
@@ -479,15 +486,24 @@ const ConfirmDialog = ({
         <div className="mt-10 flex flex-col gap-3">
           <button
             onClick={onConfirm}
-            className="flex w-full items-center justify-center rounded-[1rem] bg-secondary py-4 font-headline text-[1.1rem] font-bold uppercase tracking-widest text-black transition-transform active:scale-95"
+            disabled={isConfirming}
+            className={`flex w-full items-center justify-center rounded-[1rem] bg-secondary py-4 font-headline text-[1.1rem] font-bold uppercase tracking-widest text-black transition-transform active:scale-95 ${isConfirming ? 'cursor-not-allowed opacity-70' : ''}`}
           >
-            Confirmar
+            {isConfirming ? (
+              <>
+                <Loader2 size={18} className="mr-2 animate-spin" />
+                Guardando...
+              </>
+            ) : (
+              confirmLabel
+            )}
           </button>
           <button
             onClick={onCancel}
-            className="theme-hairline-border theme-interactive-hover flex w-full items-center justify-center rounded-[1rem] border py-4 font-headline text-[0.9rem] font-bold uppercase tracking-[0.2em] text-on-surface-variant transition-colors active:scale-95"
+            disabled={isConfirming}
+            className={`theme-hairline-border theme-interactive-hover flex w-full items-center justify-center rounded-[1rem] border py-4 font-headline text-[0.9rem] font-bold uppercase tracking-[0.2em] text-on-surface-variant transition-colors active:scale-95 ${isConfirming ? 'cursor-not-allowed opacity-50' : ''}`}
           >
-            Cancelar
+            {cancelLabel}
           </button>
         </div>
       </div>
@@ -509,6 +525,7 @@ export const RoutineDetailKineticView = ({
   activeSession,
   onStartSession,
   onEndSession,
+  onCancelSession,
   onCaptureSetPerformance,
   onClearCapturedSetPerformance,
   onSwitchSessionDay,
@@ -528,6 +545,7 @@ export const RoutineDetailKineticView = ({
   activeSession: ActiveSession | null;
   onStartSession: (routineId: string, routineName: string, routineDayIds: string | string[]) => Promise<void>;
   onEndSession: () => Promise<void>;
+  onCancelSession: () => Promise<void>;
   onCaptureSetPerformance: (exerciseId: string, setNumber: number, reps: number | null, weight: number | null, durationMin: number | null, durationSec: number | null, totalSets?: number) => void;
   onClearCapturedSetPerformance: (exerciseId: string, setNumber: number, totalSets?: number) => void;
   onSwitchSessionDay: (dayId: string) => void;
@@ -544,6 +562,8 @@ export const RoutineDetailKineticView = ({
   const [confirmDayDeleteId, setConfirmDayDeleteId] = useState<string | null>(null);
   const [confirmExerciseDelete, setConfirmExerciseDelete] = useState<{ exId: string; dayId: string } | null>(null);
   const [confirmEndSession, setConfirmEndSession] = useState(false);
+  const [confirmCancelSession, setConfirmCancelSession] = useState(false);
+  const [isEndingSession, setIsEndingSession] = useState(false);
   const [isGroupingMode, setIsGroupingMode] = useState(false);
   const [selectedGroupExerciseIds, setSelectedGroupExerciseIds] = useState<string[]>([]);
 
@@ -743,6 +763,8 @@ export const RoutineDetailKineticView = ({
   };
 
   const getDayExerciseGroups = (dayId: string) => activeSession?.exerciseGroupsByDay[dayId] || [];
+  const selectedStartDay = routine.dayEntries?.find((day) => day.id === openDayId) ?? null;
+  const selectedStartWeekdayId = selectedStartDay?.dayType === 'weekday' ? selectedStartDay.id : null;
 
   const buildDayRenderItems = (dayExercises: RoutineDayExercise[], groups: SessionExerciseGroup[]): DayRenderItem[] => {
     const groupByExerciseId = new Map<string, SessionExerciseGroup>();
@@ -1170,29 +1192,51 @@ export const RoutineDetailKineticView = ({
 
         <div className="fixed bottom-[8.5rem] sm:bottom-36 left-0 right-0 z-[60] px-4 pointer-events-none flex justify-center pb-safe">
           {activeSession?.routineId === routine.id ? (
-            <button
-               onClick={() => setConfirmEndSession(true)}
-className="pointer-events-auto w-full max-w-md h-[4.5rem] rounded-[1.2rem] bg-secondary text-black shadow-[0_20px_40px_color-mix(in_srgb,var(--color-secondary)_25%,transparent),_0_-10px_30px_rgba(0,0,0,0.6)] transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3 font-headline text-[1.15rem] leading-none font-bold uppercase tracking-[0.15em] border border-secondary/50"
-            >
-               <X strokeWidth={3} size={22} className="mt-0.5" />
-               Finalizar Entrenamiento
-            </button>
+            <div className="pointer-events-auto flex w-full max-w-md flex-col gap-2">
+              <button
+                onClick={() => !isEndingSession && setConfirmCancelSession(true)}
+                disabled={isEndingSession}
+                className={`h-[2.7rem] rounded-[0.95rem] border border-outline/30 bg-surface-container-low text-on-surface-variant transition-all font-headline text-[0.78rem] leading-none font-semibold uppercase tracking-[0.12em] ${isEndingSession ? 'cursor-not-allowed opacity-50' : 'hover:border-outline/60 hover:bg-surface-container-high hover:text-on-surface active:scale-[0.99]'}`}
+              >
+                Cancelar entrenamiento
+              </button>
+              <button
+                onClick={() => !isEndingSession && setConfirmEndSession(true)}
+                disabled={isEndingSession}
+className={`h-[4.5rem] rounded-[1.2rem] bg-secondary text-black shadow-[0_20px_40px_color-mix(in_srgb,var(--color-secondary)_25%,transparent),_0_-10px_30px_rgba(0,0,0,0.6)] transition-all flex items-center justify-center gap-3 font-headline text-[1.15rem] leading-none font-bold uppercase tracking-[0.15em] border border-secondary/50 ${isEndingSession ? 'cursor-not-allowed opacity-70' : 'hover:scale-[1.02] active:scale-[0.98]'}`}
+              >
+                {isEndingSession ? (
+                  <>
+                    <Loader2 size={22} className="mt-0.5 animate-spin" />
+                    Guardando sesión...
+                  </>
+                ) : (
+                  <>
+                    <X strokeWidth={3} size={22} className="mt-0.5" />
+                    Finalizar Entrenamiento
+                  </>
+                )}
+              </button>
+            </div>
           ) : (
             <button
               onClick={() => {
-                if (openDayId && routine) {
+                if (selectedStartWeekdayId && routine) {
                   // Find CORE day if it exists
                   const coreDay = routine.dayEntries?.find(d => d.dayType === 'core');
-                  // Prepare day IDs: include CORE if exists, then the selected day
-                  const dayIds = coreDay ? [coreDay.id, openDayId] : [openDayId];
+                  // Prepare day IDs: include CORE if exists, then the selected weekday
+                  const dayIds =
+                    coreDay && coreDay.id !== selectedStartWeekdayId
+                      ? [coreDay.id, selectedStartWeekdayId]
+                      : [selectedStartWeekdayId];
                   onStartSession(routine.id, routine.name, dayIds);
                 }
               }}
-              disabled={!openDayId}
-className={`theme-primary-shadow-strong pointer-events-auto w-full max-w-md h-[4.5rem] rounded-[1.2rem] bg-primary text-black transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3 font-headline text-[1.15rem] leading-none font-bold uppercase tracking-[0.15em] border border-primary/20 ${!openDayId ? 'opacity-50 grayscale' : ''}`}
+              disabled={!selectedStartWeekdayId}
+className={`theme-primary-shadow-strong pointer-events-auto w-full max-w-md h-[4.5rem] rounded-[1.2rem] bg-primary text-black transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3 font-headline text-[1.15rem] leading-none font-bold uppercase tracking-[0.15em] border border-primary/20 ${!selectedStartWeekdayId ? 'opacity-50 grayscale' : ''}`}
             >
               <Play fill="currentColor" size={22} className="mt-0.5" />
-              {openDayId ? 'Iniciar Entrenamiento' : 'Selecciona un día'}
+              {selectedStartWeekdayId ? 'Iniciar Entrenamiento' : 'Selecciona un día'}
             </button>
           )}
         </div>
@@ -1264,15 +1308,49 @@ className={`theme-primary-shadow-strong pointer-events-auto w-full max-w-md h-[4
         onCancel={() => setConfirmExerciseDelete(null)}
       />
       <ConfirmDialog
+        open={confirmCancelSession}
+        title="¿Cancelar entrenamiento?"
+        message="Se descartará esta sesión y no se guardará ningún progreso."
+        confirmLabel="Sí, cancelar"
+        cancelLabel="Volver"
+        onConfirm={async () => {
+          await onCancelSession();
+          setConfirmCancelSession(false);
+        }}
+        onCancel={() => setConfirmCancelSession(false)}
+      />
+      <ConfirmDialog
         open={confirmEndSession}
         title="¿Finalizar entrenamiento?"
         message="¿Estás seguro de que deseas terminar tu sesión actual? Se guardará el progreso de los ejercicios marcados."
-        onConfirm={() => {
-          onEndSession();
-          setConfirmEndSession(false);
+        confirmLabel="Finalizar ahora"
+        cancelLabel="Volver"
+        isConfirming={isEndingSession}
+        onConfirm={async () => {
+          if (isEndingSession) return;
+          setIsEndingSession(true);
+          try {
+            await onEndSession();
+            setConfirmEndSession(false);
+          } finally {
+            setIsEndingSession(false);
+          }
         }}
-        onCancel={() => setConfirmEndSession(false)}
+        onCancel={() => !isEndingSession && setConfirmEndSession(false)}
       />
+      {isEndingSession && (
+        <div className="theme-overlay fixed inset-0 z-[120] flex items-center justify-center backdrop-blur-sm">
+          <div className="theme-elevated-surface rounded-[1.2rem] px-6 py-5 text-center shadow-xl">
+            <Loader2 size={26} className="mx-auto animate-spin text-primary" />
+            <p className="mt-3 text-sm font-bold uppercase tracking-[0.16em] text-on-surface">
+              Guardando sesión...
+            </p>
+            <p className="mt-1 text-xs text-on-surface-variant">
+              No cierres la app hasta completar.
+            </p>
+          </div>
+        </div>
+      )}
     </>
   );
 };

@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase/client';
 import { motion } from 'motion/react';
-import { Activity, ChevronRight, Clock, TrendingUp, Trophy, ArrowUp, ArrowDown } from 'lucide-react';
+import { Activity, ChevronRight, Clock, TrendingUp, Trophy, ArrowUp, ArrowDown, Edit2, Trash2 } from 'lucide-react';
 import { RoutineSyncPendingBadge } from '../components/RoutineSyncPendingBadge';
+import { ConfirmDialog } from '../components/layout/ConfirmDialog';
 import { PageShell } from '../components/layout/PageShell';
 import { formatSessionVolume } from '../utils/formatting';
 import { routinesRepository } from '../features/routines/repository';
@@ -18,7 +19,10 @@ const getGreeting = () => {
 interface DashboardViewProps {
   setView: (view: View) => void;
   routines: Routine[];
+  currentRoutine: Routine | null;
   onNewRoutine: () => void;
+  onEditRoutine: (routine: Routine) => void;
+  onDeleteRoutine: (routineId: string) => void;
   setCurrentRoutine: (routine: Routine | null) => void;
   profile?: UserProfile | null;
 }
@@ -62,12 +66,16 @@ const ProgressBar = ({ current, target, label }: { current: number; target: numb
 export const DashboardView = ({
   setView,
   routines,
+  currentRoutine,
   onNewRoutine,
+  onEditRoutine,
+  onDeleteRoutine,
   setCurrentRoutine,
   profile,
 }: DashboardViewProps) => {
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [routineToDelete, setRoutineToDelete] = useState<Routine | null>(null);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -97,7 +105,7 @@ export const DashboardView = ({
     fetchStats();
   }, []);
 
-  const lastActiveRoutine = routines.length > 0
+  const lastActiveRoutine = currentRoutine ?? (routines.length > 0
     ? [...routines].sort((a, b) => {
         if (!a.lastSession && !b.lastSession) return 0;
         if (!a.lastSession) return 1;
@@ -106,7 +114,7 @@ export const DashboardView = ({
         const dateB = new Date(b.lastSession.split('/').reverse().join('-')).getTime();
         return dateB - dateA;
       })[0]
-    : null;
+    : null);
 
   return (
     <PageShell
@@ -156,9 +164,35 @@ export const DashboardView = ({
                 <div className="relative z-10 space-y-8">
                   <div>
                     <div className="theme-primary-text-soft mb-2 text-[10px] font-black uppercase italic tracking-[0.5em]">CONTINUAR ENTRENAMIENTO</div>
-                    <h4 className="font-headline text-4xl font-black uppercase italic leading-none tracking-tight text-on-background sm:text-5xl">
-                      {lastActiveRoutine.name}
-                    </h4>
+                    <div className="flex items-start justify-between gap-3">
+                      <h4 className="font-headline text-4xl font-black uppercase italic leading-none tracking-tight text-on-background sm:text-5xl">
+                        {lastActiveRoutine.name}
+                      </h4>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          aria-label="Editar rutina"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            onEditRoutine(lastActiveRoutine);
+                          }}
+                          className="flex h-8 w-8 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:bg-primary/15 hover:text-on-surface"
+                        >
+                          <Edit2 size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          aria-label="Eliminar rutina"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setRoutineToDelete(lastActiveRoutine);
+                          }}
+                          className="flex h-8 w-8 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:bg-secondary/15 hover:text-secondary"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
                     <p className="mt-4 text-[11px] font-black uppercase italic tracking-widest text-on-surface-variant/40">
                       Última sesión: {lastActiveRoutine.lastSession || 'Sin registros aún'} • {lastActiveRoutine.focus || 'General'}
                     </p>
@@ -301,6 +335,21 @@ export const DashboardView = ({
         </section>
 
         <div className="pb-10" />
+        <ConfirmDialog
+          isOpen={!!routineToDelete}
+          title="¿Eliminar rutina?"
+          message="Esta acción borrará toda la rutina y sus ejercicios de forma permanente."
+          confirmText="Sí, eliminar"
+          cancelText="Volver"
+          variant="danger"
+          onConfirm={() => {
+            if (routineToDelete) {
+              onDeleteRoutine(routineToDelete.id);
+            }
+            setRoutineToDelete(null);
+          }}
+          onCancel={() => setRoutineToDelete(null)}
+        />
     </PageShell>
   );
 };

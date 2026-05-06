@@ -44,14 +44,17 @@ export default function AppRoot() {
 
   return (
     <div className="app-shell min-h-screen bg-background text-on-background relative">
-      {app.appBanner && (
-        <AppErrorBanner
-          level={app.appBanner.level}
-          title={app.appBanner.title}
-          message={app.appBanner.message}
-          onDismiss={app.clearAppBanner}
-        />
-      )}
+      <AnimatePresence>
+        {app.appBanner && (
+          <AppErrorBanner
+            key={`${app.appBanner.level}-${app.appBanner.title}-${app.appBanner.message}`}
+            level={app.appBanner.level}
+            title={app.appBanner.title}
+            message={app.appBanner.message}
+            onDismiss={app.clearAppBanner}
+          />
+        )}
+      </AnimatePresence>
 
       <SyncStatusBanner syncState={syncState} />
 
@@ -105,6 +108,13 @@ export default function AppRoot() {
             onSaveProfile={app.handleSaveProfile}
             onNewRoutine={app.handleStartNewRoutine}
             onSaveRoutine={app.handleSaveRoutine}
+            onEditRoutine={(routine) => {
+              app.setCurrentRoutine(routine);
+              app.setSelectedRoutineDayId(null);
+              app.setNavigationSource('dashboard');
+              app.setView('routine-creator');
+            }}
+            onDeleteRoutineFromDashboard={app.handleDeleteRoutine}
             onSelectMuscle={app.handleSelectMuscle}
             onSelectExercise={app.handleSelectExercise}
             onSaveExercise={app.handleSaveExercise}
@@ -118,6 +128,7 @@ export default function AppRoot() {
             activeSession={app.activeSession}
             startSession={app.startSession}
             endSession={app.endSession}
+            cancelSession={app.cancelSession}
             onCaptureSetPerformance={app.captureSetPerformance}
             onClearCapturedSetPerformance={app.clearCapturedSetPerformance}
             onSwitchSessionDay={app.switchSessionDay}

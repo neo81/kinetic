@@ -21,6 +21,7 @@ type AppBannerState = {
 };
 
 const ACTIVE_SESSION_STORAGE_KEY = 'kinetic.activeSession';
+const LAST_ROUTINE_STORAGE_KEY = 'kinetic.lastRoutineId';
 
 const getErrorMessage = (error: unknown, fallbackMessage: string) => {
   if (error instanceof RoutineRepositoryError) {
@@ -121,6 +122,28 @@ const persistActiveSession = (session: ActiveSession | null) => {
       console.error('[persistActiveSession] Unexpected error:', error);
       throw error;
     }
+  }
+};
+
+const loadLastRoutineId = (): string | null => {
+  if (typeof window === 'undefined') return null;
+  try {
+    return window.localStorage.getItem(LAST_ROUTINE_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+};
+
+const persistLastRoutineId = (routineId: string | null) => {
+  if (typeof window === 'undefined') return;
+  try {
+    if (!routineId) {
+      window.localStorage.removeItem(LAST_ROUTINE_STORAGE_KEY);
+      return;
+    }
+    window.localStorage.setItem(LAST_ROUTINE_STORAGE_KEY, routineId);
+  } catch {
+    // ignore storage write errors
   }
 };
 
@@ -244,6 +267,16 @@ export const useAppState = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [view]);
+
+  useEffect(() => {
+    if (currentRoutine || routines.length === 0) return;
+    const lastRoutineId = loadLastRoutineId();
+    if (!lastRoutineId) return;
+    const matched = routines.find((routine) => routine.id === lastRoutineId) ?? null;
+    if (matched) {
+      setCurrentRoutine(matched);
+    }
+  }, [currentRoutine, routines]);
 
   useEffect(() => {
     if (!supabase) return;
@@ -397,6 +430,13 @@ export const useAppState = () => {
     }
   };
 
+  const handleSetCurrentRoutine = useCallback((routine: Routine | null) => {
+    setCurrentRoutine(routine);
+    if (routine?.id) {
+      persistLastRoutineId(routine.id);
+    }
+  }, []);
+
   const handleSaveProfile = async (input: {
     fullName: string;
     username: string;
@@ -476,6 +516,7 @@ export const useAppState = () => {
       };
       setActiveSession(nextSession);
       persistActiveSession(nextSession);
+      persistLastRoutineId(routineId);
       setAppBanner({
         level: 'warning',
         title: 'Entrenamiento Iniciado',
@@ -487,6 +528,37 @@ export const useAppState = () => {
         level: 'error',
         title: 'No se pudo iniciar',
         message: 'Verifica tu conexión y prueba nuevamente.',
+      });
+    }
+  };
+
+  const cancelSession = async () => {
+    if (!supabase || !activeSession) return;
+
+    try {
+      const { error } = await supabase
+        .from('routine_sessions')
+        .update({
+          status: 'cancelled',
+          ended_at: new Date().toISOString(),
+        })
+        .eq('id', activeSession.id);
+
+      if (error) throw error;
+
+      setActiveSession(null);
+      persistActiveSession(null);
+      setAppBanner({
+        level: 'warning',
+        title: 'Entrenamiento cancelado',
+        message: 'La sesión fue cancelada y no se guardó progreso.',
+      });
+    } catch (error) {
+      console.error('Error al cancelar sesión', error);
+      setAppBanner({
+        level: 'error',
+        title: 'No se pudo cancelar',
+        message: 'Intenta nuevamente en unos segundos.',
       });
     }
   };
@@ -693,6 +765,7 @@ export const useAppState = () => {
         });
 
         console.log('[endSession] ✓ Session saved directly to server');
+        syncStatusManager.recordSyncSuccess();
         didQueueSuccessfully = true;
         wasDirectlySaved = true;
       }
@@ -921,6 +994,9 @@ export const useAppState = () => {
     try {
       await routinesRepository.deleteRoutine(routineId);
       setRoutines((prev) => prev.filter((r) => r.id !== routineId));
+      if (loadLastRoutineId() === routineId) {
+        persistLastRoutineId(null);
+      }
       if (currentRoutine?.id === routineId) {
         setCurrentRoutine(null);
         setSelectedRoutineDayId(null);
@@ -977,7 +1053,7 @@ export const useAppState = () => {
     profile,
     routines,
     currentRoutine,
-    setCurrentRoutine,
+    setCurrentRoutine: handleSetCurrentRoutine,
     selectedRoutineDayId,
     setSelectedRoutineDayId,
     selectedMuscle,
@@ -1005,6 +1081,7 @@ export const useAppState = () => {
     activeSession,
     startSession,
     endSession,
+    cancelSession,
     toggleExerciseComplete,
     captureSetPerformance,
     clearCapturedSetPerformance,
