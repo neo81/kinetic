@@ -277,5 +277,42 @@ localStorage.getItem('kinetic:v1:sync-status')
 
 ---
 
-**Última actualización**: 5 de mayo de 2026
-**Estado**: ✅ Ready for Testing
+---
+
+## 🧠 Memoria de cierre (6 mayo 2026)
+
+### Estado final
+✅ **Sincronización funcionando con Supabase** en iOS PWA y browser de escritorio.
+
+### Causa raíz confirmada
+El problema real no era el JSON de sesión, sino la **configuración CORS de la Edge Function**:
+- `Access-Control-Allow-Origin` devolvía un fallback que podía no coincidir con el `origin` real.
+- En iOS PWA esto se manifestaba como:  
+  `Failed to send a request to the Edge Function`.
+
+### Cambios aplicados
+- `supabase/functions/_shared/cors.ts`
+  - Lógica de CORS más robusta para:
+    - `ALLOWED_ORIGINS` explícito (modo estricto).
+    - Entornos sin `ALLOWED_ORIGINS` (refleja origen).
+    - `origin` nulo en iOS standalone/PWA.
+  - Se agregó `Access-Control-Max-Age: 86400`.
+- `supabase/functions/end-session/index.ts`
+  - Logging de request de entrada (`method`, `origin`, `user-agent`) para diagnóstico rápido.
+- Mensajería de errores y reintentos del cliente:
+  - Distinción entre intentos internos del invoke y reintentos de cola.
+  - Mejor contexto de error en `session_end` encolado.
+
+### Configuración productiva usada
+- Dominio productivo: `https://kineticvolt.vercel.app`
+- Orígenes permitidos (secreto `ALLOWED_ORIGINS`):
+  - `https://kineticvolt.vercel.app,http://localhost:3000,http://127.0.0.1:3000`
+
+### Resultado observable
+- Antes: fallaba en iOS PWA, funcionaba en PC browser.
+- Ahora: iOS PWA sincroniza correctamente con Supabase.
+
+---
+
+**Última actualización**: 6 de mayo de 2026  
+**Estado**: ✅ Funcionando en producción (dominio Vercel) + localhost
