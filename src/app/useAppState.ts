@@ -1045,6 +1045,17 @@ export const useAppState = () => {
     }
   };
 
+  /**
+   * Agrega al estado local una rutina que ya fue persistida por routineImport.ts.
+   * No hace llamadas adicionales a Supabase; simplemente prepende la rutina
+   * al array y la establece como rutina actual.
+   */
+  const handleImportRoutine = useCallback((importedRoutine: Routine) => {
+    setRoutines((prev) => [importedRoutine, ...prev]);
+    setCurrentRoutine(importedRoutine);
+    persistLastRoutineId(importedRoutine.id);
+  }, []);
+
   return {
     view,
     setView,
@@ -1073,6 +1084,7 @@ export const useAppState = () => {
     handleDeleteRoutine,
     handleDeleteRoutineDay,
     handleDeleteExercise,
+    handleImportRoutine,
     editingInstanceId,
     navigationSource,
     setNavigationSource,

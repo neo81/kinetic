@@ -1,9 +1,11 @@
-import { useState } from 'react';
-import { motion } from 'motion/react';
-import { ArrowLeft, Edit2, Play, Plus, Trash2 } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { AlertTriangle, ArrowLeft, CheckCircle2, Download, Edit2, Play, Plus, Trash2, Upload, X } from 'lucide-react';
 import { RoutineSyncPendingBadge } from '../components/RoutineSyncPendingBadge';
 import { PageShell } from '../components/layout/PageShell';
 import { ConfirmDialog } from '../components/layout/ConfirmDialog';
+import { downloadRoutineAsJson } from '../utils/routineExport';
+import { importRoutineFromJson, RoutineImportError } from '../utils/routineImport';
 import type { Routine, View, UserProfile } from '../types';
 
 interface RoutinesListViewProps {
@@ -12,6 +14,7 @@ interface RoutinesListViewProps {
   onNewRoutine: () => void;
   setCurrentRoutine: (routine: Routine | null) => void;
   onDeleteRoutine: (routineId: string) => void;
+  onImportRoutine?: (routine: Routine) => void;
   profile?: UserProfile | null;
 }
 
@@ -21,9 +24,51 @@ export const RoutinesListView = ({
   onNewRoutine,
   setCurrentRoutine,
   onDeleteRoutine,
+  onImportRoutine,
   profile,
 }: RoutinesListViewProps) => {
   const [routineToTrash, setRoutineToTrash] = useState<Routine | null>(null);
+
+  // Import state
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importResult, setImportResult] = useState<{
+    success: boolean;
+    routineName?: string;
+    warnings?: string[];
+    error?: string;
+  } | null>(null);
+
+  const handleImportClick = () => fileInputRef.current?.click();
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // Reset input so same file can be re-imported
+    e.target.value = '';
+
+    setIsImporting(true);
+    setImportResult(null);
+
+    try {
+      const text = await file.text();
+      const result = await importRoutineFromJson(text);
+      setImportResult({
+        success: true,
+        routineName: result.routine.name,
+        warnings: result.warnings,
+      });
+      onImportRoutine?.(result.routine);
+    } catch (err) {
+      const message =
+        err instanceof RoutineImportError
+          ? err.message
+          : 'Error inesperado al importar la rutina.';
+      setImportResult({ success: false, error: message });
+    } finally {
+      setIsImporting(false);
+    }
+  };
 
   const totalExercises = routines.reduce((count, routine) => count + (routine.exercises?.length || 0), 0);
 
@@ -58,8 +103,8 @@ export const RoutinesListView = ({
           <h1 className="font-headline text-[3.2rem] font-bold uppercase italic leading-none tracking-tight text-on-surface">MIS RUTINAS</h1>
         </header>
 
-        {/* Botón Crear Rutina Explícito */}
-        <section>
+        {/* Acciones: Crear + Importar */}
+        <section className="flex flex-col gap-3">
           <button
             onClick={onNewRoutine}
             className="theme-primary-shadow-strong flex w-full items-center justify-center gap-4 rounded-[2rem] bg-primary p-6 text-black transition-all hover:scale-[1.02] active:scale-[0.98] group"
@@ -69,6 +114,28 @@ export const RoutinesListView = ({
             </div>
             <span className="font-headline text-xl font-black uppercase italic tracking-wider">Crear Nueva Rutina</span>
           </button>
+
+          {/* Botón Importar */}
+          <button
+            id="import-routine-btn"
+            onClick={handleImportClick}
+            disabled={isImporting}
+            className="flex w-full items-center justify-center gap-3 rounded-[2rem] border theme-hairline-border bg-surface-container-low/50 p-4 text-on-surface-variant transition-all hover:border-primary/40 hover:bg-surface-container hover:text-primary active:scale-[0.98] disabled:opacity-50"
+          >
+            <Upload size={18} strokeWidth={2} />
+            <span className="text-sm font-black uppercase tracking-widest">
+              {isImporting ? 'Importando…' : 'Importar rutina (.kinetic.json)'}
+            </span>
+          </button>
+
+          {/* Input oculto para el archivo */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json,.kinetic.json"
+            className="hidden"
+            onChange={handleFileChange}
+          />
         </section>
 
         <div className="space-y-6">
@@ -129,6 +196,18 @@ export const RoutinesListView = ({
                   </div>
                   
                   <div className="mt-8 flex items-center justify-end gap-2 relative z-20">
+                    {/* Botón Exportar */}
+                    <button
+                      id={`export-routine-${routine.id}`}
+                      title="Exportar rutina"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        downloadRoutineAsJson(routine, profile?.username ?? null);
+                      }}
+                      className="theme-muted-surface flex h-10 w-10 items-center justify-center rounded-xl text-on-surface-variant transition-all hover:bg-primary/20 hover:text-primary active:scale-90"
+                    >
+                      <Download size={14} />
+                    </button>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -178,6 +257,69 @@ export const RoutinesListView = ({
         }}
         onCancel={() => setRoutineToTrash(null)}
       />
+
+      {/* Modal de resultado de importación */}
+      <AnimatePresence>
+        {importResult && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-end justify-center p-4 pb-8 bg-black/60 backdrop-blur-sm"
+            onClick={() => setImportResult(null)}
+          >
+            <motion.div
+              initial={{ y: 60, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 60, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 28 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-sm rounded-[2.5rem] border theme-hairline-border bg-surface-container p-8 shadow-2xl"
+            >
+              {/* Icono */}
+              <div className={`mb-5 flex h-14 w-14 items-center justify-center rounded-2xl ${
+                importResult.success
+                  ? 'bg-emerald-500/20 text-emerald-400'
+                  : 'bg-red-500/20 text-red-400'
+              }`}>
+                {importResult.success
+                  ? <CheckCircle2 size={28} />
+                  : <AlertTriangle size={28} />}
+              </div>
+
+              <h3 className="font-headline text-2xl font-black uppercase italic leading-tight text-on-surface">
+                {importResult.success ? '¡Rutina importada!' : 'Error al importar'}
+              </h3>
+
+              {importResult.success && importResult.routineName && (
+                <p className="mt-2 text-sm font-bold text-primary">{importResult.routineName}</p>
+              )}
+
+              {importResult.error && (
+                <p className="mt-3 text-sm text-red-400">{importResult.error}</p>
+              )}
+
+              {/* Advertencias */}
+              {importResult.warnings && importResult.warnings.length > 0 && (
+                <div className="mt-4 space-y-2 rounded-2xl bg-amber-500/10 p-4">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-amber-400">Avisos</p>
+                  {importResult.warnings.map((w, i) => (
+                    <p key={i} className="text-xs text-amber-300/80 leading-snug">{w}</p>
+                  ))}
+                </div>
+              )}
+
+              <button
+                onClick={() => setImportResult(null)}
+                className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-sm font-black uppercase tracking-widest text-black transition-all hover:opacity-90 active:scale-95"
+              >
+                <X size={16} />
+                Cerrar
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </PageShell>
   );
 };

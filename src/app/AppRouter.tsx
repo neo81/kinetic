@@ -45,6 +45,7 @@ type AppRouterProps = {
   onDeleteRoutine: (routineId: string) => void;
   onDeleteRoutineDay: (routineDayId: string) => void;
   onDeleteExercise: (exerciseId: string, dayId?: string) => void;
+  onImportRoutine: (routine: Routine) => void;
   navigationSource: View;
   setNavigationSource: (view: View) => void;
   openDayId: string | null;
@@ -90,6 +91,7 @@ export const AppRouter = ({
   onDeleteRoutine,
   onDeleteRoutineDay,
   onDeleteExercise,
+  onImportRoutine,
   navigationSource,
   setNavigationSource,
   openDayId,
@@ -140,6 +142,7 @@ export const AppRouter = ({
           onNewRoutine={onNewRoutine}
           setCurrentRoutine={setCurrentRoutine}
           onDeleteRoutine={onDeleteRoutine}
+          onImportRoutine={onImportRoutine}
           profile={profile}
         />
       );

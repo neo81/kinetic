@@ -121,6 +121,7 @@ export default function AppRoot() {
             onDeleteRoutine={app.handleDeleteRoutine}
             onDeleteRoutineDay={app.handleDeleteRoutineDay}
             onDeleteExercise={app.handleDeleteExercise}
+            onImportRoutine={app.handleImportRoutine}
             navigationSource={app.navigationSource}
             setNavigationSource={app.setNavigationSource}
             openDayId={app.openDayId}
