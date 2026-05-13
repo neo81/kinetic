@@ -90,15 +90,12 @@ export class SyncProcessor {
         return [];
       }
 
-      // Process ready items
+      // Process ready items in parallel for better performance
       syncStateManager.markSyncing(allItems.length);
 
-      const results: SyncResult[] = [];
-
-      for (const item of readyItems) {
-        const result = await this.processSingleItem(item);
-        results.push(result);
-      }
+      const results: SyncResult[] = await Promise.all(
+        readyItems.map(item => this.processSingleItem(item))
+      );
 
       // Update state based on results
       const updatedItems = syncQueue.getAllSorted();

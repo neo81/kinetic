@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSyncStatus } from '../hooks/useSyncStatus';
 
 interface SyncStatusIndicatorProps {
@@ -11,6 +11,11 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({
   compact = false 
 }) => {
   const { status, triggerManualSync, isPending, isSyncing, hasError } = useSyncStatus();
+  const [currentTime, setCurrentTime] = useState<number>(0);
+
+  useEffect(() => {
+    setCurrentTime(Date.now());
+  }, []);
 
   if (compact && status.status === 'idle') {
     return null; // No mostrar nada si está sincronizado
@@ -65,7 +70,11 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({
                 <div className="mt-2 rounded bg-error/10 p-2 text-error">
                   <div className="font-mono text-xs">{status.lastError}</div>
                   <div className="text-xs">
-                    Hace {Math.round((Date.now() - status.lastErrorAt!) / 1000)}s
+                    {currentTime ? (
+                      <>Hace {Math.round((currentTime - status.lastErrorAt!) / 1000)}s</>
+                    ) : (
+                      <>—</>
+                    )}
                   </div>
                 </div>
               )}

@@ -196,10 +196,16 @@ async function buildRoutineFromPayload(
 
   for (const exportDay of payload.routine.days) {
     const dayId = crypto.randomUUID();
-    const exercises: RoutineDayExercise[] = [];
 
-    for (const exportExercise of exportDay.exercises) {
-      const resolvedExerciseId = await resolveExerciseId(exportExercise, userId, warnings);
+    // Parallelize exercise ID resolution for all exercises in this day
+    const resolvedExerciseIds = await Promise.all(
+      exportDay.exercises.map((exportExercise) =>
+        resolveExerciseId(exportExercise, userId, warnings)
+      )
+    );
+
+    const exercises: RoutineDayExercise[] = exportDay.exercises.map((exportExercise, index) => {
+      const resolvedExerciseId = resolvedExerciseIds[index];
 
       const sets: ExerciseSet[] = exportExercise.sets.map((s) => ({
         setNumber: s.setNumber,
@@ -221,15 +227,15 @@ async function buildRoutineFromPayload(
         isCustom: exportExercise.exerciseRef.isCustom,
       };
 
-      exercises.push({
+      return {
         id: crypto.randomUUID(),
         exerciseId: resolvedExerciseId,
         exercise,
         position: exportExercise.position,
         restSeconds: exportExercise.restSeconds ?? null,
         notes: exportExercise.notes ?? null,
-      });
-    }
+      };
+    });
 
     dayEntries.push({
       id: dayId,

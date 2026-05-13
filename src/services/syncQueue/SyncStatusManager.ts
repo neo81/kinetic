@@ -119,7 +119,7 @@ export class SyncStatusManager {
         lastError: this.lastError,
         lastErrorAt: this.lastErrorAt,
       };
-      localStorage.setItem('kinetic:sync-status', JSON.stringify(data));
+      localStorage.setItem('kinetic:sync-status:v1', JSON.stringify(data));
     } catch (err) {
       console.error('[SyncStatusManager] Error persisting status:', err);
     }
@@ -130,7 +130,19 @@ export class SyncStatusManager {
    */
   private loadFromStorage(): void {
     try {
-      const stored = localStorage.getItem('kinetic:sync-status');
+      // Intenta la versión actual primero
+      let stored = localStorage.getItem('kinetic:sync-status:v1');
+      
+      // Fallback a versión anterior (para migración)
+      if (!stored) {
+        stored = localStorage.getItem('kinetic:sync-status');
+        if (stored) {
+          // Migrar a versión nueva
+          localStorage.removeItem('kinetic:sync-status');
+          localStorage.setItem('kinetic:sync-status:v1', stored);
+        }
+      }
+      
       if (!stored) return;
 
       const data = JSON.parse(stored);
@@ -139,6 +151,9 @@ export class SyncStatusManager {
       this.lastErrorAt = data.lastErrorAt ?? null;
     } catch (err) {
       console.error('[SyncStatusManager] Error loading status:', err);
+      // Limpiar datos corruptos
+      localStorage.removeItem('kinetic:sync-status:v1');
+      localStorage.removeItem('kinetic:sync-status');
     }
   }
 }

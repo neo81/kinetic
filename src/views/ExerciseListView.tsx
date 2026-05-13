@@ -278,6 +278,14 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
     <div
       className="theme-contrast-surface relative flex aspect-[4/3] w-full items-center justify-center p-2"
       onClick={() => onSelect(exercise)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onSelect(exercise);
+        }
+      }}
+      role="button"
+      tabIndex={0}
     >
       {/* Favorite button */}
       <button
@@ -306,6 +314,14 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
     <div
       className="flex w-full flex-col bg-surface-container p-4"
       onClick={() => onSelect(exercise)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onSelect(exercise);
+        }
+      }}
+      role="button"
+      tabIndex={0}
     >
       <div className="flex items-start justify-between">
         <h3 className="line-clamp-2 text-sm font-semibold leading-tight text-on-surface group-hover:text-primary transition-colors pr-2">

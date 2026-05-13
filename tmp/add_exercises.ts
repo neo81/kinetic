@@ -28,18 +28,23 @@ const exercises = [
 
 async function addExercises() {
   console.log('Adding exercises to Supabase...');
-  for (const ex of exercises) {
-    const { data, error } = await supabase
+  
+  // Parallelize all inserts
+  const insertPromises = exercises.map((ex) =>
+    supabase
       .from('exercises')
       .insert(ex)
-      .select();
-    
-    if (error) {
-      console.error(`Error adding ${ex.name}:`, error.message);
-    } else {
-      console.log(`Successfully added: ${ex.name}`);
-    }
-  }
+      .select()
+      .then(({ data, error }) => {
+        if (error) {
+          console.error(`Error adding ${ex.name}:`, error.message);
+        } else {
+          console.log(`Successfully added: ${ex.name}`);
+        }
+      })
+  );
+  
+  await Promise.all(insertPromises);
 }
 
 addExercises().catch(console.error);

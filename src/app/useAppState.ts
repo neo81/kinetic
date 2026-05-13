@@ -279,14 +279,19 @@ export const useAppState = () => {
   }, [currentRoutine, routines]);
 
   useEffect(() => {
-    if (!supabase) return;
-
     const fallbackTimeout = setTimeout(() => {
       setIsAppLoading((loading) => {
         if (loading) console.warn('Forcing splash screen hide after timeout');
         return false;
       });
     }, 6000); // Dar un poco mas de margen en iOS
+
+    if (!supabase) {
+      // Si supabase no está configurado, no hacer nada más
+      return () => {
+        clearTimeout(fallbackTimeout);
+      };
+    }
 
     const handleAuthState = async (session: any) => {
       try {
@@ -297,17 +302,20 @@ export const useAppState = () => {
         if (isNowLoggedIn) {
           try {
             await ensureProfileExists(session.user);
+            // Parallelize profile, theme, and backfill operations
             await Promise.all([
               loadProfile(session.user.id),
               loadThemePreference(session.user.id),
+              ensureWeeklyStatsBackfilled(session.user.id),
             ]);
-            // Backfill weekly statistics from completed sessions on first login
-            await ensureWeeklyStatsBackfilled(session.user.id);
           } catch (error) {
             console.error('Error cargando perfil o backfill:', error);
           }
-          await syncRoutines();
-          await syncActiveSessionFromStorage();
+          // Parallelize routine and session sync
+          await Promise.all([
+            syncRoutines(),
+            syncActiveSessionFromStorage(),
+          ]);
           setView((current) => current === 'login' ? 'dashboard' : current);
         } else {
           setRoutines(initialRoutines);

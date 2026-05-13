@@ -28,7 +28,7 @@ interface SyncQueueState {
 
 export class SyncQueue {
   private items: Map<string, SyncQueueItem> = new Map();
-  private readonly STORAGE_KEY = 'kinetic:sync-queue';
+  private readonly STORAGE_KEY = 'kinetic:sync-queue:v1';
   private readonly VERSION = 1;
   private readonly MAX_QUEUE_LIFETIME_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 

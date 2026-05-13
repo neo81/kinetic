@@ -84,7 +84,7 @@ const mergeRemoteWithPendingLocal = (remote: Routine[], previousLocal: Routine[]
       byId.set(routine.id, routine);
     }
   }
-  return [...byId.values()].sort((a, b) => {
+  return Array.from(byId.values()).toSorted((a, b) => {
     if (!!a.syncPending !== !!b.syncPending) {
       return a.syncPending ? -1 : 1;
     }
@@ -107,7 +107,7 @@ const normalizeDayExercises = (exercises: Routine['dayEntries'][number]['exercis
   }));
 
 const normalizeRoutineDayEntries = (dayEntries: Routine['dayEntries'] = []) => {
-  const sorted = [...dayEntries].sort((left, right) => left.position - right.position);
+  const sorted = dayEntries.toSorted((left, right) => left.position - right.position);
   const coreDays = sorted
     .filter((day) => day.dayType === 'core')
     .map((day) => ({
@@ -154,7 +154,7 @@ const buildRoutineDayInputs = (
   currentRoutine: Routine | null,
   input: SaveRoutineInput,
 ): RoutineDayInput[] => {
-  const sortedDays = [...input.days].sort((left, right) => left - right);
+  const sortedDays = input.days.toSorted((left, right) => left - right);
   const currentDayEntries = currentRoutine?.dayEntries ?? [];
   const currentCoreDay = currentDayEntries.find((day) => day.dayType === 'core');
   const shouldIncludeCore = !!currentCoreDay || input.focus?.toLowerCase() === 'dia core';

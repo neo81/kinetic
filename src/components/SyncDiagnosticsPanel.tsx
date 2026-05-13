@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSyncStatus } from '../hooks/useSyncStatus';
 import { syncQueue } from '../services/syncQueue';
 
@@ -6,6 +6,11 @@ export const SyncDiagnosticsPanel: React.FC = () => {
   const { status, triggerManualSync, isPending, isSyncing, hasError } = useSyncStatus();
   const [showDebugInfo, setShowDebugInfo] = useState(false);
   const [exportMessage, setExportMessage] = useState<string | null>(null);
+  const [currentTime, setCurrentTime] = useState<number>(0);
+
+  useEffect(() => {
+    setCurrentTime(Date.now());
+  }, []);
 
   const handleExportState = () => {
     try {
@@ -113,7 +118,11 @@ export const SyncDiagnosticsPanel: React.FC = () => {
             <div className="mb-2 flex flex-col gap-1.5 rounded bg-error/5 p-2">
               <div className="break-words font-mono text-xs">{status.lastError}</div>
               <div className="text-xs text-error/80">
-                Hace {Math.round((Date.now() - (status.lastErrorAt ?? 0)) / 1000)}s
+                {currentTime ? (
+                  <>Hace {Math.round((currentTime - (status.lastErrorAt ?? 0)) / 1000)}s</>
+                ) : (
+                  <>—</>
+                )}
               </div>
             </div>
           </div>

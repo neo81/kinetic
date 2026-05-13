@@ -38,7 +38,7 @@ describe('SyncQueue - Persistence Tests', () => {
       attemptCount: 0,
     });
 
-    const stored = localStorage.getItem('kinetic:sync-queue');
+    const stored = localStorage.getItem('kinetic:sync-queue:v1');
     expect(stored).toBeTruthy();
 
     const parsed = JSON.parse(stored!);
@@ -126,7 +126,7 @@ describe('SyncQueue - Persistence Tests', () => {
   it('should handle version mismatch by clearing old data', () => {
     // Store old version data
     localStorage.setItem(
-      'kinetic:sync-queue',
+      'kinetic:sync-queue:v1',
       JSON.stringify({
         version: 999, // Wrong version
         items: [
@@ -148,7 +148,7 @@ describe('SyncQueue - Persistence Tests', () => {
   });
 
   it('should handle corrupted localStorage data gracefully', () => {
-    localStorage.setItem('kinetic:sync-queue', 'corrupted json {{{');
+    localStorage.setItem('kinetic:sync-queue:v1', 'corrupted json {{{');
 
     expect(() => {
       new SyncQueue();
@@ -157,7 +157,7 @@ describe('SyncQueue - Persistence Tests', () => {
 
   it('should validate queue items on load', () => {
     localStorage.setItem(
-      'kinetic:sync-queue',
+      'kinetic:sync-queue:v1',
       JSON.stringify({
         version: 1,
         items: [
