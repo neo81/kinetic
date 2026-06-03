@@ -241,6 +241,7 @@ const mapExercise = (
   name: routineExercise.exercises?.name || 'Ejercicio sin nombre',
   description: (routineExercise.exercises as any)?.description || undefined,
   muscleGroup: routineExercise.exercises?.muscle_groups?.name || 'Sin grupo',
+  muscleGroupCode: routineExercise.exercises?.muscle_groups?.code || undefined,
   measureUnit: (routineExercise as any).measure_unit || 'kg',
   sets:
     routineExercise.exercise_sets?.map((set) => ({

@@ -8,6 +8,7 @@ import { PageShell } from '../components/layout/PageShell';
 import type { Exercise, ExerciseEquipmentFilter, ExerciseFilter, ExerciseSourceFilter, View } from '../types';
 import { supabase, isSupabaseConfigured } from '../lib/supabase/client';
 import { fallbackExerciseLibrary } from '../app/initialData';
+import { getExerciseGroupImage } from '../utils/exerciseGroupImages';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -18,15 +19,6 @@ type ExerciseLibraryItem = Exercise & {
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-const getPlaceholderImage = (group: string) => {
-  const g = group.toLowerCase();
-  const backMuscles = ['trapecio', 'triceps', 'dorsales', 'lumbares', 'gluteos'];
-  const legMuscles = ['isquiotibiales', 'pantorrillas', 'cuadriceps', 'abductores', 'aductores'];
-  if (backMuscles.includes(g)) return '/exercise-placeholder-back.png';
-  if (legMuscles.includes(g)) return '/exercise-placeholder-legs.png';
-  return '/exercise-placeholder.png';
-};
 
 const EQUIPMENT_OPTIONS: ExerciseEquipmentFilter[] = [
   'Todos', 'Barra', 'Mancuerna', 'Maquina', 'Peso corporal', 'Cable',
@@ -304,7 +296,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
         />
       </button>
       <img
-        src={getPlaceholderImage(muscle)}
+        src={exercise.image ?? getExerciseGroupImage(exercise.muscleGroupCode ?? muscle)}
         alt="Ejercicio"
         className="h-[90%] w-[90%] object-contain mix-blend-multiply opacity-90"
       />
@@ -553,6 +545,7 @@ export const ExerciseListView = ({
         id: item.id,
         name: item.name,
         muscleGroup: item.muscle_groups?.name || muscle,
+        muscleGroupCode: item.muscle_groups?.code || muscle.toLowerCase(),
         equipment: item.equipment || 'No especificado',
         description: item.description,
         notes: '',

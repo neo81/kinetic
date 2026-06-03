@@ -34,6 +34,7 @@ export interface Exercise {
   name: string;
   description?: string;
   muscleGroup: string;
+  muscleGroupCode?: string;
   muscle?: string;
   image?: string;
   sets: ExerciseSet[];
