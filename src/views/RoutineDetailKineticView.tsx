@@ -859,14 +859,14 @@ export const RoutineDetailKineticView = ({
             {activeSession?.routineId === routine.id ? (
               <button
                 onClick={() => onToggleExerciseComplete(dayEx.id)}
-                className={`flex h-10 w-10 items-center justify-center rounded-full border-[2.5px] transition-colors ${
+                className={`rounded-full border px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.18em] transition-colors ${
                   isSkipped
                     ? 'border-secondary bg-secondary text-black shadow-[0_0_15px_color-mix(in_srgb,var(--color-secondary)_35%,transparent)]'
                     : 'theme-hairline-border bg-surface-container-high text-on-surface-variant hover:border-secondary/50 hover:text-secondary'
                 }`}
                 title={isSkipped ? 'Quitar salteado' : 'Marcar como salteado'}
               >
-                {isSkipped ? <Check size={20} strokeWidth={3.5} /> : <Check size={18} strokeWidth={2.5} />}
+                {isSkipped ? 'Salteado' : 'Saltear'}
               </button>
             ) : (
               <>
