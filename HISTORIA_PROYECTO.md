@@ -1,0 +1,143 @@
+# Historia del Proyecto Kinetic
+
+Este archivo consolida la documentacion historica que antes estaba repartida en multiples `.md`.
+No reemplaza a `README.md` ni al dump tecnico de Supabase.
+
+## Referencias actuales
+
+- `README.md`: presentacion e instrucciones generales del proyecto. No fue modificado durante esta limpieza.
+- `ROADMAP.md`: plan funcional y fases del producto.
+- `supabase/remote_schema_2026-06-02.sql`: foto limpia oficial del schema remoto `public`, generada con Supabase CLI.
+
+## 2026-04 - Rutina SportClub y grupos musculares
+
+Se trabajo una rutina "SportClub Full Body" con una estructura de 5 dias:
+
+- Core: 3 ejercicios.
+- Upper A: pecho y espalda, 8 ejercicios.
+- Lower: piernas, 7 ejercicios.
+- Upper B: espalda y brazos, 9 ejercicios.
+- Lower B: piernas, 6 ejercicios.
+
+Durante esa etapa se crearon scripts manuales `.sql` para insertar ejercicios, rutina y dias. Esos scripts quedaron obsoletos cuando el estado real de Supabase paso a ser la fuente de verdad. Los `.sql` historicos fueron borrados despues de generar `supabase/remote_schema_2026-06-02.sql`.
+
+Puntos utiles que quedaron de esa etapa:
+
+- La tabla `muscle_groups` usa codigos de grupos musculares como `chest`, `back`, `quads`, `hamstrings`, `glutes`, `biceps`, `triceps`, `shoulders`, `abs`, entre otros segun el schema remoto.
+- La rutina SportClub fue documentada como referencia de entrenamiento, pero ya no debe usarse como procedimiento de migracion.
+- Cualquier carga futura debe apoyarse en el schema remoto vigente y no en scripts antiguos.
+
+## 2026-05 - Sincronizacion robusta e iOS PWA
+
+Se investigo un incidente donde sesiones de entrenamiento no se guardaban correctamente en iOS PWA, especialmente con sesiones largas, red intermitente o timeouts de Edge Function.
+
+Causas identificadas:
+
+- iOS PWA puede tener timeouts mas agresivos y comportamiento distinto a desktop.
+- El cierre de sesion podia fallar antes de dejar un item recuperable en la cola local.
+- El boton de resincronizacion podia desaparecer aunque hubiese errores o items pendientes.
+- La Edge Function podia devolver errores genericos de red por CORS, timeouts o payloads grandes.
+
+Cambios implementados:
+
+- `src/services/sessionCompletion/invokeEndSession.ts`
+  - Retry automatico.
+  - Validacion de payload antes de invocar la Edge Function.
+  - Logging de tamanio de payload.
+
+- `src/app/useAppState.ts`
+  - Encolado garantizado de `session_end` ante fallos.
+  - Fallback con payload minimo si el payload completo no puede persistirse.
+  - Limpieza de sesion local solo despues de guardar directo o encolar correctamente.
+
+- `supabase/functions/end-session/index.ts`
+  - Timeout controlado para la RPC `end_session_transaction`.
+  - Logging del tamanio recibido.
+  - Manejo de errores mas explicito.
+
+- `supabase/functions/_shared/cors.ts`
+  - CORS mas robusto para origen nulo y contexto standalone de iOS PWA.
+  - `Access-Control-Max-Age` agregado para mejorar comportamiento de preflight.
+
+- Componentes de sincronizacion:
+  - `SyncStatusManager`
+  - `useSyncStatus`
+  - `SyncStatusIndicator`
+  - `SyncDiagnosticsPanel`
+
+Resultado esperado:
+
+- Sesiones largas o con conexion intermitente no se pierden.
+- El usuario puede ver pendientes, errores y reintentar sincronizacion manual.
+- El sistema reintenta en background cuando la red vuelve.
+
+## 2026-05 - Correcciones visuales iOS PWA
+
+Se corrigieron problemas visuales del panel de sincronizacion en pantallas moviles:
+
+- Textos pegados cuando habia varios estados simultaneos.
+- Mensajes de error sin separacion clara.
+- Botones que no envolvian correctamente en iPhone.
+- Detalles por tipo poco legibles.
+- Badge de sincronizacion del header con bajo contraste o mal ajuste.
+
+Los cambios fueron principalmente en:
+
+- `src/components/SyncDiagnosticsPanel.tsx`
+- `src/components/SyncStatusIndicator.tsx`
+
+El objetivo fue mantener tap targets y layout estable en iOS PWA sin cambiar la logica de sincronizacion.
+
+## 2026-06 - Limpieza de Supabase y archivos historicos
+
+Se confirmo que las migraciones locales `.sql` no reflejaban la version final del proyecto remoto en Supabase.
+
+Acciones realizadas:
+
+- Se genero un dump limpio con Supabase CLI:
+  - `supabase/remote_schema_2026-06-02.sql`
+- Se verifico que el dump contiene:
+  - 16 tablas.
+  - 5 funciones.
+  - 34 policies.
+  - RLS habilitado.
+  - Indices, funciones, policies y triggers.
+- Se borro el contenido viejo de `supabase/migrations`.
+- Se borraron scripts `.sql` historicos del raiz.
+- Se limpiaron temporales:
+  - `dist/`
+  - `tmp/`
+  - `supabase/.temp/`
+  - `tmp_settings.txt`
+  - `report_fetchUserGoals.txt`
+- Se actualizo `.gitignore` para incluir:
+  - `tmp/`
+  - `supabase/.temp/`
+
+Notas de seguridad observadas en el snapshot remoto:
+
+- Todas las tablas publicas detectadas tienen RLS habilitado.
+- Algunas policies usan rol `public`; conviene revisarlas si el modelo de acceso cambia.
+- Existen funciones `security definer` en schema `public`, especialmente `end_session_transaction`, `handle_new_user` e `import_routine`. Conviene evaluar moverlas a un schema no expuesto si se hace una pasada de hardening.
+
+## Documentos consolidados
+
+Este archivo reemplaza la informacion historica de:
+
+- `HOTFIX_iOS_SESSION_QUEUEING.md`
+- `HOTFIX_SUMMARY.md`
+- `iOS_PWA_TESTING_GUIDE.md`
+- `MEMORIA_EDGE_FUNCTION_iOS_PWA_2026-05-06.md`
+- `MUSCLE_GROUPS_REFERENCE.md`
+- `ROUTINE_SETUP_GUIDE.md`
+- `ROUTINE_SPORTCLUB_COMPLETE_GUIDE.md`
+- `ROUTINE_SPORTCLUB_README.md`
+- `ROUTINE_SPORTCLUB_STATUS.md`
+- `ROUTINE_SPORTCLUB_SUMMARY.md`
+- `SOLUCION_iOS_PWA_RESUMEN.md`
+- `SYNC_FIXES_SUMMARY.md`
+- `TECHNICAL_CHANGES_iOS_PWA.md`
+- `UI_FIXES_iOS_PWA.md`
+- `UI_IMPROVEMENTS_SUMMARY.md`
+- `src/components/SYNC_INTEGRATION_GUIDE.md`
+- `supabase/REMOTE_SCHEMA_SNAPSHOT_2026-06-02.md`
