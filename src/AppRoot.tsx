@@ -130,6 +130,7 @@ export default function AppRoot() {
             startSession={app.startSession}
             endSession={app.endSession}
             cancelSession={app.cancelSession}
+            onToggleExerciseComplete={app.toggleExerciseComplete}
             onCaptureSetPerformance={app.captureSetPerformance}
             onClearCapturedSetPerformance={app.clearCapturedSetPerformance}
             onSwitchSessionDay={app.switchSessionDay}

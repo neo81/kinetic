@@ -54,6 +54,7 @@ type AppRouterProps = {
   startSession: (routineId: string, routineName: string, routineDayId: string | string[]) => Promise<void>;
   endSession: () => Promise<void>;
   cancelSession: () => Promise<void>;
+  onToggleExerciseComplete: (exerciseInstanceId: string) => void;
   onCaptureSetPerformance: (exerciseId: string, setNumber: number, reps: number | null, weight: number | null, durationMin: number | null, durationSec: number | null, totalSets?: number) => void;
   onClearCapturedSetPerformance: (exerciseId: string, setNumber: number, totalSets?: number) => void;
   onSwitchSessionDay: (dayId: string) => void;
@@ -100,6 +101,7 @@ export const AppRouter = ({
   startSession,
   endSession,
   cancelSession,
+  onToggleExerciseComplete,
   onCaptureSetPerformance,
   onClearCapturedSetPerformance,
   onSwitchSessionDay,
@@ -202,6 +204,7 @@ export const AppRouter = ({
           onStartSession={startSession}
           onEndSession={endSession}
           onCancelSession={cancelSession}
+          onToggleExerciseComplete={onToggleExerciseComplete}
           onCaptureSetPerformance={onCaptureSetPerformance}
           onClearCapturedSetPerformance={onClearCapturedSetPerformance}
           onSwitchSessionDay={onSwitchSessionDay}

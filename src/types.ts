@@ -104,6 +104,7 @@ export interface ActiveSession {
   activeRoutineDayId: string;
   startTimeMs: number;
   completedExercises: string[];
+  skippedExercises?: string[];
   completedDayIds: string[];
   exerciseGroupsByDay: Record<string, SessionExerciseGroup[]>;
   performanceData: {

@@ -46,6 +46,16 @@ const isExerciseFullyCompleted = (
   dayExercise: RoutineDayExercise,
 ) => getExerciseCompletedSetCount(activeSession, dayExercise.id) >= dayExercise.exercise.sets.length && dayExercise.exercise.sets.length > 0;
 
+const isExerciseSkipped = (
+  activeSession: ActiveSession | null,
+  exerciseId: string,
+) => (activeSession?.skippedExercises ?? []).includes(exerciseId);
+
+const isExerciseDoneForSession = (
+  activeSession: ActiveSession | null,
+  dayExercise: RoutineDayExercise,
+) => isExerciseSkipped(activeSession, dayExercise.id) || isExerciseFullyCompleted(activeSession, dayExercise);
+
 const getGroupLabel = (exerciseCount: number) => {
   if (exerciseCount === 2) return 'Superset';
   if (exerciseCount === 3) return 'Triserie';
@@ -526,6 +536,7 @@ export const RoutineDetailKineticView = ({
   onStartSession,
   onEndSession,
   onCancelSession,
+  onToggleExerciseComplete,
   onCaptureSetPerformance,
   onClearCapturedSetPerformance,
   onSwitchSessionDay,
@@ -546,6 +557,7 @@ export const RoutineDetailKineticView = ({
   onStartSession: (routineId: string, routineName: string, routineDayIds: string | string[]) => Promise<void>;
   onEndSession: () => Promise<void>;
   onCancelSession: () => Promise<void>;
+  onToggleExerciseComplete: (exerciseInstanceId: string) => void;
   onCaptureSetPerformance: (exerciseId: string, setNumber: number, reps: number | null, weight: number | null, durationMin: number | null, durationSec: number | null, totalSets?: number) => void;
   onClearCapturedSetPerformance: (exerciseId: string, setNumber: number, totalSets?: number) => void;
   onSwitchSessionDay: (dayId: string) => void;
@@ -601,7 +613,7 @@ export const RoutineDetailKineticView = ({
     // Verificar si todos los ejercicios de este día están completados
     const allExercisesInDay = currentDay.exercises;
     const dayExercisesCompleted = allExercisesInDay.every((dayEx) =>
-      isExerciseFullyCompleted(activeSession, dayEx)
+      isExerciseDoneForSession(activeSession, dayEx)
     );
 
     if (dayExercisesCompleted && allExercisesInDay.length > 0) {
@@ -653,6 +665,8 @@ export const RoutineDetailKineticView = ({
   };
 
   const handleSetChipClick = (dayEx: RoutineDayExercise, setIndex: number) => {
+    if (isExerciseSkipped(activeSession, dayEx.id)) return;
+
     const targetSet = dayEx.exercise.sets[setIndex];
     if (!targetSet) return;
 
@@ -804,7 +818,8 @@ export const RoutineDetailKineticView = ({
   };
 
   const renderExerciseCard = (day: NonNullable<Routine['dayEntries']>[number], dayEx: RoutineDayExercise, index: number, totalCount: number, grouped = false) => {
-    const isCompleted = activeSession?.routineId === routine.id && isExerciseFullyCompleted(activeSession, dayEx);
+    const isSkipped = activeSession?.routineId === routine.id && isExerciseSkipped(activeSession, dayEx.id);
+    const isCompleted = activeSession?.routineId === routine.id && isExerciseDoneForSession(activeSession, dayEx);
     const completedSetCount = getExerciseCompletedSetCount(activeSession, dayEx.id);
     const groupSelectionEnabled = isGroupingMode && activeSession?.routineId === routine.id;
     const isSelectedForGroup = selectedGroupExerciseIds.includes(dayEx.id);
@@ -834,14 +849,26 @@ export const RoutineDetailKineticView = ({
               <h4 className={`font-sans text-[1.15rem] font-semibold leading-tight text-on-surface ${isCompleted ? 'line-through' : ''}`}>{dayEx.exercise.name}</h4>
               <p className="mt-0.5 text-[9px] font-bold uppercase tracking-widest text-on-surface-variant/60">{dayEx.exercise.muscleGroup || dayEx.exercise.muscle}</p>
               {activeSession?.routineId === routine.id && (
-<p className="theme-primary-text-soft mt-2 text-[10px] font-bold uppercase tracking-[0.18em]">
-                  {completedSetCount}/{dayEx.exercise.sets.length} sets
+<p className={`mt-2 text-[10px] font-bold uppercase tracking-[0.18em] ${isSkipped ? 'text-secondary' : 'theme-primary-text-soft'}`}>
+                  {isSkipped ? 'Salteado' : `${completedSetCount}/${dayEx.exercise.sets.length} sets`}
                 </p>
               )}
             </div>
           </div>
           <div className="flex items-center gap-1">
-            {activeSession?.routineId !== routine.id && (
+            {activeSession?.routineId === routine.id ? (
+              <button
+                onClick={() => onToggleExerciseComplete(dayEx.id)}
+                className={`flex h-10 w-10 items-center justify-center rounded-full border-[2.5px] transition-colors ${
+                  isSkipped
+                    ? 'border-secondary bg-secondary text-black shadow-[0_0_15px_color-mix(in_srgb,var(--color-secondary)_35%,transparent)]'
+                    : 'theme-hairline-border bg-surface-container-high text-on-surface-variant hover:border-secondary/50 hover:text-secondary'
+                }`}
+                title={isSkipped ? 'Quitar salteado' : 'Marcar como salteado'}
+              >
+                {isSkipped ? <Check size={20} strokeWidth={3.5} /> : <Check size={18} strokeWidth={2.5} />}
+              </button>
+            ) : (
               <>
                 <button
                   onClick={() => {
@@ -891,12 +918,15 @@ export const RoutineDetailKineticView = ({
                   <button
                     key={`${dayEx.id}-set-${setNumber}`}
                     onClick={() => handleSetChipClick(dayEx, setIndex)}
+                    disabled={isSkipped}
                     className={`rounded-full border px-3 py-2 text-xs font-bold uppercase tracking-[0.18em] transition-all ${
-                      isCaptured
+                      isSkipped
+                        ? 'theme-hairline-border cursor-not-allowed bg-surface-container-high text-on-surface-variant/30'
+                        : isCaptured
 ? 'theme-primary-shadow-soft border-primary bg-primary text-black'
                                     : 'theme-hairline-border bg-surface-container-high text-on-surface-variant hover:border-primary/45 hover:text-on-surface'
                     }`}
-                    title={isCaptured ? 'Quitar set realizado' : 'Registrar set'}
+                    title={isSkipped ? 'Ejercicio salteado' : isCaptured ? 'Quitar set realizado' : 'Registrar set'}
                   >
                     {`Set ${setNumber} · ${getSetPreviewValue(dayEx.exercise, setIndex)}`}
                   </button>

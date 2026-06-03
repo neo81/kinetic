@@ -87,6 +87,9 @@ const loadPersistedActiveSession = (): ActiveSession | null => {
     if (!parsed.exerciseGroupsByDay || typeof parsed.exerciseGroupsByDay !== 'object') {
       parsed.exerciseGroupsByDay = {};
     }
+    if (!Array.isArray(parsed.skippedExercises)) {
+      parsed.skippedExercises = [];
+    }
     return parsed;
   } catch {
     return null;
@@ -518,6 +521,7 @@ export const useAppState = () => {
         activeRoutineDayId: dayIdsArray[0],
         startTimeMs: Date.now(),
         completedExercises: [],
+        skippedExercises: [],
         completedDayIds: [],
         exerciseGroupsByDay: {},
         performanceData: {}
@@ -574,12 +578,17 @@ export const useAppState = () => {
   const toggleExerciseComplete = useCallback((exerciseInstanceId: string) => {
     setActiveSession((prev) => {
       if (!prev) return prev;
-      const isCompleted = prev.completedExercises.includes(exerciseInstanceId);
+      const skippedExercises = prev.skippedExercises ?? [];
+      const isSkipped = skippedExercises.includes(exerciseInstanceId);
+      const nextPerformanceData = { ...prev.performanceData };
+      delete nextPerformanceData[exerciseInstanceId];
       const nextSession = {
         ...prev,
-        completedExercises: isCompleted
-          ? prev.completedExercises.filter(id => id !== exerciseInstanceId)
-          : [...prev.completedExercises, exerciseInstanceId]
+        skippedExercises: isSkipped
+          ? skippedExercises.filter(id => id !== exerciseInstanceId)
+          : [...skippedExercises, exerciseInstanceId],
+        completedExercises: prev.completedExercises.filter(id => id !== exerciseInstanceId),
+        performanceData: nextPerformanceData,
       };
       persistActiveSession(nextSession);
       return nextSession;
@@ -607,6 +616,7 @@ export const useAppState = () => {
           captured: true
         }
       };
+      const skippedExercises = (prev.skippedExercises ?? []).filter((id) => id !== exerciseId);
       const completedSetCount = Object.values(currentExercisePerformance).filter(
         (set): set is typeof currentExercisePerformance[number] => !!set && typeof set === 'object' && 'captured' in set && !!set.captured,
       ).length;
@@ -616,6 +626,7 @@ export const useAppState = () => {
         completedExercises: shouldMarkExerciseComplete
           ? Array.from(new Set([...prev.completedExercises, exerciseId]))
           : prev.completedExercises.filter((id) => id !== exerciseId),
+        skippedExercises,
         performanceData: {
           ...prev.performanceData,
           [exerciseId]: currentExercisePerformance,
