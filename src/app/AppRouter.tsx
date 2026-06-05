@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect, type ReactNode } from 'react';
 import type { ActiveSession, Exercise, Routine, UserProfile, View } from '../types';
 import type { ResolvedTheme, ThemePreference } from '../theme/theme';
 
@@ -12,6 +12,18 @@ const RoutineCreatorView = lazy(() => import('../views/RoutineCreatorView').then
 const RoutineDetailKineticView = lazy(() => import('../views/RoutineDetailKineticView').then((module) => ({ default: module.RoutineDetailKineticView })));
 const SettingsView = lazy(() => import('../views/SettingsView').then((module) => ({ default: module.SettingsView })));
 const RoutinesListView = lazy(() => import('../views/RoutinesListView').then((module) => ({ default: module.RoutinesListView })));
+
+const preloadViewChunks = () => {
+  void import('../views/DashboardView');
+  void import('../views/ExerciseEditorView');
+  void import('../views/ExerciseListView');
+  void import('../views/ExerciseSelectorKineticView');
+  void import('../views/HistoryView');
+  void import('../views/RoutineCreatorView');
+  void import('../views/RoutineDetailKineticView');
+  void import('../views/SettingsView');
+  void import('../views/RoutinesListView');
+};
 
 type AppRouterProps = {
   view: View;
@@ -113,7 +125,22 @@ export const AppRouter = ({
   resolvedTheme,
   onThemeChange,
 }: AppRouterProps) => {
-  let content: JSX.Element | null;
+  useEffect(() => {
+    const idleCallback =
+      'requestIdleCallback' in window
+        ? window.requestIdleCallback(() => preloadViewChunks(), { timeout: 1800 })
+        : globalThis.setTimeout(preloadViewChunks, 700);
+
+    return () => {
+      if ('cancelIdleCallback' in window && typeof idleCallback === 'number') {
+        window.cancelIdleCallback(idleCallback);
+        return;
+      }
+      window.clearTimeout(idleCallback as number);
+    };
+  }, []);
+
+  let content: ReactNode;
 
   switch (view) {
     case 'login':
@@ -265,7 +292,7 @@ export const AppRouter = ({
   }
 
   return (
-    <Suspense fallback={<div className="min-h-screen bg-background" />}>
+    <Suspense fallback={<div className="min-h-screen bg-transparent" aria-hidden="true" />}>
       {content}
     </Suspense>
   );

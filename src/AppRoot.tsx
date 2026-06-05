@@ -49,7 +49,6 @@ export default function AppRoot() {
     <div className="app-shell min-h-screen bg-background text-on-background relative">
       {app.appBanner && (
         <AppErrorBanner
-          key={`${app.appBanner.level}-${app.appBanner.title}-${app.appBanner.message}`}
           level={app.appBanner.level}
           title={app.appBanner.title}
           message={app.appBanner.message}

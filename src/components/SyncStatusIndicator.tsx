@@ -84,7 +84,7 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({
                   <div>Pendiente por tipo:</div>
                   <div className="font-mono ml-2">
                     {Object.entries(status.byType)
-                      .filter(([, count]) => count > 0)
+                      .filter((entry): entry is [string, number] => typeof entry[1] === 'number' && entry[1] > 0)
                       .map(([type, count]) => (
                         <div key={type}>
                           • {type}: {count}

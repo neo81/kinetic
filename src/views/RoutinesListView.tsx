@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, type ChangeEvent } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { AlertTriangle, ArrowLeft, CheckCircle2, Download, Edit2, Play, Plus, Trash2, Upload, X } from 'lucide-react';
 import { useReducedMotion } from '../hooks/useReducedMotion';
@@ -43,7 +43,7 @@ export const RoutinesListView = ({
 
   const handleImportClick = () => fileInputRef.current?.click();
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     // Reset input so same file can be re-imported

@@ -16,6 +16,21 @@ export interface RemoteLog {
   userAgent: string;
 }
 
+type AppLogInsert = {
+  level: RemoteLog['level'];
+  category: string;
+  message: string;
+  data?: Record<string, unknown>;
+  user_agent: string;
+  created_at: string;
+};
+
+type AppLogsClient = {
+  from: (table: 'app_logs') => {
+    insert: (rows: AppLogInsert[]) => Promise<{ error: { message?: string } | null }>;
+  };
+};
+
 class RemoteLogger {
   private isEnabled = false;
   private batchLogs: RemoteLog[] = [];
@@ -110,7 +125,8 @@ class RemoteLogger {
       if (!supabase) return;
 
       // Insert logs into a logs table (create this table if needed)
-      const { error } = await supabase
+      const appLogsClient = supabase as unknown as AppLogsClient;
+      const { error } = await appLogsClient
         .from('app_logs')
         .insert(
           logsToSend.map(log => ({

@@ -135,7 +135,7 @@ export const SyncDiagnosticsPanel: React.FC = () => {
           <div className="mb-2 text-xs font-semibold text-on-surface">Detalles por tipo:</div>
           <div className="space-y-1.5 font-mono text-xs text-on-surface-variant">
             {Object.entries(status.byType)
-              .filter(([, count]) => count > 0)
+              .filter((entry): entry is [string, number] => typeof entry[1] === 'number' && entry[1] > 0)
               .map(([type, count]) => (
                 <div key={type} className="flex items-center justify-between gap-2 rounded bg-surface/50 px-2 py-1">
                   <span className="truncate">• {type}:</span>

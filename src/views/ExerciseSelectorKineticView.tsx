@@ -61,9 +61,31 @@ export const ExerciseSelectorKineticView = ({
 
   const [side, setSide] = useState<MuscleSide>(() => getSideForMuscle(selectedMuscle));
   const [searchQuery, setSearchQuery] = useState('');
+  const [loadedImages, setLoadedImages] = useState<Record<MuscleSide, boolean>>({
+    front: false,
+    back: false,
+  });
 
   useEffect(() => {
     window.scrollTo(0, 0);
+  }, []);
+
+  useEffect(() => {
+    (Object.entries(selectorData) as Array<[MuscleSide, typeof selectorData[MuscleSide]]>).forEach(([imageSide, data]) => {
+      const image = new Image();
+      image.src = data.image;
+
+      const markLoaded = () => {
+        setLoadedImages((current) => ({ ...current, [imageSide]: true }));
+      };
+
+      if (image.complete) {
+        markLoaded();
+        return;
+      }
+
+      void image.decode().then(markLoaded).catch(markLoaded);
+    });
   }, []);
 
   useEffect(() => {
@@ -85,6 +107,8 @@ export const ExerciseSelectorKineticView = ({
     onSelectMuscle(group);
     setView('exercise-list');
   };
+
+  const isCurrentImageLoaded = loadedImages[side];
 
   return (
     <PageShell
@@ -130,12 +154,16 @@ export const ExerciseSelectorKineticView = ({
         <div className="relative aspect-[0.78] w-full">
           <img
             alt={`Figura anatomica ${side === 'front' ? 'frontal' : 'posterior'}`}
-            className="h-full w-full object-cover"
+            className={`h-full w-full object-cover transition-opacity duration-200 ${isCurrentImageLoaded ? 'opacity-100' : 'opacity-0'}`}
+            decoding="async"
+            fetchPriority={side === 'front' ? 'high' : 'auto'}
+            loading={side === 'front' ? 'eager' : 'lazy'}
+            onLoad={() => setLoadedImages((current) => ({ ...current, [side]: true }))}
             src={selectorData[side].image}
           />
-          <div className="theme-hero-image-overlay pointer-events-none absolute inset-0" />
+          <div className={`theme-hero-image-overlay pointer-events-none absolute inset-0 transition-opacity duration-200 ${isCurrentImageLoaded ? 'opacity-100' : 'opacity-0'}`} />
           <div
-            className="pointer-events-none absolute inset-0 opacity-[0.12]"
+            className={`pointer-events-none absolute inset-0 transition-opacity duration-200 ${isCurrentImageLoaded ? 'opacity-[0.12]' : 'opacity-0'}`}
             style={{
               backgroundImage:
                 'linear-gradient(rgba(212,255,0,0.12)_1px,transparent_1px),linear-gradient(90deg,rgba(212,255,0,0.1)_1px,transparent_1px)',
@@ -143,7 +171,7 @@ export const ExerciseSelectorKineticView = ({
             }}
           />
 
-          <svg className="pointer-events-none absolute inset-0 h-full w-full">
+          <svg className={`pointer-events-none absolute inset-0 h-full w-full transition-opacity duration-200 ${isCurrentImageLoaded ? 'opacity-100' : 'opacity-0'}`}>
             {filteredTargets.map((target) => {
               const startX = target.labelPos.x;
               const startY = target.labelPos.y;
@@ -172,7 +200,7 @@ export const ExerciseSelectorKineticView = ({
               <button
                 key={`btn-${target.id}`}
                 onClick={() => handleOpenLibrary(target.group)}
-                className={`absolute flex flex-col justify-center -translate-y-1/2 transition-all hover:scale-[1.03] active:scale-95 group ${target.align === 'left' ? 'right-[unset] items-end' : 'left-[unset] items-start'
+                className={`absolute flex flex-col justify-center -translate-y-1/2 transition-all hover:scale-[1.03] active:scale-95 group ${isCurrentImageLoaded ? 'opacity-100' : 'pointer-events-none opacity-0'} ${target.align === 'left' ? 'right-[unset] items-end' : 'left-[unset] items-start'
                   }`}
                 style={{
                   top: `${target.labelPos.y}%`,
