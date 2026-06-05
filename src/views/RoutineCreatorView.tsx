@@ -104,6 +104,7 @@ export const RoutineCreatorView = ({
       setView('exercise-list');
     } else {
       setNavigationSource('routine-creator');
+      window.sessionStorage.setItem('kinetic.selectorSource', 'routine-creator');
       setView('exercise-selector');
     }
   };

@@ -47,10 +47,12 @@ export const ExerciseSelectorKineticView = ({
   setView,
   onSelectMuscle,
   selectedMuscle,
+  navigationSource,
 }: {
   setView: (v: View) => void;
   onSelectMuscle: (m: string) => void;
   selectedMuscle?: string;
+  navigationSource?: View;
 }) => {
   const getSideForMuscle = (muscle?: string): MuscleSide => {
     const normalized = (muscle ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
@@ -92,23 +94,38 @@ export const ExerciseSelectorKineticView = ({
     setSide(getSideForMuscle(selectedMuscle));
   }, [selectedMuscle]);
 
-  const filteredTargets = useMemo(() => {
+  const filteredTargetsBySide = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
-    if (!normalizedQuery) {
-      return selectorData[side].targets;
-    }
+    const filterTargets = (targetSide: MuscleSide) => {
+      if (!normalizedQuery) {
+        return selectorData[targetSide].targets;
+      }
 
-    return selectorData[side].targets.filter((target) =>
-      target.label.toLowerCase().includes(normalizedQuery),
-    );
-  }, [searchQuery, side]);
+      return selectorData[targetSide].targets.filter((target) =>
+        target.label.toLowerCase().includes(normalizedQuery),
+      );
+    };
+
+    return {
+      front: filterTargets('front'),
+      back: filterTargets('back'),
+    };
+  }, [searchQuery]);
 
   const handleOpenLibrary = (group: string) => {
     onSelectMuscle(group);
     setView('exercise-list');
   };
 
-  const isCurrentImageLoaded = loadedImages[side];
+  const handleBack = () => {
+    const selectorSource = window.sessionStorage.getItem('kinetic.selectorSource');
+    if (navigationSource === 'routine-creator' && selectorSource !== 'global') {
+      setView('routine-creator');
+      return;
+    }
+
+    setView('dashboard');
+  };
 
   return (
     <PageShell
@@ -119,7 +136,7 @@ export const ExerciseSelectorKineticView = ({
       contentClassName="space-y-5"
     >
       <section className="space-y-5">
-        <button onClick={() => setView('routine-creator')} className="flex items-center gap-3 text-on-surface-variant transition-colors hover:text-primary">
+        <button onClick={handleBack} className="flex items-center gap-3 text-on-surface-variant transition-colors hover:text-primary">
           <div className="theme-muted-surface flex h-8 w-8 items-center justify-center rounded-full transition-all group-hover:bg-primary/20">
             <ArrowLeft size={16} strokeWidth={2.5} />
           </div>
@@ -152,18 +169,21 @@ export const ExerciseSelectorKineticView = ({
 
       <section className="panel-surface overflow-hidden rounded-[1.1rem]">
         <div className="relative aspect-[0.78] w-full">
-          <img
-            alt={`Figura anatomica ${side === 'front' ? 'frontal' : 'posterior'}`}
-            className="h-full w-full object-cover"
-            decoding="async"
-            fetchPriority={side === 'front' ? 'high' : 'auto'}
-            loading={side === 'front' ? 'eager' : 'lazy'}
-            onLoad={() => setLoadedImages((current) => ({ ...current, [side]: true }))}
-            src={selectorData[side].image}
-          />
-          <div className={`theme-hero-image-overlay pointer-events-none absolute inset-0 transition-opacity duration-200 ${isCurrentImageLoaded ? 'opacity-100' : 'opacity-0'}`} />
+          {(Object.keys(selectorData) as MuscleSide[]).map((imageSide) => (
+            <img
+              key={imageSide}
+              alt={`Figura anatomica ${imageSide === 'front' ? 'frontal' : 'posterior'}`}
+              className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-150 ${side === imageSide ? 'opacity-100' : 'opacity-0'}`}
+              decoding="async"
+              fetchPriority="high"
+              loading="eager"
+              onLoad={() => setLoadedImages((current) => ({ ...current, [imageSide]: true }))}
+              src={selectorData[imageSide].image}
+            />
+          ))}
+          <div className="theme-hero-image-overlay pointer-events-none absolute inset-0" />
           <div
-            className={`pointer-events-none absolute inset-0 transition-opacity duration-200 ${isCurrentImageLoaded ? 'opacity-[0.12]' : 'opacity-0'}`}
+            className="pointer-events-none absolute inset-0 opacity-[0.12]"
             style={{
               backgroundImage:
                 'linear-gradient(rgba(212,255,0,0.12)_1px,transparent_1px),linear-gradient(90deg,rgba(212,255,0,0.1)_1px,transparent_1px)',
@@ -171,51 +191,53 @@ export const ExerciseSelectorKineticView = ({
             }}
           />
 
-          <svg className={`pointer-events-none absolute inset-0 h-full w-full transition-opacity duration-200 ${isCurrentImageLoaded ? 'opacity-100' : 'opacity-0'}`}>
-            {filteredTargets.map((target) => {
-              const startX = target.labelPos.x;
-              const startY = target.labelPos.y;
-              const endX = target.dot.x;
-              const endY = target.dot.y;
-              const midX = target.align === 'left' ? startX + 6 : startX - 6;
+          {(Object.keys(selectorData) as MuscleSide[]).map((targetSide) => (
+            <div key={targetSide} className={side === targetSide && loadedImages[targetSide] ? 'block' : 'hidden'}>
+              <svg className="pointer-events-none absolute inset-0 h-full w-full">
+                {filteredTargetsBySide[targetSide].map((target) => {
+                  const startX = target.labelPos.x;
+                  const startY = target.labelPos.y;
+                  const endX = target.dot.x;
+                  const endY = target.dot.y;
+                  const midX = target.align === 'left' ? startX + 6 : startX - 6;
 
-              return (
-                <g key={`svg-${target.id}`} className="transition-opacity duration-300">
-                  <line
-                    x1={`${startX}%`} y1={`${startY}%`} x2={`${midX}%`} y2={`${startY}%`}
-                    stroke="rgba(255,255,255,0.7)" strokeWidth="1.2"
-                  />
-                  <line
-                    x1={`${midX}%`} y1={`${startY}%`} x2={`${endX}%`} y2={`${endY}%`}
-                    stroke="rgba(255,255,255,0.7)" strokeWidth="1.2"
-                  />
-                  <circle cx={`${endX}%`} cy={`${endY}%`} r="3" fill="rgba(255,255,255,0.9)" />
-                </g>
-              );
-            })}
-          </svg>
+                  return (
+                    <g key={`svg-${targetSide}-${target.id}`}>
+                      <line
+                        x1={`${startX}%`} y1={`${startY}%`} x2={`${midX}%`} y2={`${startY}%`}
+                        stroke="rgba(255,255,255,0.7)" strokeWidth="1.2"
+                      />
+                      <line
+                        x1={`${midX}%`} y1={`${startY}%`} x2={`${endX}%`} y2={`${endY}%`}
+                        stroke="rgba(255,255,255,0.7)" strokeWidth="1.2"
+                      />
+                      <circle cx={`${endX}%`} cy={`${endY}%`} r="3" fill="rgba(255,255,255,0.9)" />
+                    </g>
+                  );
+                })}
+              </svg>
 
-          {filteredTargets.map((target) => {
-            return (
-              <button
-                key={`btn-${target.id}`}
-                onClick={() => handleOpenLibrary(target.group)}
-                className={`absolute flex flex-col justify-center -translate-y-1/2 transition-all hover:scale-[1.03] active:scale-95 group ${isCurrentImageLoaded ? 'opacity-100' : 'pointer-events-none opacity-0'} ${target.align === 'left' ? 'right-[unset] items-end' : 'left-[unset] items-start'
-                  }`}
-                style={{
-                  top: `${target.labelPos.y}%`,
-                  ...(target.align === 'left'
-                    ? { right: `${100 - target.labelPos.x}%` }
-                    : { left: `${target.labelPos.x}%` }),
-                }}
-              >
-                <span className={`px-1 pb-0.5 font-headline text-[0.75rem] font-medium text-on-background drop-shadow-md transition-colors group-hover:text-primary ${target.align === 'left' ? 'text-right' : 'text-left'}`}>
-                  {target.label}
-                </span>
-                <div className="h-[1.5px] w-full bg-on-background/60 transition-colors group-hover:bg-primary" />
-              </button>
-            );
-          })}
+              {filteredTargetsBySide[targetSide].map((target) => (
+                <button
+                  key={`btn-${targetSide}-${target.id}`}
+                  onClick={() => handleOpenLibrary(target.group)}
+                  className={`absolute flex flex-col justify-center -translate-y-1/2 transition-transform hover:scale-[1.03] active:scale-95 group ${target.align === 'left' ? 'right-[unset] items-end' : 'left-[unset] items-start'
+                    }`}
+                  style={{
+                    top: `${target.labelPos.y}%`,
+                    ...(target.align === 'left'
+                      ? { right: `${100 - target.labelPos.x}%` }
+                      : { left: `${target.labelPos.x}%` }),
+                  }}
+                >
+                  <span className={`px-1 pb-0.5 font-headline text-[0.75rem] font-medium text-on-background drop-shadow-md transition-colors group-hover:text-primary ${target.align === 'left' ? 'text-right' : 'text-left'}`}>
+                    {target.label}
+                  </span>
+                  <div className="h-[1.5px] w-full bg-on-background/60 transition-colors group-hover:bg-primary" />
+                </button>
+              ))}
+            </div>
+          ))}
         </div>
       </section>
 

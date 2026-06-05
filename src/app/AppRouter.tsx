@@ -177,6 +177,7 @@ export const AppRouter = ({
           setView={setView}
           onSelectMuscle={onSelectMuscle}
           selectedMuscle={selectedMuscle}
+          navigationSource={navigationSource}
         />
       );
     case 'exercise-list':

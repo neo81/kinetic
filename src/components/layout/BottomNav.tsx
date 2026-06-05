@@ -10,13 +10,21 @@ export const BottomNav = ({ active, setView }: { active: View; setView: (v: View
     { id: 'history', icon: History, label: 'HISTORIAL' },
   ];
 
+  const handleNavigate = (targetView: View) => {
+    if (targetView === 'exercise-selector') {
+      window.sessionStorage.setItem('kinetic.selectorSource', 'global');
+    }
+
+    setView(targetView);
+  };
+
   return (
     <nav className="theme-bottom-nav fixed bottom-0 left-0 z-50 w-full px-3 pb-[calc(env(safe-area-inset-bottom)+1.35rem)] pt-3 backdrop-blur-2xl">
       <div className="theme-bottom-nav-inner mx-auto flex w-full max-w-2xl items-center justify-around rounded-[2rem] px-2 py-2">
         {items.map((item) => (
           <button
             key={item.id}
-            onClick={() => setView(item.id as View)}
+            onClick={() => handleNavigate(item.id as View)}
             className={`group relative flex flex-col items-center justify-center transition-all duration-500 ${
               active === item.id ? 'text-primary' : 'text-on-surface-variant/40 hover:text-on-surface'
             }`}
