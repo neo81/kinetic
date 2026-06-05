@@ -480,13 +480,6 @@ textarea::placeholder {
 }
 
 @media (max-width: 640px) {
-  .app-shell *,
-  .app-shell *::before,
-  .app-shell *::after {
-    transition-duration: min(var(--mobile-transition-duration, 220ms), 260ms) !important;
-    animation-duration: min(var(--mobile-animation-duration, 260ms), 320ms) !important;
-  }
-
   .theme-overlay,
   .theme-elevated-surface,
   .theme-bottom-nav,

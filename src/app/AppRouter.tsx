@@ -1,29 +1,15 @@
-import { lazy, Suspense, useEffect, type ReactNode } from 'react';
 import type { ActiveSession, Exercise, Routine, UserProfile, View } from '../types';
 import type { ResolvedTheme, ThemePreference } from '../theme/theme';
-
-const DashboardView = lazy(() => import('../views/DashboardView').then((module) => ({ default: module.DashboardView })));
-const ExerciseEditorView = lazy(() => import('../views/ExerciseEditorView').then((module) => ({ default: module.ExerciseEditorView })));
-const ExerciseListView = lazy(() => import('../views/ExerciseListView').then((module) => ({ default: module.ExerciseListView })));
-const ExerciseSelectorKineticView = lazy(() => import('../views/ExerciseSelectorKineticView').then((module) => ({ default: module.ExerciseSelectorKineticView })));
-const HistoryView = lazy(() => import('../views/HistoryView').then((module) => ({ default: module.HistoryView })));
-const KineticLoginView = lazy(() => import('../views/KineticLoginView').then((module) => ({ default: module.KineticLoginView })));
-const RoutineCreatorView = lazy(() => import('../views/RoutineCreatorView').then((module) => ({ default: module.RoutineCreatorView })));
-const RoutineDetailKineticView = lazy(() => import('../views/RoutineDetailKineticView').then((module) => ({ default: module.RoutineDetailKineticView })));
-const SettingsView = lazy(() => import('../views/SettingsView').then((module) => ({ default: module.SettingsView })));
-const RoutinesListView = lazy(() => import('../views/RoutinesListView').then((module) => ({ default: module.RoutinesListView })));
-
-const preloadViewChunks = () => {
-  void import('../views/DashboardView');
-  void import('../views/ExerciseEditorView');
-  void import('../views/ExerciseListView');
-  void import('../views/ExerciseSelectorKineticView');
-  void import('../views/HistoryView');
-  void import('../views/RoutineCreatorView');
-  void import('../views/RoutineDetailKineticView');
-  void import('../views/SettingsView');
-  void import('../views/RoutinesListView');
-};
+import { DashboardView } from '../views/DashboardView';
+import { ExerciseEditorView } from '../views/ExerciseEditorView';
+import { ExerciseListView } from '../views/ExerciseListView';
+import { ExerciseSelectorKineticView } from '../views/ExerciseSelectorKineticView';
+import { HistoryView } from '../views/HistoryView';
+import { KineticLoginView } from '../views/KineticLoginView';
+import { RoutineCreatorView } from '../views/RoutineCreatorView';
+import { RoutineDetailKineticView } from '../views/RoutineDetailKineticView';
+import { SettingsView } from '../views/SettingsView';
+import { RoutinesListView } from '../views/RoutinesListView';
 
 type AppRouterProps = {
   view: View;
@@ -125,35 +111,17 @@ export const AppRouter = ({
   resolvedTheme,
   onThemeChange,
 }: AppRouterProps) => {
-  useEffect(() => {
-    const idleCallback =
-      'requestIdleCallback' in window
-        ? window.requestIdleCallback(() => preloadViewChunks(), { timeout: 1800 })
-        : globalThis.setTimeout(preloadViewChunks, 700);
-
-    return () => {
-      if ('cancelIdleCallback' in window && typeof idleCallback === 'number') {
-        window.cancelIdleCallback(idleCallback);
-        return;
-      }
-      window.clearTimeout(idleCallback as number);
-    };
-  }, []);
-
-  let content: ReactNode;
-
   switch (view) {
     case 'login':
-      content = (
+      return (
         <KineticLoginView
           onLoginWithGoogle={onLoginWithGoogle}
           onLoginWithEmail={onLoginWithEmail}
           onRegisterWithEmail={onRegisterWithEmail}
         />
       );
-      break;
     case 'dashboard':
-      content = (
+      return (
         <DashboardView
           setView={setView}
           routines={routines}
@@ -168,9 +136,8 @@ export const AppRouter = ({
           }}
         />
       );
-      break;
     case 'routines-list':
-      content = (
+      return (
         <RoutinesListView
           setView={setView}
           routines={routines}
@@ -181,9 +148,8 @@ export const AppRouter = ({
           profile={profile}
         />
       );
-      break;
     case 'routine-creator':
-      content = (
+      return (
         <RoutineCreatorView
           setView={setView}
           onSave={onSaveRoutine}
@@ -205,27 +171,24 @@ export const AppRouter = ({
           setNavigationSource={setNavigationSource}
         />
       );
-      break;
     case 'exercise-selector':
-      content = (
+      return (
         <ExerciseSelectorKineticView
           setView={setView}
           onSelectMuscle={onSelectMuscle}
           selectedMuscle={selectedMuscle}
         />
       );
-      break;
     case 'exercise-list':
-      content = (
+      return (
         <ExerciseListView
           setView={setView}
           muscle={selectedMuscle}
           onSelectExercise={onSelectExercise}
         />
       );
-      break;
     case 'exercise-editor':
-      content = (
+      return (
         <ExerciseEditorView
           setView={setView}
           exercise={selectedExercise}
@@ -233,9 +196,8 @@ export const AppRouter = ({
           onBack={() => setView(navigationSource === 'exercise-selector' ? 'routine-creator' : navigationSource)}
         />
       );
-      break;
     case 'routine-detail':
-      content = (
+      return (
         <RoutineDetailKineticView
           setView={setView}
           routine={currentRoutine ?? routines[0] ?? null}
@@ -269,12 +231,10 @@ export const AppRouter = ({
           onOpenDayChange={setOpenDayId}
         />
       );
-      break;
     case 'history':
-      content = <HistoryView setView={setView} profile={profile} />;
-      break;
+      return <HistoryView setView={setView} profile={profile} />;
     case 'settings':
-      content = (
+      return (
         <SettingsView
           setView={setView}
           profile={profile}
@@ -286,14 +246,7 @@ export const AppRouter = ({
           onThemeChange={onThemeChange}
         />
       );
-      break;
     default:
-      content = null;
+      return null;
   }
-
-  return (
-    <Suspense fallback={<div className="min-h-screen bg-transparent" aria-hidden="true" />}>
-      {content}
-    </Suspense>
-  );
 };

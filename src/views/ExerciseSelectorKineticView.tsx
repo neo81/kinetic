@@ -154,7 +154,7 @@ export const ExerciseSelectorKineticView = ({
         <div className="relative aspect-[0.78] w-full">
           <img
             alt={`Figura anatomica ${side === 'front' ? 'frontal' : 'posterior'}`}
-            className={`h-full w-full object-cover transition-opacity duration-200 ${isCurrentImageLoaded ? 'opacity-100' : 'opacity-0'}`}
+            className="h-full w-full object-cover"
             decoding="async"
             fetchPriority={side === 'front' ? 'high' : 'auto'}
             loading={side === 'front' ? 'eager' : 'lazy'}
