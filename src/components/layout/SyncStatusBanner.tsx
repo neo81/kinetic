@@ -1,6 +1,4 @@
-import { LazyMotion, m, domAnimation, AnimatePresence } from 'motion/react';
 import { useState, useEffect } from 'react';
-import { useReducedMotion } from '../../hooks/useReducedMotion';
 import type { SyncState } from '../../services/syncQueue/SyncStateManager';
 
 type SyncStatusBannerProps = {
@@ -8,7 +6,6 @@ type SyncStatusBannerProps = {
 };
 
 export const SyncStatusBanner = ({ syncState }: SyncStatusBannerProps) => {
-  const prefersReducedMotion = useReducedMotion();
   const [displayMessage, setDisplayMessage] = useState<string>('');
   const [displayColor, setDisplayColor] = useState<'info' | 'warning' | 'error'>('info');
   const [showSpinner, setShowSpinner] = useState(false);
@@ -56,16 +53,9 @@ export const SyncStatusBanner = ({ syncState }: SyncStatusBannerProps) => {
   };
 
   return (
-    <AnimatePresence>
+    <>
       {shouldShow && (
-        <LazyMotion features={domAnimation}>
-          <m.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
-            className="pointer-events-none fixed inset-x-0 top-20 z-[95] flex justify-center px-3 sm:top-24 sm:px-4"
-          >
+        <div className="pointer-events-none fixed inset-x-0 top-20 z-[95] flex justify-center px-3 sm:top-24 sm:px-4">
           <div
             className={`pointer-events-auto w-full max-w-screen-md rounded-xl border bg-surface-container-high/98 px-3 py-2 text-on-surface shadow-xl backdrop-blur sm:px-4 sm:py-3 ${
               colorClasses[displayColor]
@@ -82,9 +72,8 @@ export const SyncStatusBanner = ({ syncState }: SyncStatusBannerProps) => {
               </p>
             </div>
           </div>
-        </m.div>
-        </LazyMotion>
+        </div>
       )}
-    </AnimatePresence>
+    </>
   );
 };

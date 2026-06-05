@@ -478,3 +478,37 @@ textarea::placeholder {
     animation: fade-in 0.3s ease-out;
   }
 }
+
+@media (max-width: 640px) {
+  .app-shell *,
+  .app-shell *::before,
+  .app-shell *::after {
+    transition-duration: 120ms !important;
+  }
+
+  .theme-overlay,
+  .theme-elevated-surface,
+  .theme-bottom-nav,
+  .theme-bottom-nav-inner,
+  .theme-muted-surface,
+  .theme-input-surface,
+  .theme-interactive-hover,
+  .theme-hairline-border,
+  .control-shell {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    box-shadow: none !important;
+  }
+
+  .theme-hero-image {
+    filter: brightness(0.7) contrast(1.05) !important;
+  }
+
+  .theme-primary-shadow-soft,
+  .theme-primary-shadow-strong,
+  .theme-primary-indicator-glow,
+  .theme-bottom-nav-active,
+  .theme-bottom-nav-indicator {
+    box-shadow: none !important;
+  }
+}

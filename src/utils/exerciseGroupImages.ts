@@ -1,20 +1,20 @@
 const EXERCISE_GROUP_IMAGES: Record<string, string> = {
-  abdomen: '/exercise-groups/abdomen.png',
-  abductores: '/exercise-groups/abductores.png',
-  aductores: '/exercise-groups/aductores.png',
-  antebrazo: '/exercise-groups/antebrazo.png',
-  biceps: '/exercise-groups/biceps.png',
-  cuadriceps: '/exercise-groups/cuadriceps.png',
-  dorsales: '/exercise-groups/dorsales.png',
-  gluteos: '/exercise-groups/gluteos.png',
-  hombros: '/exercise-groups/hombros.png',
-  isquiotibiales: '/exercise-groups/isquiotibiales.png',
-  lumbares: '/exercise-groups/lumbares.png',
-  oblicuos: '/exercise-groups/oblicuos.png',
-  pantorrillas: '/exercise-groups/pantorrillas.png',
-  pectorales: '/exercise-groups/pectorales.png',
-  trapecio: '/exercise-groups/trapecio.png',
-  triceps: '/exercise-groups/triceps.png',
+  abdomen: '/exercise-groups/abdomen.webp',
+  abductores: '/exercise-groups/abductores.webp',
+  aductores: '/exercise-groups/aductores.webp',
+  antebrazo: '/exercise-groups/antebrazo.webp',
+  biceps: '/exercise-groups/biceps.webp',
+  cuadriceps: '/exercise-groups/cuadriceps.webp',
+  dorsales: '/exercise-groups/dorsales.webp',
+  gluteos: '/exercise-groups/gluteos.webp',
+  hombros: '/exercise-groups/hombros.webp',
+  isquiotibiales: '/exercise-groups/isquiotibiales.webp',
+  lumbares: '/exercise-groups/lumbares.webp',
+  oblicuos: '/exercise-groups/oblicuos.webp',
+  pantorrillas: '/exercise-groups/pantorrillas.webp',
+  pectorales: '/exercise-groups/pectorales.webp',
+  trapecio: '/exercise-groups/trapecio.webp',
+  triceps: '/exercise-groups/triceps.webp',
 };
 
 const normalizeGroupKey = (group?: string) =>
@@ -26,4 +26,3 @@ const normalizeGroupKey = (group?: string) =>
 
 export const getExerciseGroupImage = (group?: string) =>
   EXERCISE_GROUP_IMAGES[normalizeGroupKey(group)] ?? '/exercise-placeholder.png';
-

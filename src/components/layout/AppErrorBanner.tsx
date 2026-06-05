@@ -1,4 +1,3 @@
-import { motion } from 'motion/react';
 import { useEffect } from 'react';
 
 type AppErrorBannerProps = {
@@ -23,12 +22,7 @@ export const AppErrorBanner = ({ level = 'error', title, message, onDismiss }: A
   }, [level, title, message, onDismiss]);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: -20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      className="pointer-events-none fixed inset-x-0 top-20 z-[100] flex justify-center px-3 sm:top-24 sm:px-4"
-    >
+    <div className="pointer-events-none fixed inset-x-0 top-20 z-[100] flex justify-center px-3 sm:top-24 sm:px-4">
       <div
         className={`pointer-events-auto w-full max-w-screen-md rounded-xl border bg-surface-container-high/98 px-3 py-2 text-on-surface shadow-2xl backdrop-blur sm:px-4 sm:py-3 ${borderClassName}`}
       >
@@ -47,6 +41,6 @@ export const AppErrorBanner = ({ level = 'error', title, message, onDismiss }: A
           </button>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 };

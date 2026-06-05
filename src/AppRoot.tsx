@@ -1,4 +1,3 @@
-import { AnimatePresence, motion } from 'motion/react';
 import { Play } from 'lucide-react';
 import { useEffect } from 'react';
 import { remoteLogger } from './services/remoteLogger';
@@ -16,6 +15,10 @@ export default function AppRoot() {
   const syncState = useSyncState();
 
   useEffect(() => {
+    if (import.meta.env.VITE_ENABLE_REMOTE_LOGGER !== 'true') {
+      return;
+    }
+
     // Enable remote logging for diagnostics (optional)
     try {
       remoteLogger.enable();
@@ -44,23 +47,19 @@ export default function AppRoot() {
 
   return (
     <div className="app-shell min-h-screen bg-background text-on-background relative">
-      <AnimatePresence>
-        {app.appBanner && (
-          <AppErrorBanner
-            key={`${app.appBanner.level}-${app.appBanner.title}-${app.appBanner.message}`}
-            level={app.appBanner.level}
-            title={app.appBanner.title}
-            message={app.appBanner.message}
-            onDismiss={app.clearAppBanner}
-          />
-        )}
-      </AnimatePresence>
+      {app.appBanner && (
+        <AppErrorBanner
+          key={`${app.appBanner.level}-${app.appBanner.title}-${app.appBanner.message}`}
+          level={app.appBanner.level}
+          title={app.appBanner.title}
+          message={app.appBanner.message}
+          onDismiss={app.clearAppBanner}
+        />
+      )}
 
       <SyncStatusBanner syncState={syncState} />
 
-      <AnimatePresence mode="wait">
-        {app.isAppLoading && <SplashScreen key="splash" />}
-      </AnimatePresence>
+      {app.isAppLoading && <SplashScreen key="splash" />}
       
       {app.activeSession && app.view !== 'routine-detail' && (
         <div className="fixed top-4 left-0 right-0 z-[100] px-4 pointer-events-none">
@@ -81,67 +80,57 @@ export default function AppRoot() {
         </div>
       )}
 
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={app.view}
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -20 }}
-          transition={{ duration: 0.3, ease: 'easeInOut' }}
-        >
-          <AppRouter
-            view={app.view}
-            setView={app.setView}
-            routines={app.routines}
-            currentRoutine={app.currentRoutine}
-            setCurrentRoutine={app.setCurrentRoutine}
-            selectedRoutineDayId={app.selectedRoutineDayId}
-            setSelectedRoutineDayId={app.setSelectedRoutineDayId}
-            userEmail={app.user?.email ?? null}
-            selectedMuscle={app.selectedMuscle}
-            selectedExercise={app.selectedExercise}
-            profile={app.profile}
-            onLoginWithGoogle={app.handleLoginWithGoogle}
-            onLoginWithEmail={app.handleLoginWithEmail}
-            onRegisterWithEmail={app.handleRegisterWithEmail}
-            onLogout={app.handleLogout}
-            onSaveProfile={app.handleSaveProfile}
-            onNewRoutine={app.handleStartNewRoutine}
-            onSaveRoutine={app.handleSaveRoutine}
-            onEditRoutine={(routine) => {
-              app.setCurrentRoutine(routine);
-              app.setSelectedRoutineDayId(null);
-              app.setNavigationSource('dashboard');
-              app.setView('routine-creator');
-            }}
-            onDeleteRoutineFromDashboard={app.handleDeleteRoutine}
-            onSelectMuscle={app.handleSelectMuscle}
-            onSelectExercise={app.handleSelectExercise}
-            onSaveExercise={app.handleSaveExercise}
-            onDeleteRoutine={app.handleDeleteRoutine}
-            onDeleteRoutineDay={app.handleDeleteRoutineDay}
-            onDeleteExercise={app.handleDeleteExercise}
-            onImportRoutine={app.handleImportRoutine}
-            navigationSource={app.navigationSource}
-            setNavigationSource={app.setNavigationSource}
-            openDayId={app.openDayId}
-            setOpenDayId={app.setOpenDayId}
-            activeSession={app.activeSession}
-            startSession={app.startSession}
-            endSession={app.endSession}
-            cancelSession={app.cancelSession}
-            onToggleExerciseComplete={app.toggleExerciseComplete}
-            onCaptureSetPerformance={app.captureSetPerformance}
-            onClearCapturedSetPerformance={app.clearCapturedSetPerformance}
-            onSwitchSessionDay={app.switchSessionDay}
-            onCreateExerciseGroup={app.createExerciseGroup}
-            onRemoveExerciseGroup={app.removeExerciseGroup}
-            themePreference={app.themePreference}
-            resolvedTheme={app.resolvedTheme}
-            onThemeChange={app.handleThemeChange}
-          />
-        </motion.div>
-      </AnimatePresence>
+      <AppRouter
+        view={app.view}
+        setView={app.setView}
+        routines={app.routines}
+        currentRoutine={app.currentRoutine}
+        setCurrentRoutine={app.setCurrentRoutine}
+        selectedRoutineDayId={app.selectedRoutineDayId}
+        setSelectedRoutineDayId={app.setSelectedRoutineDayId}
+        userEmail={app.user?.email ?? null}
+        selectedMuscle={app.selectedMuscle}
+        selectedExercise={app.selectedExercise}
+        profile={app.profile}
+        onLoginWithGoogle={app.handleLoginWithGoogle}
+        onLoginWithEmail={app.handleLoginWithEmail}
+        onRegisterWithEmail={app.handleRegisterWithEmail}
+        onLogout={app.handleLogout}
+        onSaveProfile={app.handleSaveProfile}
+        onNewRoutine={app.handleStartNewRoutine}
+        onSaveRoutine={app.handleSaveRoutine}
+        onEditRoutine={(routine) => {
+          app.setCurrentRoutine(routine);
+          app.setSelectedRoutineDayId(null);
+          app.setNavigationSource('dashboard');
+          app.setView('routine-creator');
+        }}
+        onDeleteRoutineFromDashboard={app.handleDeleteRoutine}
+        onSelectMuscle={app.handleSelectMuscle}
+        onSelectExercise={app.handleSelectExercise}
+        onSaveExercise={app.handleSaveExercise}
+        onDeleteRoutine={app.handleDeleteRoutine}
+        onDeleteRoutineDay={app.handleDeleteRoutineDay}
+        onDeleteExercise={app.handleDeleteExercise}
+        onImportRoutine={app.handleImportRoutine}
+        navigationSource={app.navigationSource}
+        setNavigationSource={app.setNavigationSource}
+        openDayId={app.openDayId}
+        setOpenDayId={app.setOpenDayId}
+        activeSession={app.activeSession}
+        startSession={app.startSession}
+        endSession={app.endSession}
+        cancelSession={app.cancelSession}
+        onToggleExerciseComplete={app.toggleExerciseComplete}
+        onCaptureSetPerformance={app.captureSetPerformance}
+        onClearCapturedSetPerformance={app.clearCapturedSetPerformance}
+        onSwitchSessionDay={app.switchSessionDay}
+        onCreateExerciseGroup={app.createExerciseGroup}
+        onRemoveExerciseGroup={app.removeExerciseGroup}
+        themePreference={app.themePreference}
+        resolvedTheme={app.resolvedTheme}
+        onThemeChange={app.handleThemeChange}
+      />
     </div>
   );
 }

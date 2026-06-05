@@ -1,15 +1,17 @@
-import { DashboardView } from '../views/DashboardView';
-import { ExerciseEditorView } from '../views/ExerciseEditorView';
-import { ExerciseListView } from '../views/ExerciseListView';
-import { ExerciseSelectorKineticView } from '../views/ExerciseSelectorKineticView';
-import { HistoryView } from '../views/HistoryView';
-import { KineticLoginView } from '../views/KineticLoginView';
-import { RoutineCreatorView } from '../views/RoutineCreatorView';
-import { RoutineDetailKineticView } from '../views/RoutineDetailKineticView';
-import { SettingsView } from '../views/SettingsView';
-import { RoutinesListView } from '../views/RoutinesListView';
+import { lazy, Suspense } from 'react';
 import type { ActiveSession, Exercise, Routine, UserProfile, View } from '../types';
 import type { ResolvedTheme, ThemePreference } from '../theme/theme';
+
+const DashboardView = lazy(() => import('../views/DashboardView').then((module) => ({ default: module.DashboardView })));
+const ExerciseEditorView = lazy(() => import('../views/ExerciseEditorView').then((module) => ({ default: module.ExerciseEditorView })));
+const ExerciseListView = lazy(() => import('../views/ExerciseListView').then((module) => ({ default: module.ExerciseListView })));
+const ExerciseSelectorKineticView = lazy(() => import('../views/ExerciseSelectorKineticView').then((module) => ({ default: module.ExerciseSelectorKineticView })));
+const HistoryView = lazy(() => import('../views/HistoryView').then((module) => ({ default: module.HistoryView })));
+const KineticLoginView = lazy(() => import('../views/KineticLoginView').then((module) => ({ default: module.KineticLoginView })));
+const RoutineCreatorView = lazy(() => import('../views/RoutineCreatorView').then((module) => ({ default: module.RoutineCreatorView })));
+const RoutineDetailKineticView = lazy(() => import('../views/RoutineDetailKineticView').then((module) => ({ default: module.RoutineDetailKineticView })));
+const SettingsView = lazy(() => import('../views/SettingsView').then((module) => ({ default: module.SettingsView })));
+const RoutinesListView = lazy(() => import('../views/RoutinesListView').then((module) => ({ default: module.RoutinesListView })));
 
 type AppRouterProps = {
   view: View;
@@ -111,17 +113,20 @@ export const AppRouter = ({
   resolvedTheme,
   onThemeChange,
 }: AppRouterProps) => {
+  let content: JSX.Element | null;
+
   switch (view) {
     case 'login':
-      return (
+      content = (
         <KineticLoginView
           onLoginWithGoogle={onLoginWithGoogle}
           onLoginWithEmail={onLoginWithEmail}
           onRegisterWithEmail={onRegisterWithEmail}
         />
       );
+      break;
     case 'dashboard':
-      return (
+      content = (
         <DashboardView
           setView={setView}
           routines={routines}
@@ -136,8 +141,9 @@ export const AppRouter = ({
           }}
         />
       );
+      break;
     case 'routines-list':
-      return (
+      content = (
         <RoutinesListView
           setView={setView}
           routines={routines}
@@ -148,8 +154,9 @@ export const AppRouter = ({
           profile={profile}
         />
       );
+      break;
     case 'routine-creator':
-      return (
+      content = (
         <RoutineCreatorView
           setView={setView}
           onSave={onSaveRoutine}
@@ -171,23 +178,27 @@ export const AppRouter = ({
           setNavigationSource={setNavigationSource}
         />
       );
+      break;
     case 'exercise-selector':
-      return (
+      content = (
         <ExerciseSelectorKineticView
           setView={setView}
           onSelectMuscle={onSelectMuscle}
+          selectedMuscle={selectedMuscle}
         />
       );
+      break;
     case 'exercise-list':
-      return (
+      content = (
         <ExerciseListView
           setView={setView}
           muscle={selectedMuscle}
           onSelectExercise={onSelectExercise}
         />
       );
+      break;
     case 'exercise-editor':
-      return (
+      content = (
         <ExerciseEditorView
           setView={setView}
           exercise={selectedExercise}
@@ -195,8 +206,9 @@ export const AppRouter = ({
           onBack={() => setView(navigationSource === 'exercise-selector' ? 'routine-creator' : navigationSource)}
         />
       );
+      break;
     case 'routine-detail':
-      return (
+      content = (
         <RoutineDetailKineticView
           setView={setView}
           routine={currentRoutine ?? routines[0] ?? null}
@@ -230,10 +242,12 @@ export const AppRouter = ({
           onOpenDayChange={setOpenDayId}
         />
       );
+      break;
     case 'history':
-      return <HistoryView setView={setView} profile={profile} />;
+      content = <HistoryView setView={setView} profile={profile} />;
+      break;
     case 'settings':
-      return (
+      content = (
         <SettingsView
           setView={setView}
           profile={profile}
@@ -245,7 +259,14 @@ export const AppRouter = ({
           onThemeChange={onThemeChange}
         />
       );
+      break;
     default:
-      return null;
+      content = null;
   }
+
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-background" />}>
+      {content}
+    </Suspense>
+  );
 };

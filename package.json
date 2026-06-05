@@ -10,6 +10,10 @@
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
     "test": "vitest",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:load:k6": "k6 run tests/load/smoke.k6.js",
+    "test:load:artillery": "artillery run tests/load/smoke.artillery.yml",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage"
   },
@@ -26,8 +30,10 @@
     "vite": "^6.2.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "@types/express": "^4.17.21",
     "@types/node": "^22.14.0",
+    "artillery": "^2.0.32",
     "autoprefixer": "^10.4.21",
     "happy-dom": "^20.9.0",
     "supabase": "^2.98.2",

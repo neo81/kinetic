@@ -15,7 +15,7 @@ type MuscleTarget = {
 
 const selectorData: Record<MuscleSide, { image: string; targets: MuscleTarget[] }> = {
   front: {
-    image: '/body-front.png',
+    image: '/body-front.webp',
     targets: [
       { id: 'hombros', label: 'Hombros', group: 'Hombros', dot: { x: 38, y: 25 }, labelPos: { x: 15, y: 23 }, align: 'left' },
       { id: 'pectorales', label: 'Pectorales', group: 'Pectorales', dot: { x: 56, y: 27 }, labelPos: { x: 82, y: 25 }, align: 'right' },
@@ -30,7 +30,7 @@ const selectorData: Record<MuscleSide, { image: string; targets: MuscleTarget[] 
     ],
   },
   back: {
-    image: '/body-back.png',
+    image: '/body-back.webp',
     targets: [
       { id: 'trapecio', label: 'Trapecio', group: 'Trapecio', dot: { x: 50, y: 20 }, labelPos: { x: 85, y: 18 }, align: 'right' },
       { id: 'triceps', label: 'Tríceps', group: 'Triceps', dot: { x: 35, y: 30 }, labelPos: { x: 12, y: 32 }, align: 'left' },
@@ -46,16 +46,29 @@ const selectorData: Record<MuscleSide, { image: string; targets: MuscleTarget[] 
 export const ExerciseSelectorKineticView = ({
   setView,
   onSelectMuscle,
+  selectedMuscle,
 }: {
   setView: (v: View) => void;
   onSelectMuscle: (m: string) => void;
+  selectedMuscle?: string;
 }) => {
-  const [side, setSide] = useState<MuscleSide>('front');
+  const getSideForMuscle = (muscle?: string): MuscleSide => {
+    const normalized = (muscle ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    return selectorData.back.targets.some((target) => target.id === normalized || target.group.toLowerCase() === normalized)
+      ? 'back'
+      : 'front';
+  };
+
+  const [side, setSide] = useState<MuscleSide>(() => getSideForMuscle(selectedMuscle));
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
+
+  useEffect(() => {
+    setSide(getSideForMuscle(selectedMuscle));
+  }, [selectedMuscle]);
 
   const filteredTargets = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
