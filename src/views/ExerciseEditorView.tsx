@@ -305,7 +305,7 @@ export const ExerciseEditorView = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-[2.5rem_minmax(0,1fr)_minmax(0,1fr)_2.25rem] gap-2 px-2">
+        <div className="grid grid-cols-[2rem_minmax(5.25rem,1.05fr)_minmax(4.5rem,0.95fr)_2rem] gap-1.5 px-2 sm:grid-cols-[2.5rem_minmax(0,1fr)_minmax(0,1fr)_2.25rem] sm:gap-2">
           <span className="text-[9px] uppercase tracking-widest text-on-surface-variant">Set</span>
           <span className="text-center text-[9px] uppercase tracking-widest text-on-surface-variant">Reps</span>
           <span className="text-center text-[9px] uppercase tracking-widest text-on-surface-variant">{metricLabel}</span>
@@ -319,16 +319,16 @@ export const ExerciseEditorView = ({
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
-              className="grid grid-cols-[2.5rem_minmax(0,1fr)_minmax(0,1fr)_2.25rem] items-center gap-2 rounded-xl border theme-hairline-border bg-surface-container-high/40 p-2"
+              className="grid grid-cols-[2rem_minmax(5.25rem,1.05fr)_minmax(4.5rem,0.95fr)_2rem] items-center gap-1.5 rounded-xl border theme-hairline-border bg-surface-container-high/40 p-2 sm:grid-cols-[2.5rem_minmax(0,1fr)_minmax(0,1fr)_2.25rem] sm:gap-2"
             >
-              <span className="pl-2 font-headline text-sm font-semibold text-on-surface-variant">{String(index + 1).padStart(2, '0')}</span>
+              <span className="pl-1 font-headline text-xs font-semibold text-on-surface-variant sm:pl-2 sm:text-sm">{String(index + 1).padStart(2, '0')}</span>
 
               <div className="min-w-0 space-y-1.5">
                 <div className="grid h-8 grid-cols-2 rounded-lg bg-surface-container-highest p-0.5">
                   <button
                     type="button"
                     onClick={() => updateTargetType(set.id, 'fixed_reps')}
-                    className={`rounded-md text-[10px] font-black uppercase tracking-[0.14em] ${
+                    className={`flex min-w-0 items-center justify-center rounded-md px-1 text-[9px] font-black uppercase tracking-[0.04em] sm:text-[10px] sm:tracking-[0.14em] ${
                       set.targetType === 'fixed_reps' ? 'bg-primary text-black' : 'text-on-surface-variant'
                     }`}
                   >
@@ -337,7 +337,7 @@ export const ExerciseEditorView = ({
                   <button
                     type="button"
                     onClick={() => updateTargetType(set.id, 'failure')}
-                    className={`rounded-md text-[10px] font-black uppercase tracking-[0.14em] ${
+                    className={`flex min-w-0 items-center justify-center rounded-md px-1 text-[9px] font-black uppercase tracking-[0.04em] sm:text-[10px] sm:tracking-[0.14em] ${
                       set.targetType === 'failure' ? 'bg-secondary text-black' : 'text-on-surface-variant'
                     }`}
                   >

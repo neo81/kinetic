@@ -156,13 +156,14 @@ Cambios principales:
   - Se suavizaron transiciones para evitar pantallazos negros en iOS/Android PWA.
   - Se reviso rendimiento en Android de gama media, evitando degradar imagenes WebP que ya se veian correctamente.
   - Se regeneraron iconos PWA, favicon y Apple Touch desde la imagen base corregida.
+  - Se ajusto la grilla del editor de series en PWA/mobile para que los botones `REPS` y `FALLO` no se superpongan en pantallas angostas.
 
 - Supabase y datos:
   - Se actualizo el schema remoto para soportar altura, peso, tipo de carga, series al fallo y snapshot de peso corporal.
   - Se actualizaron las funciones remotas `end_session_transaction` e `import_routine` para preservar los nuevos campos.
   - Se limpiaron datos de prueba generados por E2E/load tests y se prepararon scripts conservadores de limpieza.
   - Se agregaron ejercicios faltantes a la biblioteca global, entre ellos variantes de triceps, face pull, posteriores en maquina y curl inclinado.
-  - Se ampliaron los ejercicios globales de Core/Oblicuos tomando como referencia Muscle & Strength y MuscleWiki: sit-ups, crunches con variantes, elevaciones de piernas/rodillas, dragon flag, vacuum abdominal, variantes Pallof y mountain climber rotacional, entre otros.
+  - Se ampliaron los ejercicios globales de Core/Oblicuos tomando como referencia Muscle & Strength y MuscleWiki: sit-ups, crunches con variantes, elevaciones de piernas/rodillas, dragon flag, vacuum abdominal, variantes Pallof, mountain climber rotacional y toques alternos de talon, entre otros. `Toques Alternos de Talon (Alternating Heel Touch)` quedo disponible tanto en Oblicuos como en Core.
 
 - Pruebas:
   - Se agrego estructura inicial de pruebas E2E con Playwright.
