@@ -162,6 +162,7 @@ Cambios principales:
   - Se actualizaron las funciones remotas `end_session_transaction` e `import_routine` para preservar los nuevos campos.
   - Se limpiaron datos de prueba generados por E2E/load tests y se prepararon scripts conservadores de limpieza.
   - Se agregaron ejercicios faltantes a la biblioteca global, entre ellos variantes de triceps, face pull, posteriores en maquina y curl inclinado.
+  - Se ampliaron los ejercicios globales de Core/Oblicuos tomando como referencia Muscle & Strength y MuscleWiki: sit-ups, crunches con variantes, elevaciones de piernas/rodillas, dragon flag, vacuum abdominal, variantes Pallof y mountain climber rotacional, entre otros.
 
 - Pruebas:
   - Se agrego estructura inicial de pruebas E2E con Playwright.
