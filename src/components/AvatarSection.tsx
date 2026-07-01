@@ -1,5 +1,6 @@
 import { User, Edit2, Upload } from 'lucide-react';
 import { motion } from 'motion/react';
+import { useEffect, useState } from 'react';
 import type { UserProfile } from '../types';
 
 interface AvatarSectionProps {
@@ -15,17 +16,24 @@ export const AvatarSection = ({
   onEditClick,
   onUploadClick,
 }: AvatarSectionProps) => {
+  const [imageError, setImageError] = useState(false);
+
+  useEffect(() => {
+    setImageError(false);
+  }, [profile?.avatarUrl]);
+
   return (
     <div className="flex flex-col items-center">
       <div className="relative group">
         <div className="h-32 w-32 rounded-full bg-[conic-gradient(from_210deg,#ff7439,#d1fc00,#ff7439)] p-1 shadow-[0_0_30px_rgba(209,252,0,0.16)]">
           <div className="flex h-full w-full items-center justify-center rounded-full bg-surface-container text-on-surface overflow-hidden">
-            {profile?.avatarUrl ? (
+            {profile?.avatarUrl && !imageError ? (
               <motion.img
                 src={profile.avatarUrl}
                 alt="Avatar"
                 className="h-full w-full object-cover"
                 referrerPolicy="no-referrer"
+                onError={() => setImageError(true)}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.3 }}

@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Accessibility, Activity, ArrowLeft, Search } from 'lucide-react';
+import { Accessibility, Activity, ArrowLeft, Dumbbell, Search } from 'lucide-react';
 import { PageShell } from '../components/layout/PageShell';
-import type { View } from '../types';
+import { supabase, isSupabaseConfigured } from '../lib/supabase/client';
+import { fallbackExerciseLibrary } from '../app/initialData';
+import type { Exercise, UserProfile, View } from '../types';
 
 type MuscleSide = 'front' | 'back';
 type MuscleTarget = {
@@ -11,6 +13,10 @@ type MuscleTarget = {
   dot: { x: number; y: number };
   labelPos: { x: number; y: number };
   align: 'left' | 'right';
+};
+
+type GlobalExerciseResult = Exercise & {
+  muscleGroupCode: string;
 };
 
 const selectorData: Record<MuscleSide, { image: string; targets: MuscleTarget[] }> = {
@@ -46,13 +52,17 @@ const selectorData: Record<MuscleSide, { image: string; targets: MuscleTarget[] 
 export const ExerciseSelectorKineticView = ({
   setView,
   onSelectMuscle,
+  onSelectExercise,
   selectedMuscle,
   navigationSource,
+  profile,
 }: {
   setView: (v: View) => void;
   onSelectMuscle: (m: string) => void;
+  onSelectExercise?: (exercise: Exercise) => void;
   selectedMuscle?: string;
   navigationSource?: View;
+  profile?: UserProfile | null;
 }) => {
   const getSideForMuscle = (muscle?: string): MuscleSide => {
     const normalized = (muscle ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
@@ -63,6 +73,8 @@ export const ExerciseSelectorKineticView = ({
 
   const [side, setSide] = useState<MuscleSide>(() => getSideForMuscle(selectedMuscle));
   const [searchQuery, setSearchQuery] = useState('');
+  const [globalExercises, setGlobalExercises] = useState<GlobalExerciseResult[]>([]);
+  const [globalSearchLoading, setGlobalSearchLoading] = useState(false);
   const [loadedImages, setLoadedImages] = useState<Record<MuscleSide, boolean>>({
     front: false,
     back: false,
@@ -94,6 +106,73 @@ export const ExerciseSelectorKineticView = ({
     setSide(getSideForMuscle(selectedMuscle));
   }, [selectedMuscle]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchGlobalExercises = async () => {
+      setGlobalSearchLoading(true);
+
+      if (!isSupabaseConfigured || !supabase) {
+        const fallback = fallbackExerciseLibrary.map((exercise) => ({
+          ...exercise,
+          muscleGroup: exercise.muscleGroup || exercise.muscleGroupCode,
+          muscleGroupCode: exercise.muscleGroupCode,
+          notes: '',
+        }));
+        if (!cancelled) {
+          setGlobalExercises(fallback);
+          setGlobalSearchLoading(false);
+        }
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('exercises')
+          .select(`
+            id,
+            name,
+            equipment,
+            description,
+            user_id,
+            is_active,
+            muscle_groups!inner(code, name)
+          `)
+          .eq('is_active', true)
+          .order('name', { ascending: true });
+
+        if (error) throw error;
+
+        const mapped: GlobalExerciseResult[] = (data ?? []).map((item: any) => ({
+          id: item.id,
+          name: item.name,
+          description: item.description ?? undefined,
+          equipment: item.equipment ?? undefined,
+          muscleGroup: item.muscle_groups?.name || 'Sin grupo',
+          muscleGroupCode: item.muscle_groups?.code || '',
+          sets: [],
+          isCustom: !!item.user_id,
+        }));
+
+        if (!cancelled) {
+          setGlobalExercises(mapped);
+        }
+      } catch (error) {
+        console.error('Error al cargar busqueda global de ejercicios:', error);
+      } finally {
+        if (!cancelled) {
+          setGlobalSearchLoading(false);
+        }
+      }
+    };
+
+    fetchGlobalExercises();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const filteredTargetsBySide = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
     const filterTargets = (targetSide: MuscleSide) => {
@@ -112,8 +191,39 @@ export const ExerciseSelectorKineticView = ({
     };
   }, [searchQuery]);
 
+  const filteredGlobalExercises = useMemo(() => {
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+    if (normalizedQuery.length < 2) {
+      return [];
+    }
+
+    return globalExercises
+      .filter((exercise) =>
+        exercise.name.toLowerCase().includes(normalizedQuery) ||
+        exercise.muscleGroup.toLowerCase().includes(normalizedQuery),
+      )
+      .slice(0, 8);
+  }, [globalExercises, searchQuery]);
+
   const handleOpenLibrary = (group: string) => {
     onSelectMuscle(group);
+    setView('exercise-list');
+  };
+
+  const handleSelectGlobalExercise = (exercise: GlobalExerciseResult) => {
+    const selectorSource = window.sessionStorage.getItem('kinetic.selectorSource');
+    if (selectorSource === 'global') {
+      onSelectMuscle(exercise.muscleGroupCode || exercise.muscleGroup);
+      setView('exercise-list');
+      return;
+    }
+
+    if (onSelectExercise) {
+      onSelectExercise(exercise);
+      return;
+    }
+
+    onSelectMuscle(exercise.muscleGroupCode || exercise.muscleGroup);
     setView('exercise-list');
   };
 
@@ -133,6 +243,7 @@ export const ExerciseSelectorKineticView = ({
       setView={setView}
       onProfileClick={() => setView('settings')}
       onSettingsClick={() => setView('settings')}
+      profile={profile}
       contentClassName="space-y-5"
     >
       <section className="space-y-5">
@@ -161,10 +272,48 @@ export const ExerciseSelectorKineticView = ({
           <input
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
-            placeholder="Buscar grupo muscular..."
+            placeholder="Buscar grupo o ejercicio..."
             className="h-12 w-full rounded-full border theme-hairline-border bg-surface-container-high px-11 text-sm text-on-surface outline-none transition-all focus:border-primary/35 focus:ring-2 focus:ring-primary/12"
           />
         </div>
+        {searchQuery.trim().length >= 2 && (
+          <div className="mt-4 space-y-2">
+            <p className="text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-on-surface-variant">
+              Ejercicios encontrados
+            </p>
+            {globalSearchLoading ? (
+              <div className="rounded-[0.9rem] bg-surface-container-low px-4 py-3 text-sm text-on-surface-variant">
+                Buscando...
+              </div>
+            ) : filteredGlobalExercises.length > 0 ? (
+              <div className="space-y-2">
+                {filteredGlobalExercises.map((exercise) => (
+                  <button
+                    key={exercise.id}
+                    type="button"
+                    onClick={() => handleSelectGlobalExercise(exercise)}
+                    className="flex w-full items-center justify-between gap-3 rounded-[0.9rem] bg-surface-container-low px-4 py-3 text-left transition-colors hover:bg-surface-container-high"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-bold text-on-surface">{exercise.name}</p>
+                      <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-primary">
+                        Pertenece a {exercise.muscleGroup}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2 text-[10px] font-bold uppercase tracking-[0.12em] text-on-surface-variant">
+                      <Dumbbell size={14} />
+                      {exercise.equipment || 'General'}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-[0.9rem] bg-surface-container-low px-4 py-3 text-sm text-on-surface-variant">
+                No hay ejercicios con ese nombre.
+              </div>
+            )}
+          </div>
+        )}
       </section>
 
       <section className="panel-surface overflow-hidden rounded-[1.1rem]">

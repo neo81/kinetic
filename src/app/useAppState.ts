@@ -71,6 +71,8 @@ const mapProfileRow = (
   unitSystem: profile.unit_system,
   bio: profile.bio,
   fitnessLevel: profile.fitness_level,
+  heightCm: profile.height_cm === null ? null : Number(profile.height_cm),
+  bodyWeightKg: profile.body_weight_kg === null ? null : Number(profile.body_weight_kg),
 });
 
 const loadPersistedActiveSession = (): ActiveSession | null => {
@@ -390,6 +392,9 @@ export const useAppState = () => {
       provider: 'google',
       options: {
         redirectTo: window.location.origin,
+        queryParams: {
+          prompt: 'select_account',
+        },
       },
     });
 
@@ -421,6 +426,10 @@ export const useAppState = () => {
   };
 
   const handleLogout = async () => {
+    if (supabase) {
+      await supabase.auth.signOut({ scope: 'global' }).catch(console.error);
+    }
+
     setIsLoggedIn(false);
     setUser(null);
     setRoutines(initialRoutines);
@@ -435,10 +444,6 @@ export const useAppState = () => {
     setProfile(null);
     persistActiveSession(null);
     setView('login');
-
-    if (supabase) {
-      supabase.auth.signOut().catch(console.error);
-    }
   };
 
   const handleSetCurrentRoutine = useCallback((routine: Routine | null) => {
@@ -454,6 +459,8 @@ export const useAppState = () => {
     bio: string;
     fitnessLevel: string;
     unitSystem: 'kg' | 'lb';
+    heightCm?: number | null;
+    bodyWeightKg?: number | null;
     avatarUrl?: string;
   }) => {
     if (!supabase || !user) throw new Error('No hay sesion activa.');
@@ -464,6 +471,8 @@ export const useAppState = () => {
       bio: input.bio.trim() || null,
       fitness_level: input.fitnessLevel || null,
       unit_system: input.unitSystem,
+      height_cm: input.heightCm ?? null,
+      body_weight_kg: input.bodyWeightKg ?? null,
     };
 
     // Only update avatar_url if provided

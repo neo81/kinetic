@@ -1,5 +1,5 @@
 import { Play } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { remoteLogger } from './services/remoteLogger';
 import { AppRouter } from './app/AppRouter';
 import { useAppState } from './app/useAppState';
@@ -8,11 +8,16 @@ import { useSyncState } from './hooks/useSyncState';
 import { AppErrorBanner } from './components/layout/AppErrorBanner';
 import { SyncStatusBanner } from './components/layout/SyncStatusBanner';
 import { SplashScreen } from './components/layout/SplashScreen';
+import { ReleaseNotesDialog } from './components/ReleaseNotesDialog';
+import { CURRENT_RELEASE_NOTES_VERSION, currentReleaseNotes } from './app/releaseNotes';
+
+const RELEASE_NOTES_STORAGE_KEY = 'kinetic.lastSeenReleaseNotes';
 
 export default function AppRoot() {
   const app = useAppState();
   useSync();
   const syncState = useSyncState();
+  const [showReleaseNotes, setShowReleaseNotes] = useState(false);
 
   useEffect(() => {
     if (import.meta.env.VITE_ENABLE_REMOTE_LOGGER !== 'true') {
@@ -32,6 +37,36 @@ export default function AppRoot() {
       } catch (_e) {}
     };
   }, []);
+
+  useEffect(() => {
+    if (
+      app.isAppLoading ||
+      !app.user ||
+      app.activeSession ||
+      app.appBanner ||
+      syncState.status !== 'idle'
+    ) {
+      return;
+    }
+
+    try {
+      const lastSeenVersion = window.localStorage.getItem(RELEASE_NOTES_STORAGE_KEY);
+      if (lastSeenVersion !== CURRENT_RELEASE_NOTES_VERSION) {
+        setShowReleaseNotes(true);
+      }
+    } catch (_error) {
+      setShowReleaseNotes(false);
+    }
+  }, [app.activeSession, app.appBanner, app.isAppLoading, app.user, syncState.status]);
+
+  const handleCloseReleaseNotes = () => {
+    try {
+      window.localStorage.setItem(RELEASE_NOTES_STORAGE_KEY, CURRENT_RELEASE_NOTES_VERSION);
+    } catch (_error) {
+      // Ignore storage failures; closing should still work for the current session.
+    }
+    setShowReleaseNotes(false);
+  };
 
   const handleReturnToSession = () => {
     if (app.activeSession?.routineId) {
@@ -57,6 +92,13 @@ export default function AppRoot() {
       )}
 
       <SyncStatusBanner syncState={syncState} />
+
+      <ReleaseNotesDialog
+        isOpen={showReleaseNotes}
+        version={CURRENT_RELEASE_NOTES_VERSION}
+        notes={currentReleaseNotes}
+        onClose={handleCloseReleaseNotes}
+      />
 
       {app.isAppLoading && <SplashScreen key="splash" />}
       

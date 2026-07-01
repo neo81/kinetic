@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft, ArrowRight, Info, Plus, Trash2 } from 'lucide-react';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 import { PageShell } from '../components/layout/PageShell';
-import type { Exercise, View } from '../types';
+import type { Exercise, ExerciseLoadType, ExerciseTargetType, UserProfile, View } from '../types';
 
 type EditableSet = {
   id: string;
@@ -11,6 +11,7 @@ type EditableSet = {
   value: string;
   syncReps: boolean;
   syncValue: boolean;
+  targetType: ExerciseTargetType;
 };
 
 export const ExerciseEditorView = ({
@@ -18,29 +19,31 @@ export const ExerciseEditorView = ({
   exercise,
   onSave,
   onBack,
+  profile,
 }: {
   setView: (v: View) => void;
   exercise: Exercise | null;
-  onSave: (e: Exercise & { notes?: string; measureUnit?: 'kg' | 'min' | 'sec' }) => void;
+  onSave: (e: Exercise & { notes?: string; measureUnit?: 'kg' | 'min' | 'sec'; loadType?: ExerciseLoadType }) => void;
   onBack: () => void;
+  profile?: UserProfile | null;
 }) => {
   const prefersReducedMotion = useReducedMotion();
   const normalizeInput = (value: string) => value.replace(',', '.');
   const getSetMetricValue = (
     measureUnit: 'kg' | 'min' | 'sec',
     base?: {
-      weight?: number | string;
-      durationMinutes?: number | string;
-      durationSeconds?: number | string;
+      weight?: number | string | null;
+      durationMinutes?: number | string | null;
+      durationSeconds?: number | string | null;
     },
   ) => {
     if (measureUnit === 'min') {
-      return base?.durationMinutes !== undefined ? String(base.durationMinutes) : '';
+      return base?.durationMinutes !== undefined && base.durationMinutes !== null ? String(base.durationMinutes) : '';
     }
     if (measureUnit === 'sec') {
-      return base?.durationSeconds !== undefined ? String(base.durationSeconds) : '';
+      return base?.durationSeconds !== undefined && base.durationSeconds !== null ? String(base.durationSeconds) : '';
     }
-    return base?.weight !== undefined ? String(base.weight) : '';
+    return base?.weight !== undefined && base.weight !== null ? String(base.weight) : '';
   };
   const createSetState = (
     index: number,
@@ -53,10 +56,11 @@ export const ExerciseEditorView = ({
     },
   ): EditableSet => ({
     id: String(index + 1),
-    reps: base?.reps !== undefined ? String(base.reps) : '',
+    reps: base?.reps !== undefined && base.reps !== null ? String(base.reps) : '',
     value: getSetMetricValue(measureUnit, base),
     syncReps: index !== 0,
     syncValue: index !== 0,
+    targetType: (base as { targetType?: ExerciseTargetType } | undefined)?.targetType ?? 'fixed_reps',
   });
 
   const initialUnit = exercise?.measureUnit || 'kg';
@@ -66,6 +70,8 @@ export const ExerciseEditorView = ({
 
   const [sets, setSets] = useState<EditableSet[]>(initialSets);
   const [unit, setUnit] = useState<'kg' | 'min' | 'sec'>(initialUnit);
+  const defaultLoadType: ExerciseLoadType = exercise?.loadType === 'bodyweight' ? 'bodyweight' : 'external';
+  const [loadType, setLoadType] = useState<ExerciseLoadType>(defaultLoadType);
   const [localNotes, setLocalNotes] = useState(exercise?.sets?.[0]?.notes || exercise?.notes || '');
   const [showDescription, setShowDescription] = useState(false);
 
@@ -82,6 +88,7 @@ export const ExerciseEditorView = ({
         value: prev[0]?.value || '',
         syncReps: true,
         syncValue: true,
+        targetType: prev[0]?.targetType || 'fixed_reps',
       },
     ]);
   };
@@ -115,6 +122,34 @@ export const ExerciseEditorView = ({
     });
   };
 
+  const updateTargetType = (id: string, targetType: ExerciseTargetType) => {
+    setSets((prev) => {
+      const nextSets = prev.map((set) => ({ ...set }));
+      const targetIndex = nextSets.findIndex((set) => set.id === id);
+      if (targetIndex === -1) return prev;
+
+      nextSets[targetIndex].targetType = targetType;
+      if (targetType === 'failure') {
+        nextSets[targetIndex].reps = '';
+      }
+
+      if (targetIndex === 0) {
+        for (let index = 1; index < nextSets.length; index += 1) {
+          if (nextSets[index].syncReps) {
+            nextSets[index].targetType = targetType;
+            if (targetType === 'failure') {
+              nextSets[index].reps = '';
+            }
+          }
+        }
+      } else {
+        nextSets[targetIndex].syncReps = false;
+      }
+
+      return nextSets;
+    });
+  };
+
   const handleRemoveSet = (id: string) => {
     if (sets.length > 1) {
       setSets((prev) => renumberSets(prev.filter((set) => set.id !== id)));
@@ -127,14 +162,15 @@ export const ExerciseEditorView = ({
     }
 
     const parsedSets = sets.map((set) => ({
-      reps: parseFloat(set.reps || '0') || 0,
-      weight: unit === 'kg' ? parseFloat(set.value || '0') || 0 : 0,
+      reps: set.targetType === 'failure' ? null : (parseFloat(set.reps || '0') || 0),
+      weight: unit === 'kg' && loadType === 'external' ? (parseFloat(set.value || '0') || 0) : null,
       durationMinutes: unit === 'min' ? parseFloat(set.value || '0') || 0 : 0,
       durationSeconds: unit === 'sec' ? parseFloat(set.value || '0') || 0 : 0,
       notes: localNotes,
+      targetType: set.targetType,
     }));
 
-    onSave({ ...exercise, sets: parsedSets, measureUnit: unit, notes: localNotes });
+    onSave({ ...exercise, sets: parsedSets, measureUnit: unit, loadType: unit === 'kg' ? loadType : 'external', notes: localNotes });
   };
 
   if (!exercise) {
@@ -144,6 +180,7 @@ export const ExerciseEditorView = ({
         setView={setView}
         onProfileClick={() => setView('settings')}
         onSettingsClick={() => setView('settings')}
+        profile={profile}
         contentClassName="pb-8"
       >
         <section className="space-y-6 text-center">
@@ -163,6 +200,7 @@ export const ExerciseEditorView = ({
       setView={setView}
       onProfileClick={() => setView('settings')}
       onSettingsClick={() => setView('settings')}
+      profile={profile}
       contentClassName="pb-8"
     >
       <section className="mb-6 space-y-5">
@@ -219,7 +257,12 @@ export const ExerciseEditorView = ({
           {(['kg', 'min', 'sec'] as const).map((item) => (
             <button
               key={item}
-              onClick={() => setUnit(item)}
+              onClick={() => {
+                setUnit(item);
+                if (item !== 'kg') {
+                  setLoadType('external');
+                }
+              }}
               className={`rounded-lg px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.14em] transition-all ${
                 unit === item ? 'bg-primary text-black' : 'bg-surface-container-highest text-on-surface-variant hover:text-on-surface'
               }`}
@@ -228,6 +271,28 @@ export const ExerciseEditorView = ({
             </button>
           ))}
         </div>
+        {unit === 'kg' && (
+          <div className="mt-3 flex items-center justify-between gap-3 rounded-[0.85rem] bg-surface-container-highest px-3 py-2">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-on-surface-variant">Peso corporal</p>
+              <p className="mt-0.5 text-[9px] text-on-surface-variant/60">
+                {profile?.bodyWeightKg ? `${profile.bodyWeightKg} kg desde perfil` : 'Usa el peso registrado en perfil'}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setLoadType((current) => (current === 'bodyweight' ? 'external' : 'bodyweight'))}
+              className={`flex h-7 w-12 items-center rounded-full border px-1 transition-all ${
+                loadType === 'bodyweight'
+                  ? 'justify-end border-secondary bg-secondary'
+                  : 'justify-start border-outline-variant/30 bg-surface-container'
+              }`}
+              aria-pressed={loadType === 'bodyweight'}
+            >
+              <span className={`h-5 w-5 rounded-full shadow ${loadType === 'bodyweight' ? 'bg-black' : 'bg-on-surface-variant/45'}`} />
+            </button>
+          </div>
+        )}
       </section>
 
       <section className="space-y-4">
@@ -240,7 +305,7 @@ export const ExerciseEditorView = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-[3rem_1fr_1fr_2.5rem] gap-2 px-2">
+        <div className="grid grid-cols-[2.5rem_minmax(0,1fr)_minmax(0,1fr)_2.25rem] gap-2 px-2">
           <span className="text-[9px] uppercase tracking-widest text-on-surface-variant">Set</span>
           <span className="text-center text-[9px] uppercase tracking-widest text-on-surface-variant">Reps</span>
           <span className="text-center text-[9px] uppercase tracking-widest text-on-surface-variant">{metricLabel}</span>
@@ -254,32 +319,65 @@ export const ExerciseEditorView = ({
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
-              className="grid grid-cols-[3rem_1fr_1fr_2.5rem] items-center gap-2 rounded-xl border theme-hairline-border bg-surface-container-high/40 p-2"
+              className="grid grid-cols-[2.5rem_minmax(0,1fr)_minmax(0,1fr)_2.25rem] items-center gap-2 rounded-xl border theme-hairline-border bg-surface-container-high/40 p-2"
             >
               <span className="pl-2 font-headline text-sm font-semibold text-on-surface-variant">{String(index + 1).padStart(2, '0')}</span>
 
-              <div className="relative">
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  value={set.reps}
-                  onChange={(e) => updateSet(set.id, 'reps', e.target.value)}
-                  placeholder="reps"
-                  className="w-full rounded-lg border-none bg-surface-container-highest py-3 text-center font-headline text-lg font-semibold text-on-surface focus:ring-1 focus:ring-primary"
-                />
-                <span className="pointer-events-none absolute bottom-1.5 right-2 text-[9px] uppercase tracking-[0.12em] text-on-surface-variant/55">reps</span>
+              <div className="min-w-0 space-y-1.5">
+                <div className="grid h-8 grid-cols-2 rounded-lg bg-surface-container-highest p-0.5">
+                  <button
+                    type="button"
+                    onClick={() => updateTargetType(set.id, 'fixed_reps')}
+                    className={`rounded-md text-[10px] font-black uppercase tracking-[0.14em] ${
+                      set.targetType === 'fixed_reps' ? 'bg-primary text-black' : 'text-on-surface-variant'
+                    }`}
+                  >
+                    Reps
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => updateTargetType(set.id, 'failure')}
+                    className={`rounded-md text-[10px] font-black uppercase tracking-[0.14em] ${
+                      set.targetType === 'failure' ? 'bg-secondary text-black' : 'text-on-surface-variant'
+                    }`}
+                  >
+                    Fallo
+                  </button>
+                </div>
+                {set.targetType === 'failure' ? (
+                  <div className="flex h-11 w-full items-center justify-center rounded-lg border border-secondary/30 bg-secondary/10 text-center font-headline text-xs font-semibold uppercase tracking-[0.12em] text-secondary">
+                    Al fallo
+                  </div>
+                ) : (
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    value={set.reps}
+                    onChange={(e) => updateSet(set.id, 'reps', e.target.value)}
+                    placeholder="reps"
+                    className="h-11 w-full rounded-lg border-none bg-surface-container-highest text-center font-headline text-base font-semibold text-on-surface focus:ring-1 focus:ring-primary"
+                  />
+                )}
               </div>
 
-              <div className="relative">
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  value={set.value}
-                  onChange={(e) => updateSet(set.id, 'value', e.target.value)}
-                  placeholder={metricHint}
-                  className="w-full rounded-lg border-none bg-surface-container-highest py-3 text-center font-headline text-lg font-semibold text-on-surface focus:ring-1 focus:ring-primary"
-                />
-                <span className="pointer-events-none absolute bottom-1.5 right-2 text-[9px] uppercase tracking-[0.12em] text-on-surface-variant/55">{metricHint}</span>
+              <div className="relative min-w-0">
+                {unit === 'kg' && loadType === 'bodyweight' ? (
+                  <div className="flex h-[5rem] w-full items-center justify-center rounded-lg border border-primary/25 bg-primary/10 text-center font-headline text-[10px] font-semibold uppercase tracking-[0.12em] text-primary">
+                    Corporal
+                  </div>
+                ) : (
+                  <>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={set.value}
+                      onChange={(e) => updateSet(set.id, 'value', e.target.value)}
+                      placeholder={metricHint}
+                      className="h-[5rem] w-full rounded-lg border-none bg-surface-container-highest text-center font-headline text-lg font-semibold text-on-surface focus:ring-1 focus:ring-primary"
+                    />
+                    <span className="pointer-events-none absolute bottom-1.5 right-2 text-[9px] uppercase tracking-[0.12em] text-on-surface-variant/55">{metricHint}</span>
+                  </>
+                )}
               </div>
 
               <div className="flex justify-center">

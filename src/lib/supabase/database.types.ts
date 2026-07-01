@@ -37,6 +37,7 @@ export type Database = {
           reps: number | null;
           routine_day_exercise_id: string;
           set_number: number;
+          target_type: 'fixed_reps' | 'failure';
           weight: number | null;
         };
         Insert: {
@@ -48,6 +49,7 @@ export type Database = {
           reps?: number | null;
           routine_day_exercise_id: string;
           set_number: number;
+          target_type?: 'fixed_reps' | 'failure';
           weight?: number | null;
         };
         Update: {
@@ -56,6 +58,7 @@ export type Database = {
           notes?: string | null;
           reps?: number | null;
           set_number?: number;
+          target_type?: 'fixed_reps' | 'failure';
           weight?: number | null;
         };
         Relationships: [];
@@ -118,9 +121,11 @@ export type Database = {
         Row: {
           avatar_url: string | null;
           bio: string | null;
+          body_weight_kg: number | null;
           created_at: string;
           fitness_level: string | null;
           full_name: string | null;
+          height_cm: number | null;
           id: string;
           unit_system: 'kg' | 'lb';
           updated_at: string;
@@ -129,9 +134,11 @@ export type Database = {
         Insert: {
           avatar_url?: string | null;
           bio?: string | null;
+          body_weight_kg?: number | null;
           created_at?: string;
           fitness_level?: string | null;
           full_name?: string | null;
+          height_cm?: number | null;
           id: string;
           unit_system?: 'kg' | 'lb';
           updated_at?: string;
@@ -140,8 +147,10 @@ export type Database = {
         Update: {
           avatar_url?: string | null;
           bio?: string | null;
+          body_weight_kg?: number | null;
           fitness_level?: string | null;
           full_name?: string | null;
+          height_cm?: number | null;
           unit_system?: 'kg' | 'lb';
           updated_at?: string;
           username?: string | null;
@@ -153,6 +162,7 @@ export type Database = {
           created_at: string;
           exercise_id: string;
           id: string;
+          load_type: 'external' | 'bodyweight';
           measure_unit: 'kg' | 'min' | 'sec' | null;
           notes: string | null;
           position: number;
@@ -163,6 +173,7 @@ export type Database = {
           created_at?: string;
           exercise_id: string;
           id?: string;
+          load_type?: 'external' | 'bodyweight';
           measure_unit?: 'kg' | 'min' | 'sec' | null;
           notes?: string | null;
           position: number;
@@ -171,6 +182,7 @@ export type Database = {
         };
         Update: {
           exercise_id?: string;
+          load_type?: 'external' | 'bodyweight';
           measure_unit?: 'kg' | 'min' | 'sec' | null;
           notes?: string | null;
           position?: number;
@@ -305,6 +317,7 @@ export type Database = {
       };
       session_set_logs: {
         Row: {
+          body_weight_kg_snapshot: number | null;
           completed: boolean;
           duration_minutes: number | null;
           duration_seconds: number | null;
@@ -312,9 +325,12 @@ export type Database = {
           reps: number | null;
           session_exercise_log_id: string;
           set_number: number;
+          load_type: 'external' | 'bodyweight';
+          target_type: 'fixed_reps' | 'failure';
           weight: number | null;
         };
         Insert: {
+          body_weight_kg_snapshot?: number | null;
           completed?: boolean;
           duration_minutes?: number | null;
           duration_seconds?: number | null;
@@ -322,14 +338,19 @@ export type Database = {
           reps?: number | null;
           session_exercise_log_id: string;
           set_number: number;
+          load_type?: 'external' | 'bodyweight';
+          target_type?: 'fixed_reps' | 'failure';
           weight?: number | null;
         };
         Update: {
+          body_weight_kg_snapshot?: number | null;
           completed?: boolean;
           duration_minutes?: number | null;
           duration_seconds?: number | null;
           reps?: number | null;
           set_number?: number;
+          load_type?: 'external' | 'bodyweight';
+          target_type?: 'fixed_reps' | 'failure';
           weight?: number | null;
         };
         Relationships: [];

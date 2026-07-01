@@ -33,6 +33,8 @@ type AppRouterProps = {
     bio: string;
     fitnessLevel: string;
     unitSystem: 'kg' | 'lb';
+    heightCm?: number | null;
+    bodyWeightKg?: number | null;
     avatarUrl?: string;
   }) => Promise<unknown>;
   onNewRoutine: () => void;
@@ -154,6 +156,7 @@ export const AppRouter = ({
           setView={setView}
           onSave={onSaveRoutine}
           currentRoutine={currentRoutine}
+          profile={profile}
           selectedRoutineDayId={selectedRoutineDayId}
           onSelectRoutineDay={setSelectedRoutineDayId}
           onDeleteRoutineDay={onDeleteRoutineDay}
@@ -176,8 +179,10 @@ export const AppRouter = ({
         <ExerciseSelectorKineticView
           setView={setView}
           onSelectMuscle={onSelectMuscle}
+          onSelectExercise={onSelectExercise}
           selectedMuscle={selectedMuscle}
           navigationSource={navigationSource}
+          profile={profile}
         />
       );
     case 'exercise-list':
@@ -186,6 +191,7 @@ export const AppRouter = ({
           setView={setView}
           muscle={selectedMuscle}
           onSelectExercise={onSelectExercise}
+          profile={profile}
         />
       );
     case 'exercise-editor':
@@ -195,6 +201,7 @@ export const AppRouter = ({
           exercise={selectedExercise}
           onSave={onSaveExercise}
           onBack={() => setView(navigationSource === 'exercise-selector' ? 'routine-creator' : navigationSource)}
+          profile={profile}
         />
       );
     case 'routine-detail':
@@ -202,6 +209,7 @@ export const AppRouter = ({
         <RoutineDetailKineticView
           setView={setView}
           routine={currentRoutine ?? routines[0] ?? null}
+          profile={profile}
           activeSession={activeSession}
           onStartSession={startSession}
           onEndSession={endSession}

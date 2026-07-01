@@ -60,6 +60,7 @@ export function exportSessionDataForRPC(
             const actualWeight = performanceForSet.actualWeight;
             const actualDurationMinutes = performanceForSet.actualDurationMinutes;
             const actualDurationSeconds = performanceForSet.actualDurationSeconds;
+            const loadType = exDef.exercise.loadType ?? 'external';
 
             sets.push({
               exercise_id: exDef.exerciseId,
@@ -69,6 +70,9 @@ export function exportSessionDataForRPC(
               planned_reps: plannedSet.reps ?? null,
               planned_weight: plannedSet.weight ?? null,
               planned_duration_minutes: plannedSet.durationMinutes ?? null,
+              target_type: plannedSet.targetType ?? 'fixed_reps',
+              load_type: loadType,
+              body_weight_kg_snapshot: loadType === 'bodyweight' ? actualWeight : null,
               actual_reps: actualReps,
               actual_weight: actualWeight,
               actual_duration_minutes: actualDurationMinutes,

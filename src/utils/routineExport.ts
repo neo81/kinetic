@@ -26,6 +26,7 @@ export interface RoutineExportSet {
   durationMinutes: number | null;
   durationSeconds: number | null;
   notes: string | null;
+  targetType: string;
 }
 
 export interface RoutineExportExercise {
@@ -35,6 +36,7 @@ export interface RoutineExportExercise {
   restSeconds: number | null;
   notes: string | null;
   measureUnit: string;
+  loadType: string;
   exerciseRef: RoutineExportExerciseRef;
   sets: RoutineExportSet[];
 }
@@ -109,6 +111,7 @@ export function buildRoutineExportPayload(
         durationMinutes: s.durationMinutes ?? null,
         durationSeconds: s.durationSeconds ?? null,
         notes: s.notes ?? null,
+        targetType: s.targetType ?? 'fixed_reps',
       }));
 
       return {
@@ -117,6 +120,7 @@ export function buildRoutineExportPayload(
         restSeconds: item.restSeconds ?? null,
         notes: item.notes ?? null,
         measureUnit: ex.measureUnit ?? 'kg',
+        loadType: ex.loadType ?? 'external',
         exerciseRef: {
           globalId: ex.id,
           name: ex.name,

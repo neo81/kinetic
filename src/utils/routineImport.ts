@@ -209,11 +209,12 @@ async function buildRoutineFromPayload(
 
       const sets: ExerciseSet[] = exportExercise.sets.map((s) => ({
         setNumber: s.setNumber,
-        reps: s.reps ?? 0,
-        weight: s.weight ?? 0,
+        reps: (s as any).targetType === 'failure' ? null : (s.reps ?? 0),
+        weight: s.weight ?? null,
         durationMinutes: s.durationMinutes ?? undefined,
         durationSeconds: s.durationSeconds ?? undefined,
         notes: s.notes ?? undefined,
+        targetType: ((s as any).targetType ?? 'fixed_reps') as any,
       }));
 
       const exercise: Exercise = {
@@ -223,6 +224,7 @@ async function buildRoutineFromPayload(
         description: exportExercise.exerciseRef.description,
         equipment: exportExercise.exerciseRef.equipment,
         measureUnit: (exportExercise.measureUnit as any) ?? 'kg',
+        loadType: ((exportExercise as any).loadType ?? 'external') as any,
         sets,
         isCustom: exportExercise.exerciseRef.isCustom,
       };
@@ -323,6 +325,7 @@ async function persistImportedRoutine(routine: Routine): Promise<void> {
           rest_seconds: item.restSeconds ?? null,
           notes: item.notes ?? null,
           measure_unit: (item.exercise.measureUnit ?? 'kg') as any,
+          load_type: (item.exercise.loadType ?? 'external') as any,
         })
         .select('id')
         .single();
@@ -343,6 +346,7 @@ async function persistImportedRoutine(routine: Routine): Promise<void> {
           duration_minutes: s.durationMinutes ?? null,
           duration_seconds: s.durationSeconds ?? null,
           notes: s.notes ?? null,
+          target_type: s.targetType ?? 'fixed_reps',
         }));
 
         const { error: setsErr } = await supabase.from('exercise_sets').insert(setRows);

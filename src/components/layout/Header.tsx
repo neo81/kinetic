@@ -1,6 +1,33 @@
 import type React from 'react';
+import { useEffect, useState } from 'react';
 import { User } from 'lucide-react';
 import { SyncStatusIndicator } from '../SyncStatusIndicator';
+
+const AvatarImage = ({ avatarUrl }: { avatarUrl?: string | null }) => {
+  const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    setHasError(false);
+  }, [avatarUrl]);
+
+  if (!avatarUrl || hasError) {
+    return (
+      <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/20 to-secondary/20">
+        <User size={20} strokeWidth={1.5} className="text-on-surface-variant" />
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={avatarUrl}
+      alt="profile photo"
+      className="h-full w-full object-cover"
+      referrerPolicy="no-referrer"
+      onError={() => setHasError(true)}
+    />
+  );
+};
 
 export const Header = ({
   children,
@@ -21,18 +48,7 @@ export const Header = ({
             onClick={onProfileClick}
             className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-primary/20 shadow-[0_10px_30px_color-mix(in_srgb,var(--strong-foreground)_18%,transparent)] transition-all hover:scale-105 hover:border-primary/40 active:scale-95"
           >
-            {avatarUrl ? (
-              <img
-                src={avatarUrl}
-                alt="profile photo"
-                className="h-full w-full object-cover"
-                referrerPolicy="no-referrer"
-              />
-            ) : (
-              <div className="h-full w-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
-                <User size={20} strokeWidth={1.5} className="text-on-surface-variant" />
-              </div>
-            )}
+            <AvatarImage avatarUrl={avatarUrl} />
           </button>
         )}
         <div className="flex items-center gap-3">

@@ -34,6 +34,8 @@ Mapas anatómicos interactivos (Frontal y Posterior) que proporcionan una interf
 
 ### ⚙️ Editor de Ejercicios de Precisión
 - **Soporte Multi-Unidad**: Registra pesos en `kg` o duraciones en `min/seg`.
+- **Series al fallo**: Permite planificar series por repeticiones fijas o `Al fallo`, manteniendo el registro real de repeticiones al finalizar la sesión.
+- **Peso corporal controlado**: Soporte para ejercicios con peso corporal y snapshot del peso del perfil, sin activarlo por defecto al cargar una serie nueva.
 - **Notas Globales**: Notas de entrenamiento persistentes que proporcionan contexto en todas las series de una instancia de ejercicio.
 - **Gestión de Series Fluida**: Añade o elimina series con un solo toque, con persistencia automática.
 
@@ -45,6 +47,7 @@ Mapas anatómicos interactivos (Frontal y Posterior) que proporcionan una interf
 ### 👤 Perfil Avanzado
 - **Avatar Personalizado**: Sube y ajusta tu avatar con zoom/crop integrado.
 - **Validación de Username**: Validación en tiempo real (3-30 caracteres, sin duplicados).
+- **Datos corporales**: Altura y peso disponibles para seguimiento y para ejercicios basados en peso corporal.
 - **Preferencias de Usuario**: Tema (Oscuro/Claro) e Idioma (Español/Inglés).
 - **Feedback Mejorado**: Mensajes auto-limpios después de 3 segundos.
 
@@ -52,6 +55,17 @@ Mapas anatómicos interactivos (Frontal y Posterior) que proporcionan una interf
 - **Sincronización Offline**: La app continúa funcionando sin conexión.
 - **Reintentos Inteligentes**: Sistema de cola con reintentos exponenciales.
 - **Persistencia Local**: Todos los cambios se guardan localmente antes de sincronizar.
+
+### 🔎 Biblioteca y Motor de Ejercicios
+- **Búsqueda global**: Permite buscar ejercicios fuera de un grupo muscular e informa a qué grupo pertenecen.
+- **Modo visor desde el footer**: El acceso `MOTOR` funciona como biblioteca consultiva; no crea series ni modifica rutinas accidentalmente.
+- **Selección contextual**: Al abrir el selector desde una rutina, el flujo vuelve al editor de series para cargar el ejercicio como antes.
+- **Imágenes por grupo muscular**: Los ejercicios usan imágenes representativas por grupo, optimizadas en formato WebP.
+
+### 📱 PWA y rendimiento móvil
+- **Transiciones suavizadas**: Ajustes para evitar pantallazos negros y cortes duros en iOS/Android PWA.
+- **Selector muscular optimizado**: Precarga de imágenes frontal/posterior y regreso respetando la vista activa.
+- **Iconografía PWA renovada**: Iconos de app, favicon y Apple Touch generados desde la imagen base corregida.
 
 ## 🛠 Tech Stack
 
@@ -128,7 +142,10 @@ npm run build      # Build para producción
 npm run preview    # Preview del build
 npm run test       # Ejecutar tests con Vitest
 npm run test:ui    # UI de Vitest
-npm run lint       # Verificar linting con ESLint
+npm run lint       # Verificar TypeScript con tsc --noEmit
+npm run test:e2e   # Ejecutar pruebas E2E con Playwright
+npm run test:load:k6        # Smoke/load test con k6
+npm run test:load:artillery # Smoke/load test con Artillery
 ```
 
 ## 🔐 Seguridad
@@ -176,6 +193,8 @@ Interactive anatomical maps (Front & Back) that provide a direct interface for e
 
 ### ⚙️ Precision Exercise Editor
 - **Multi-Unit Support**: Log weights in `kg` or durations in `min/sec`.
+- **Failure Sets**: Plan sets as fixed reps or `To failure`, while still capturing actual reps at session completion.
+- **Controlled Bodyweight Load**: Supports bodyweight exercises and profile weight snapshots without enabling bodyweight by default for newly selected exercises.
 - **Global Notes**: Persistent training notes that provide context across all sets of an exercise instance.
 - **Fluid Set Management**: Add or remove sets with a single tap, with automatic persistence.
 
@@ -187,6 +206,7 @@ Interactive anatomical maps (Front & Back) that provide a direct interface for e
 ### 👤 Advanced Profile
 - **Custom Avatar**: Upload and adjust your avatar with integrated zoom/crop.
 - **Username Validation**: Real-time validation (3-30 characters, no duplicates).
+- **Body Metrics**: Height and weight are available for tracking and bodyweight-based exercise records.
 - **User Preferences**: Theme (Dark/Light) and Language (Spanish/English).
 - **Improved Feedback**: Auto-clearing messages after 3 seconds.
 
@@ -194,6 +214,17 @@ Interactive anatomical maps (Front & Back) that provide a direct interface for e
 - **Offline Sync**: The app continues working without connection.
 - **Smart Retries**: Queue system with exponential backoff.
 - **Local Persistence**: All changes saved locally before syncing.
+
+### 🔎 Exercise Library and Engine
+- **Global Search**: Search exercises outside a specific muscle group and see which group each result belongs to.
+- **Footer Viewer Mode**: The `MOTOR` footer entry works as a read-only exercise library and does not create sets or change routines accidentally.
+- **Contextual Selection**: When opened from a routine, the selector keeps the add-exercise flow and returns to the set editor.
+- **Muscle-Group Images**: Exercises use representative WebP imagery by muscle group.
+
+### 📱 PWA and Mobile Performance
+- **Smoother Transitions**: Adjustments to avoid black flashes and hard cuts on iOS/Android PWA.
+- **Optimized Muscle Selector**: Front/back image preloading and return behavior that preserves the active side.
+- **Refreshed PWA Icons**: App icons, favicon, and Apple Touch icon regenerated from the corrected base artwork.
 
 ## 🛠 Tech Stack
 
@@ -270,7 +301,10 @@ npm run build      # Build for production
 npm run preview    # Preview the build
 npm run test       # Run tests with Vitest
 npm run test:ui    # Vitest UI
-npm run lint       # Check linting with ESLint
+npm run lint       # Check TypeScript with tsc --noEmit
+npm run test:e2e   # Run E2E tests with Playwright
+npm run test:load:k6        # Smoke/load test with k6
+npm run test:load:artillery # Smoke/load test with Artillery
 ```
 
 ## 🔐 Security

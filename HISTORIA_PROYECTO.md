@@ -120,6 +120,55 @@ Notas de seguridad observadas en el snapshot remoto:
 - Algunas policies usan rol `public`; conviene revisarlas si el modelo de acceso cambia.
 - Existen funciones `security definer` en schema `public`, especialmente `end_session_transaction`, `handle_new_user` e `import_routine`. Conviene evaluar moverlas a un schema no expuesto si se hace una pasada de hardening.
 
+## 2026-06 / 2026-07 - Mejoras de ejercicios, PWA y pruebas
+
+Se incorporaron mejoras funcionales y de calidad sobre el flujo de rutinas, ejercicios y experiencia PWA.
+
+Cambios principales:
+
+- Perfil:
+  - Se agrego altura y peso del usuario.
+  - La imagen de perfil se muestra tanto en header como dentro de Perfil, con fallback si falla la carga.
+  - El logout con Google fuerza cierre global y el login vuelve a pedir seleccion de cuenta.
+
+- Ejercicios y rutinas:
+  - Se agrego soporte para `load_type` (`external` / `bodyweight`) en ejercicios dentro de rutinas.
+  - Se agrego soporte para `target_type` (`fixed_reps` / `failure`) en series.
+  - Las series al fallo guardan repeticiones planificadas como `null`, pero el registro de sesion permite capturar las repeticiones reales.
+  - Para peso corporal se guarda snapshot del peso del perfil en la sesion, evitando recalcular sesiones viejas.
+  - El editor ya no activa peso corporal por defecto al cargar un ejercicio nuevo; solo conserva `bodyweight` si el ejercicio ya estaba guardado asi.
+  - Se corrigio que valores `null` aparecieran como texto dentro de inputs al editar series.
+
+- Biblioteca de ejercicios:
+  - Se agrego busqueda global de ejercicios fuera de un grupo muscular.
+  - Los resultados globales informan el grupo muscular correspondiente.
+  - El acceso `MOTOR` desde el footer queda como visor/biblioteca consultiva.
+  - Al abrir desde una rutina, el selector mantiene el flujo de carga de series.
+  - El listado en modo visor muestra una tarjeta de detalle con imagen, grupo, equipo y descripcion, con scroll propio.
+
+- Selector muscular e imagenes:
+  - Se generaron imagenes representativas por grupo muscular en formato WebP.
+  - El selector frontal/posterior precarga imagenes para reducir parpadeos.
+  - El boton volver respeta mejor el contexto de navegacion y la vista activa.
+  - Se corrigio el regreso desde la vista posterior para no volver siempre a frente.
+
+- PWA y rendimiento movil:
+  - Se suavizaron transiciones para evitar pantallazos negros en iOS/Android PWA.
+  - Se reviso rendimiento en Android de gama media, evitando degradar imagenes WebP que ya se veian correctamente.
+  - Se regeneraron iconos PWA, favicon y Apple Touch desde la imagen base corregida.
+
+- Supabase y datos:
+  - Se actualizo el schema remoto para soportar altura, peso, tipo de carga, series al fallo y snapshot de peso corporal.
+  - Se actualizaron las funciones remotas `end_session_transaction` e `import_routine` para preservar los nuevos campos.
+  - Se limpiaron datos de prueba generados por E2E/load tests y se prepararon scripts conservadores de limpieza.
+  - Se agregaron ejercicios faltantes a la biblioteca global, entre ellos variantes de triceps, face pull, posteriores en maquina y curl inclinado.
+
+- Pruebas:
+  - Se agrego estructura inicial de pruebas E2E con Playwright.
+  - Se agregaron smoke/load tests con k6 y Artillery.
+  - Se hicieron pruebas multiusuario con rutinas grandes, incluyendo finalizacion de sesiones y revision de historial.
+  - `npm run lint` ejecuta `tsc --noEmit`; `npm run build` puede requerir permisos elevados en Windows/OneDrive por restricciones de esbuild.
+
 ## Documentos consolidados
 
 Este archivo reemplaza la informacion historica de:

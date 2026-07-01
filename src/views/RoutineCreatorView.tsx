@@ -4,7 +4,7 @@ import { ArrowLeft, ArrowRight, Edit2, Plus, Trash2 } from 'lucide-react';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 import { PageShell } from '../components/layout/PageShell';
 import { ConfirmDialog } from '../components/layout/ConfirmDialog';
-import type { Routine, View, Exercise } from '../types';
+import type { Routine, View, Exercise, UserProfile } from '../types';
 
 export const RoutineCreatorView = ({
   setView,
@@ -18,6 +18,7 @@ export const RoutineCreatorView = ({
   onEditExercise,
   navigationSource,
   setNavigationSource,
+  profile,
 }: {
   setView: (v: View) => void;
   onSave: (r: Partial<Routine>, targetSelection?: { dayNum?: number | 'core' }, shouldSync?: boolean) => Promise<Routine | void> | void;
@@ -30,6 +31,7 @@ export const RoutineCreatorView = ({
   onEditExercise: (ex: Exercise, instanceId?: string) => void;
   navigationSource?: View;
   setNavigationSource: (view: View) => void;
+  profile?: UserProfile | null;
 }) => {
   const prefersReducedMotion = useReducedMotion();
   const [name, setName] = useState(currentRoutine?.name || '');
@@ -100,6 +102,7 @@ export const RoutineCreatorView = ({
     // Navigation logic
     if (localActiveDayNum === 'core') {
       setNavigationSource('routine-creator');
+      window.sessionStorage.setItem('kinetic.selectorSource', 'routine-creator');
       onSelectMuscle('core');
       setView('exercise-list');
     } else {
@@ -141,6 +144,7 @@ export const RoutineCreatorView = ({
         setView={setView}
         onProfileClick={() => setView('settings')}
         onSettingsClick={() => setView('settings')}
+        profile={profile}
         contentClassName="pb-32"
       >
         <section className="space-y-8">

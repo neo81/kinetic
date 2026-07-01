@@ -243,14 +243,16 @@ const mapExercise = (
   muscleGroup: routineExercise.exercises?.muscle_groups?.name || 'Sin grupo',
   muscleGroupCode: routineExercise.exercises?.muscle_groups?.code || undefined,
   measureUnit: (routineExercise as any).measure_unit || 'kg',
+  loadType: (routineExercise as any).load_type || 'external',
   sets:
     routineExercise.exercise_sets?.map((set) => ({
       setNumber: set.set_number,
-      reps: Number(set.reps ?? 0),
-      weight: Number(set.weight ?? 0),
+      reps: set.reps === null ? null : Number(set.reps),
+      weight: set.weight === null ? null : Number(set.weight),
       durationMinutes: Number(set.duration_minutes ?? 0),
       durationSeconds: Number(set.duration_seconds ?? 0),
       notes: set.notes ?? undefined,
+      targetType: (set as any).target_type || 'fixed_reps',
     })) ?? [],
   notes: routineExercise.notes ?? undefined,
 });
@@ -336,6 +338,7 @@ const syncExerciseSets = async (
     duration_minutes: set.durationMinutes ?? null,
     duration_seconds: set.durationSeconds ?? null,
     notes: set.notes ?? null,
+    target_type: set.targetType ?? 'fixed_reps',
   }));
 
   const { error: insertSetsError } = await supabase.from('exercise_sets').insert(setRows);
@@ -398,6 +401,7 @@ const syncRoutineDayExercises = async (
       rest_seconds: item.restSeconds ?? null,
       notes: item.notes ?? item.exercise.notes ?? null,
       measure_unit: (item.exercise.measureUnit ?? 'kg') as any,
+      load_type: (item.exercise.loadType ?? 'external') as any,
     };
 
     const { data: savedRow, error: upsertRowError } = await supabase
@@ -467,6 +471,7 @@ const listSupabaseRoutines = async (): Promise<Routine[] | null> => {
             rest_seconds,
             notes,
             measure_unit,
+            load_type,
             created_at,
             exercises (
               id,
@@ -492,6 +497,7 @@ const listSupabaseRoutines = async (): Promise<Routine[] | null> => {
               weight,
               duration_minutes,
               duration_seconds,
+              target_type,
               notes,
               created_at
             )
@@ -956,6 +962,7 @@ export const routinesRepository = {
             rest_seconds: targetItem.restSeconds ?? null,
             notes: targetItem.notes ?? targetItem.exercise.notes ?? null,
             measure_unit: (targetItem.exercise.measureUnit ?? 'kg') as any,
+            load_type: (targetItem.exercise.loadType ?? 'external') as any,
           };
 
           const { data: savedRow, error: upsertRowError } = await supabase

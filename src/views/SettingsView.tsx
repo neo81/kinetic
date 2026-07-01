@@ -24,6 +24,8 @@ type SettingsViewProps = {
     bio: string;
     fitnessLevel: string;
     unitSystem: 'kg' | 'lb';
+    heightCm?: number | null;
+    bodyWeightKg?: number | null;
     avatarUrl?: string;
   }) => Promise<unknown>;
   themePreference: ThemePreference;
@@ -54,11 +56,14 @@ export const SettingsView = ({
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [isUpdatingTheme, setIsUpdatingTheme] = useState(false);
   const [isAvatarDialogOpen, setIsAvatarDialogOpen] = useState(false);
+  const [profileImageError, setProfileImageError] = useState(false);
   const [fullName, setFullName] = useState('');
   const [username, setUsername] = useState('');
   const [bio, setBio] = useState('');
   const [fitnessLevel, setFitnessLevel] = useState('');
   const [units, setUnits] = useState<'kg' | 'lb'>('kg');
+  const [heightCm, setHeightCm] = useState('');
+  const [bodyWeightKg, setBodyWeightKg] = useState('');
   
   // Username validation state
   const [usernameValidation, setUsernameValidation] = useState<UsernameValidationResult | null>(null);
@@ -78,6 +83,9 @@ export const SettingsView = ({
     setBio(profile?.bio ?? '');
     setFitnessLevel(profile?.fitnessLevel ?? '');
     setUnits(profile?.unitSystem ?? 'kg');
+    setHeightCm(profile?.heightCm ? String(profile.heightCm) : '');
+    setBodyWeightKg(profile?.bodyWeightKg ? String(profile.bodyWeightKg) : '');
+    setProfileImageError(false);
   }, [profile]);
 
   useEffect(() => {
@@ -148,15 +156,26 @@ export const SettingsView = ({
       bio: string;
       fitnessLevel: string;
       unitSystem: 'kg' | 'lb';
+      heightCm: number | null;
+      bodyWeightKg: number | null;
       avatarUrl: string;
     }>,
   ) => {
+    const parseOptionalNumber = (value: string) => {
+      const normalized = value.replace(',', '.').trim();
+      if (!normalized) return null;
+      const parsed = Number(normalized);
+      return Number.isFinite(parsed) ? parsed : null;
+    };
+
     await onSaveProfile({
       fullName: overrides?.fullName ?? fullName,
       username: overrides?.username ?? username,
       bio: overrides?.bio ?? bio,
       fitnessLevel: overrides?.fitnessLevel ?? fitnessLevel,
       unitSystem: overrides?.unitSystem ?? units,
+      heightCm: overrides?.heightCm ?? parseOptionalNumber(heightCm),
+      bodyWeightKg: overrides?.bodyWeightKg ?? parseOptionalNumber(bodyWeightKg),
       avatarUrl: overrides?.avatarUrl,
     });
   };
@@ -296,6 +315,7 @@ export const SettingsView = ({
   const displayName = fullName.trim() || profile?.fullName?.trim() || 'Perfil sin configurar';
   const displayLevel = fitnessLevel || profile?.fitnessLevel || 'Sin nivel asignado';
   const displayUnits = units.toUpperCase();
+  const shouldShowProfileImage = Boolean(profile?.avatarUrl && !profileImageError);
 
   const isInAnyEditMode = isEditingProfile || isEditingGoals;
 
@@ -464,6 +484,36 @@ export const SettingsView = ({
                     {level}
                   </button>
                 ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <label htmlFor="height-input" className="block text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">Altura</label>
+                <div className="control-shell rounded-[0.95rem]">
+                  <input
+                    id="height-input"
+                    value={heightCm}
+                    onChange={(event) => setHeightCm(event.target.value.replace(',', '.'))}
+                    placeholder="cm"
+                    inputMode="decimal"
+                    className="h-14 w-full rounded-[0.95rem] bg-transparent px-4 text-on-surface outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="body-weight-input" className="block text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">Peso</label>
+                <div className="control-shell rounded-[0.95rem]">
+                  <input
+                    id="body-weight-input"
+                    value={bodyWeightKg}
+                    onChange={(event) => setBodyWeightKg(event.target.value.replace(',', '.'))}
+                    placeholder="kg"
+                    inputMode="decimal"
+                    className="h-14 w-full rounded-[0.95rem] bg-transparent px-4 text-on-surface outline-none"
+                  />
+                </div>
               </div>
             </div>
 
@@ -640,9 +690,18 @@ export const SettingsView = ({
           <div className="flex items-center gap-5">
             <div className="relative">
               <div className="h-24 w-24 rounded-full border-2 border-primary bg-surface-container-low p-1">
-                <div className="flex h-full w-full items-center justify-center rounded-full bg-surface-container text-on-surface">
-                  <User size={34} strokeWidth={1.9} />
-                </div>
+                {shouldShowProfileImage ? (
+                  <img
+                    src={profile?.avatarUrl}
+                    alt="Foto de perfil"
+                    className="h-full w-full rounded-full object-cover"
+                    onError={() => setProfileImageError(true)}
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center rounded-full bg-surface-container text-on-surface">
+                    <User size={34} strokeWidth={1.9} />
+                  </div>
+                )}
               </div>
               <div className="absolute -bottom-1 -right-1 rounded-full bg-primary px-2 py-0.5 text-[10px] font-black uppercase text-black shadow-lg">
                 {displayUnits}
@@ -739,6 +798,16 @@ export const SettingsView = ({
                     LB
                   </button>
                 </div>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-[0.95rem] bg-surface-container-low px-4 py-4">
+                <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-on-surface-variant">Altura</p>
+                <p className="mt-1 text-2xl font-black text-on-surface">{profile?.heightCm ? `${profile.heightCm} cm` : '--'}</p>
+              </div>
+              <div className="rounded-[0.95rem] bg-surface-container-low px-4 py-4">
+                <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-on-surface-variant">Peso</p>
+                <p className="mt-1 text-2xl font-black text-on-surface">{profile?.bodyWeightKg ? `${profile.bodyWeightKg} kg` : '--'}</p>
               </div>
             </div>
           </div>

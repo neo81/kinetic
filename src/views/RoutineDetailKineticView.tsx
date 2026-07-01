@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { RoutineSyncPendingBadge } from '../components/RoutineSyncPendingBadge';
 import { PageShell } from '../components/layout/PageShell';
-import type { ActiveSession, Exercise, Routine, View, RoutineDayExercise, SessionExerciseGroup } from '../types';
+import type { ActiveSession, Exercise, Routine, View, RoutineDayExercise, SessionExerciseGroup, UserProfile } from '../types';
 
 const DEFAULT_REST_SECONDS = 0;
 
@@ -65,8 +65,10 @@ const getGroupLabel = (exerciseCount: number) => {
 const getSetPreviewValue = (exercise: Exercise, setIndex: number) => {
   const set = exercise.sets[setIndex];
   if (!set) return '-';
+  if (set.targetType === 'failure') return 'Al fallo';
   if (exercise.measureUnit === 'min') return `${set.durationMinutes ?? 0} min`;
   if (exercise.measureUnit === 'sec') return `${set.durationSeconds ?? 0} seg`;
+  if (exercise.loadType === 'bodyweight') return 'Peso corporal';
   return `${set.weight ?? 0} kg`;
 };
 
@@ -342,31 +344,41 @@ const SetCaptureOverlay = ({
   setNumber,
   plannedReps,
   plannedWeight,
+  bodyWeightKg,
+  targetType,
   totalSets,
   onCapture,
 }: {
   open: boolean;
   onClose: () => void;
-  exercise: { name: string; measureUnit?: 'kg' | 'min' | 'sec' };
+  exercise: { name: string; measureUnit?: 'kg' | 'min' | 'sec'; loadType?: 'external' | 'bodyweight' };
   setNumber: number;
   plannedReps: number | null;
   plannedWeight: number | null;
+  bodyWeightKg: number | null;
+  targetType: 'fixed_reps' | 'failure';
   totalSets: number;
   onCapture: (reps: number | null, weight: number | null) => void;
 }) => {
   const [actualReps, setActualReps] = useState<string>(String(plannedReps ?? ''));
-  const [actualWeight, setActualWeight] = useState<string>(String(plannedWeight ?? ''));
+  const [actualWeight, setActualWeight] = useState<string>(
+    String(exercise.loadType === 'bodyweight' ? (bodyWeightKg ?? '') : (plannedWeight ?? '')),
+  );
 
   useEffect(() => {
     setActualReps(String(plannedReps ?? ''));
-    setActualWeight(String(plannedWeight ?? ''));
-  }, [plannedReps, plannedWeight, setNumber, open]);
+    setActualWeight(String(exercise.loadType === 'bodyweight' ? (bodyWeightKg ?? '') : (plannedWeight ?? '')));
+  }, [plannedReps, plannedWeight, bodyWeightKg, exercise.loadType, setNumber, open]);
 
   const normalizeInput = (value: string) => value.replace(',', '.');
 
   const handleConfirm = () => {
     const reps = actualReps ? parseFloat(actualReps) : null;
-    const weight = actualWeight ? parseFloat(actualWeight) : null;
+    const weight = exercise.loadType === 'bodyweight'
+      ? bodyWeightKg
+      : actualWeight
+        ? parseFloat(actualWeight)
+        : null;
     onCapture(reps, weight);
     // No cerrar aquí - dejar que handleSetCapture maneje el cierre del modal
   };
@@ -402,8 +414,13 @@ const SetCaptureOverlay = ({
         <div className="space-y-3">
           <div>
             <label className="block text-[12px] font-bold uppercase tracking-[0.2em] text-on-surface-variant mb-2">
-              Reps Realizadas
+              {targetType === 'failure' ? 'Reps al fallo realizadas' : 'Reps realizadas'}
             </label>
+            {targetType === 'failure' && (
+              <p className="mb-2 rounded-lg border border-secondary/25 bg-secondary/10 px-3 py-2 text-center text-[10px] font-bold uppercase tracking-[0.16em] text-secondary">
+                Objetivo: al fallo
+              </p>
+            )}
             <input
               type="text"
               inputMode="decimal"
@@ -414,7 +431,7 @@ const SetCaptureOverlay = ({
                   setActualReps(normalized);
                 }
               }}
-              placeholder={String(plannedReps ?? '0')}
+              placeholder={targetType === 'failure' ? 'reps logradas' : String(plannedReps ?? '0')}
               className="w-full rounded-lg bg-surface-container p-3 text-center font-headline text-xl font-semibold text-on-surface focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </div>
@@ -425,21 +442,29 @@ const SetCaptureOverlay = ({
                 ? 'Minutos Realizados'
                 : exercise.measureUnit === 'sec'
                   ? 'Segundos Realizados'
-                  : 'Peso / Kg Realizado'}
+                  : exercise.loadType === 'bodyweight'
+                    ? 'Peso corporal usado'
+                    : 'Peso / Kg Realizado'}
             </label>
-            <input
-              type="text"
-              inputMode="decimal"
-              value={actualWeight}
-              onChange={(e) => {
-                const normalized = normalizeInput(e.target.value);
-                if (normalized === '' || /^\d*([.]\d*)?$/.test(normalized)) {
-                  setActualWeight(normalized);
-                }
-              }}
-              placeholder={String(plannedWeight ?? '0')}
-              className="w-full rounded-lg bg-surface-container p-3 text-center font-headline text-xl font-semibold text-on-surface focus:outline-none focus:ring-1 focus:ring-primary"
-            />
+            {exercise.loadType === 'bodyweight' ? (
+              <div className="rounded-lg bg-surface-container p-3 text-center font-headline text-xl font-semibold text-primary">
+                {bodyWeightKg ? `${bodyWeightKg} kg` : 'Sin peso en perfil'}
+              </div>
+            ) : (
+              <input
+                type="text"
+                inputMode="decimal"
+                value={actualWeight}
+                onChange={(e) => {
+                  const normalized = normalizeInput(e.target.value);
+                  if (normalized === '' || /^\d*([.]\d*)?$/.test(normalized)) {
+                    setActualWeight(normalized);
+                  }
+                }}
+                placeholder={String(plannedWeight ?? '0')}
+                className="w-full rounded-lg bg-surface-container p-3 text-center font-headline text-xl font-semibold text-on-surface focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+            )}
           </div>
         </div>
 
@@ -524,6 +549,7 @@ const ConfirmDialog = ({
 export const RoutineDetailKineticView = ({
   setView,
   routine,
+  profile,
   onDeleteRoutine,
   onDeleteRoutineDay,
   onDeleteExercise,
@@ -545,6 +571,7 @@ export const RoutineDetailKineticView = ({
 }: {
   setView: (v: View) => void;
   routine: Routine | null;
+  profile?: UserProfile | null;
   onDeleteRoutine: (id: string) => void;
   onDeleteRoutineDay: (dayId: string) => void;
   onDeleteExercise: (exerciseId: string, dayId?: string) => void;
@@ -580,7 +607,7 @@ export const RoutineDetailKineticView = ({
   const [selectedGroupExerciseIds, setSelectedGroupExerciseIds] = useState<string[]>([]);
 
   // Estado para captura de set
-  const [setCapturePending, setSetCapturePending] = useState<{ exerciseId: string; setNumber: number; reps: number | null; weight: number | null } | null>(null);
+  const [setCapturePending, setSetCapturePending] = useState<{ exerciseId: string; setNumber: number; reps: number | null; weight: number | null; targetType: 'fixed_reps' | 'failure' } | null>(null);
   const [allExerciseSets, setAllExerciseSets] = useState<Exercise | null>(null);
 
   useEffect(() => {
@@ -693,6 +720,7 @@ export const RoutineDetailKineticView = ({
       setNumber,
       reps: targetSet.reps ?? null,
       weight: value,
+      targetType: targetSet.targetType ?? 'fixed_reps',
     });
   };
 
@@ -723,6 +751,7 @@ export const RoutineDetailKineticView = ({
           setView={setView}
           onProfileClick={() => setView('settings')}
           onSettingsClick={() => setView('settings')}
+          profile={profile}
           contentClassName=""
           headerChildren={
             <div className="flex items-center gap-2">
@@ -764,7 +793,7 @@ export const RoutineDetailKineticView = ({
 
   const volume = routine.exercises.reduce(
     (total, exercise) =>
-      total + exercise.sets.reduce((setsTotal, set) => setsTotal + set.weight * set.reps, 0),
+      total + exercise.sets.reduce((setsTotal, set) => setsTotal + (set.weight ?? 0) * (set.reps ?? 0), 0),
     0,
   );
 
@@ -773,6 +802,7 @@ export const RoutineDetailKineticView = ({
     if (!firstSet) return '-';
     if (ex.measureUnit === 'min') return `${firstSet.durationMinutes || 0} min`;
     if (ex.measureUnit === 'sec') return `${firstSet.durationSeconds || 0} seg`;
+    if (ex.loadType === 'bodyweight') return 'Peso corporal';
     return `${firstSet.weight || 0} kg`;
   };
 
@@ -897,7 +927,9 @@ export const RoutineDetailKineticView = ({
           </div>
           <div>
             <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-on-surface-variant">Reps</p>
-            <p className="font-headline text-[1.6rem] font-semibold leading-none text-on-surface">{dayEx.exercise.sets[0]?.reps || '-'}</p>
+            <p className="font-headline text-[1.6rem] font-semibold leading-none text-on-surface">
+              {dayEx.exercise.sets[0]?.targetType === 'failure' ? 'Fallo' : dayEx.exercise.sets[0]?.reps || '-'}
+            </p>
           </div>
           <div>
             <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-on-surface-variant">Peso / Tiempo</p>
@@ -955,6 +987,7 @@ export const RoutineDetailKineticView = ({
         setView={setView}
         onProfileClick={() => setView('settings')}
         onSettingsClick={() => setView('settings')}
+        profile={profile}
         contentClassName=""
         headerChildren={
             <div className="flex items-center gap-2">
@@ -1293,6 +1326,8 @@ className={`theme-primary-shadow-strong pointer-events-auto w-full max-w-md h-[4
           setNumber={setCapturePending.setNumber}
           plannedReps={setCapturePending.reps}
           plannedWeight={setCapturePending.weight}
+          bodyWeightKg={profile?.bodyWeightKg ?? null}
+          targetType={setCapturePending.targetType}
           totalSets={allExerciseSets.sets.length}
           onCapture={handleSetCapture}
         />

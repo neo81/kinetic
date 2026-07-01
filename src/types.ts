@@ -18,15 +18,21 @@ export interface UserProfile {
   unitSystem: 'kg' | 'lb';
   bio: string | null;
   fitnessLevel: string | null;
+  heightCm: number | null;
+  bodyWeightKg: number | null;
 }
 
+export type ExerciseLoadType = 'external' | 'bodyweight';
+export type ExerciseTargetType = 'fixed_reps' | 'failure';
+
 export interface ExerciseSet {
-  reps: number;
-  weight: number;
+  reps: number | null;
+  weight: number | null;
   notes?: string;
   setNumber?: number;
   durationMinutes?: number;
   durationSeconds?: number;
+  targetType?: ExerciseTargetType;
 }
 
 export interface Exercise {
@@ -39,6 +45,7 @@ export interface Exercise {
   image?: string;
   sets: ExerciseSet[];
   measureUnit?: 'kg' | 'min' | 'sec';
+  loadType?: ExerciseLoadType;
   notes?: string;
   equipment?: string;
   isFavorite?: boolean;
@@ -114,6 +121,7 @@ export interface ActiveSession {
         actualWeight: number | null;
         actualDurationMinutes: number | null;
         actualDurationSeconds: number | null;
+        bodyWeightKgSnapshot?: number | null;
         captured: boolean;
       };
     };
@@ -144,6 +152,9 @@ export interface SessionExportSetPayload {
   planned_reps: number | null;
   planned_weight: number | null;
   planned_duration_minutes: number | null;
+  target_type: ExerciseTargetType;
+  load_type: ExerciseLoadType;
+  body_weight_kg_snapshot: number | null;
   actual_reps: number | null;
   actual_weight: number | null;
   actual_duration_minutes: number | null;

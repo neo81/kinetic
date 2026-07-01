@@ -5,7 +5,7 @@ import {
   SlidersHorizontal, X, ChevronDown, AlertTriangle,
 } from 'lucide-react';
 import { PageShell } from '../components/layout/PageShell';
-import type { Exercise, ExerciseEquipmentFilter, ExerciseFilter, ExerciseSourceFilter, View } from '../types';
+import type { Exercise, ExerciseEquipmentFilter, ExerciseFilter, ExerciseSourceFilter, UserProfile, View } from '../types';
 import { supabase, isSupabaseConfigured } from '../lib/supabase/client';
 import { fallbackExerciseLibrary } from '../app/initialData';
 import { getExerciseGroupImage } from '../utils/exerciseGroupImages';
@@ -248,6 +248,7 @@ type ExerciseCardProps = {
   onToggleFavorite: (e: ExerciseLibraryItem) => void | Promise<void>;
   onDeleteRequest: (e: ExerciseLibraryItem) => void;
   isTogglingFavorite: boolean;
+  isViewerMode: boolean;
 };
 
 const ExerciseCard: React.FC<ExerciseCardProps> = ({
@@ -259,6 +260,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
   onToggleFavorite,
   onDeleteRequest,
   isTogglingFavorite,
+  isViewerMode,
 }) => (
   <motion.div
     initial={{ opacity: 0, y: 30 }}
@@ -334,7 +336,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
     </div>
 
     {/* Custom exercise actions */}
-    {exercise.isCustom && (
+    {exercise.isCustom && !isViewerMode && (
       <div className="theme-hairline-top flex border-t bg-surface-container-low">
         <button
           onClick={(ev) => onEdit(exercise, ev)}
@@ -467,18 +469,23 @@ export const ExerciseListView = ({
   setView,
   muscle,
   onSelectExercise,
+  profile,
 }: {
   setView: (v: View) => void;
   muscle: string;
   onSelectExercise: (e: Exercise) => void;
+  profile?: UserProfile | null;
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState<ExerciseFilter>(DEFAULT_FILTER);
   const [allExercises, setAllExercises] = useState<ExerciseLibraryItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const selectorSource = typeof window !== 'undefined' ? window.sessionStorage.getItem('kinetic.selectorSource') : null;
+  const isViewerMode = selectorSource === 'global';
 
   // Create / Edit form state
   const [isCreating, setIsCreating] = useState(false);
+  const [previewExercise, setPreviewExercise] = useState<ExerciseLibraryItem | null>(null);
   const [editingExerciseId, setEditingExerciseId] = useState<string | null>(null);
   const [editingInitialName, setEditingInitialName] = useState('');
   const [editingInitialEq, setEditingInitialEq] = useState('Peso corporal');
@@ -590,6 +597,15 @@ export const ExerciseListView = ({
     if (filters.onlyFavorites && !ex.isFavorite) return false;
     return true;
   });
+
+  const handleSelectExercise = (exercise: ExerciseLibraryItem) => {
+    if (isViewerMode) {
+      setPreviewExercise(exercise);
+      return;
+    }
+
+    onSelectExercise(exercise);
+  };
 
   // ── Toggle Favorite ────────────────────────────────────────────────────────
 
@@ -756,11 +772,71 @@ export const ExerciseListView = ({
         )}
       </AnimatePresence>
 
+      <AnimatePresence>
+        {previewExercise && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="theme-overlay fixed inset-0 z-[80] flex items-end justify-center px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-4 backdrop-blur-sm"
+            onClick={() => setPreviewExercise(null)}
+          >
+            <motion.div
+              initial={{ y: 60, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 60, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 280, damping: 28 }}
+              className="theme-elevated-surface max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-[2rem] p-6"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="mb-5 flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-primary">
+                    {previewExercise.muscleGroup || muscle}
+                  </p>
+                  <h3 className="mt-2 font-headline text-2xl font-black uppercase italic leading-tight text-on-surface">
+                    {previewExercise.name}
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPreviewExercise(null)}
+                  className="theme-muted-surface flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:text-on-surface"
+                >
+                  <X size={16} strokeWidth={2.5} />
+                </button>
+              </div>
+
+              <div className="theme-contrast-surface mb-5 flex aspect-[4/3] w-full items-center justify-center rounded-[1.4rem] p-4">
+                <img
+                  src={previewExercise.image ?? getExerciseGroupImage(previewExercise.muscleGroupCode ?? muscle)}
+                  alt="Ejercicio"
+                  className="h-full w-full object-contain mix-blend-multiply opacity-90"
+                />
+              </div>
+
+              <div className="space-y-3 text-sm text-on-surface-variant">
+                <div className="flex items-center justify-between rounded-xl bg-surface-container-low px-4 py-3">
+                  <span className="text-[10px] font-black uppercase tracking-[0.18em]">Equipo</span>
+                  <span className="font-semibold text-on-surface">{previewExercise.equipment || 'General'}</span>
+                </div>
+                {previewExercise.description ? (
+                  <p className="rounded-xl bg-surface-container-low px-4 py-3 leading-relaxed">
+                    {previewExercise.description}
+                  </p>
+                ) : null}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <PageShell
         activeView="exercise-selector"
         setView={setView}
         onProfileClick={() => setView('settings')}
         onSettingsClick={() => setView('settings')}
+        profile={profile}
         contentClassName="space-y-6 sm:space-y-10"
       >
         {/* Header */}
@@ -778,12 +854,14 @@ export const ExerciseListView = ({
                  <div className="h-1.5 w-12 rounded-full bg-primary/80"></div>
                  <span className="text-[10px] font-black uppercase tracking-[0.4em] text-on-surface-variant/40">BIBLIOTECA DE MOVIMIENTOS</span>
                </div>
-               <button
-                  onClick={startCreate}
-                  className="text-[0.7rem] font-black uppercase tracking-widest text-secondary transition-transform hover:scale-105 sm:text-xs"
-                >
-                  + Crear
-               </button>
+               {!isViewerMode && (
+                 <button
+                    onClick={startCreate}
+                    className="text-[0.7rem] font-black uppercase tracking-widest text-secondary transition-transform hover:scale-105 sm:text-xs"
+                  >
+                    + Crear
+                 </button>
+               )}
              </div>
              <h1 className="font-headline text-[3.2rem] font-bold uppercase italic leading-none tracking-tight text-on-surface">
                 {muscle || 'Sin grupo'}
@@ -887,11 +965,12 @@ export const ExerciseListView = ({
                   exercise={exercise}
                   muscle={muscle}
                   index={index}
-                  onSelect={onSelectExercise}
+                  onSelect={handleSelectExercise}
                   onEdit={startEdit}
                   onToggleFavorite={handleToggleFavorite}
                   onDeleteRequest={(ex) => setDeletingExercise(ex)}
                   isTogglingFavorite={togglingFavoriteId === exercise.id}
+                  isViewerMode={isViewerMode}
                 />
               ))}
             </div>
