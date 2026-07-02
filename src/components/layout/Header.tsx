@@ -12,7 +12,7 @@ const AvatarImage = ({ avatarUrl }: { avatarUrl?: string | null }) => {
 
   if (!avatarUrl || hasError) {
     return (
-      <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/20 to-secondary/20">
+      <div className="flex h-full w-full items-center justify-center rounded-full bg-gradient-to-br from-primary/20 to-secondary/20">
         <User size={20} strokeWidth={1.5} className="text-on-surface-variant" />
       </div>
     );
@@ -22,7 +22,7 @@ const AvatarImage = ({ avatarUrl }: { avatarUrl?: string | null }) => {
     <img
       src={avatarUrl}
       alt="profile photo"
-      className="h-full w-full object-cover"
+      className="block h-full w-full rounded-full object-cover"
       referrerPolicy="no-referrer"
       onError={() => setHasError(true)}
     />
@@ -46,7 +46,7 @@ export const Header = ({
         {showProfile && (
           <button
             onClick={onProfileClick}
-            className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-primary/20 shadow-[0_10px_30px_color-mix(in_srgb,var(--strong-foreground)_18%,transparent)] transition-all hover:scale-105 hover:border-primary/40 active:scale-95"
+            className="flex h-11 w-11 shrink-0 aspect-square items-center justify-center overflow-hidden rounded-full border border-primary/20 shadow-[0_10px_30px_color-mix(in_srgb,var(--strong-foreground)_18%,transparent)] transition-all hover:scale-105 hover:border-primary/40 active:scale-95"
           >
             <AvatarImage avatarUrl={avatarUrl} />
           </button>

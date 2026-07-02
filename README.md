@@ -43,6 +43,7 @@ Mapas anatómicos interactivos (Frontal y Posterior) que proporcionan una interf
 - **Seguimiento de Carga Semanal**: Monitorea tu volumen de entrenamiento calculado en tiempo real.
 - **Progreso Visual**: Gráficos y métricas de alto contraste que resaltan tus ganancias semanales.
 - **Objetivos Personalizados**: Define y personaliza tus metas semanales.
+- **Acceso claro a rutinas**: `VER TODAS` y el footer `RUTINAS` abren la lista completa; el detalle se muestra solo al elegir una rutina o continuar desde el dashboard.
 
 ### 👤 Perfil Avanzado
 - **Avatar Personalizado**: Sube y ajusta tu avatar con zoom/crop integrado.
@@ -202,6 +203,7 @@ Interactive anatomical maps (Front & Back) that provide a direct interface for e
 - **Weekly Load Tracking**: Monitor your training volume calculated in real-time.
 - **Visual Progress**: High-contrast charts and metrics that highlight your weekly gains.
 - **Custom Goals**: Set and personalize your weekly objectives.
+- **Clear routines access**: `View all` and the `RUTINAS` footer entry open the full routine list; routine detail appears only after selecting a routine or continuing from the dashboard.
 
 ### 👤 Advanced Profile
 - **Custom Avatar**: Upload and adjust your avatar with integrated zoom/crop.

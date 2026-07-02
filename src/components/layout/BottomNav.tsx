@@ -5,7 +5,7 @@ import type { View } from '../../types';
 export const BottomNav = ({ active, setView }: { active: View; setView: (v: View) => void }) => {
   const items = [
     { id: 'dashboard', icon: LayoutDashboard, label: 'PANEL' },
-    { id: 'routine-detail', icon: Dumbbell, label: 'RUTINAS' },
+    { id: 'routines-list', icon: Dumbbell, label: 'RUTINAS' },
     { id: 'exercise-selector', icon: 'list_alt', label: 'MOTOR', isMaterial: true },
     { id: 'history', icon: History, label: 'HISTORIAL' },
   ];

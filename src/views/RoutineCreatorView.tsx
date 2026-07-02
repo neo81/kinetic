@@ -53,6 +53,13 @@ export const RoutineCreatorView = ({
     window.scrollTo(0, 0);
   }, []);
 
+  useEffect(() => {
+    setName(currentRoutine?.name || '');
+    setLocalActiveDayNum(null);
+    setErrorMsg('');
+    setItemToTrash(null);
+  }, [currentRoutine?.id]);
+
   // Sincronizar el número de día local con el ID seleccionado globalmente (para cuando volvemos del editor)
   useEffect(() => {
     if (selectedRoutineDayId && localActiveDayNum === null) {

@@ -274,6 +274,7 @@ export const useAppState = () => {
   }, [view]);
 
   useEffect(() => {
+    if (view === 'routine-creator') return;
     if (currentRoutine || routines.length === 0) return;
     const lastRoutineId = loadLastRoutineId();
     if (!lastRoutineId) return;
@@ -281,7 +282,7 @@ export const useAppState = () => {
     if (matched) {
       setCurrentRoutine(matched);
     }
-  }, [currentRoutine, routines]);
+  }, [currentRoutine, routines, view]);
 
   useEffect(() => {
     const fallbackTimeout = setTimeout(() => {

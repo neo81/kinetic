@@ -138,6 +138,8 @@ Cambios principales:
   - Para peso corporal se guarda snapshot del peso del perfil en la sesion, evitando recalcular sesiones viejas.
   - El editor ya no activa peso corporal por defecto al cargar un ejercicio nuevo; solo conserva `bodyweight` si el ejercicio ya estaba guardado asi.
   - Se corrigio que valores `null` aparecieran como texto dentro de inputs al editar series.
+  - Se corrigio la creacion de nuevas rutinas para que no herede automaticamente dias y ejercicios de la ultima rutina seleccionada.
+  - El footer `RUTINAS` abre la lista completa de rutinas, igual que `VER TODAS`; el detalle queda reservado para una rutina elegida o continuada desde el dashboard.
 
 - Biblioteca de ejercicios:
   - Se agrego busqueda global de ejercicios fuera de un grupo muscular.
@@ -157,6 +159,7 @@ Cambios principales:
   - Se reviso rendimiento en Android de gama media, evitando degradar imagenes WebP que ya se veian correctamente.
   - Se regeneraron iconos PWA, favicon y Apple Touch desde la imagen base corregida.
   - Se ajusto la grilla del editor de series en PWA/mobile para que los botones `REPS` y `FALLO` no se superpongan en pantallas angostas.
+  - Se corrigio el avatar del header para mantener formato circular estable y evitar deformacion por compresion del layout en pantallas angostas.
 
 - Supabase y datos:
   - Se actualizo el schema remoto para soportar altura, peso, tipo de carga, series al fallo y snapshot de peso corporal.
