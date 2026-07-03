@@ -179,6 +179,33 @@ export interface CompletedSession {
   totalVolume: number;
   totalVolumeWeight: number;
   totalVolumeMinutes: number;
+  days: CompletedSessionDay[];
+}
+
+export interface CompletedSessionDay {
+  id: string;
+  label: string;
+  exercises: CompletedSessionExercise[];
+}
+
+export interface CompletedSessionExercise {
+  id: string;
+  name: string;
+  notes: string | null;
+  position: number;
+  sets: CompletedSessionSet[];
+}
+
+export interface CompletedSessionSet {
+  id: string;
+  setNumber: number;
+  reps: number | null;
+  weight: number | null;
+  durationMinutes: number | null;
+  durationSeconds: number | null;
+  loadType: ExerciseLoadType;
+  targetType: ExerciseTargetType;
+  bodyWeightKgSnapshot: number | null;
 }
 
 export interface UserGoals {

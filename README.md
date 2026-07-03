@@ -36,6 +36,7 @@ Mapas anatómicos interactivos (Frontal y Posterior) que proporcionan una interf
 - **Soporte Multi-Unidad**: Registra pesos en `kg` o duraciones en `min/seg`.
 - **Series al fallo**: Permite planificar series por repeticiones fijas o `Al fallo`, manteniendo el registro real de repeticiones al finalizar la sesión.
 - **Peso corporal controlado**: Soporte para ejercicios con peso corporal y snapshot del peso del perfil, sin activarlo por defecto al cargar una serie nueva.
+- **Corrección durante la sesión**: Los sets ya realizados pueden abrirse nuevamente para editar valores o borrar el registro si fueron cargados por error.
 - **Notas Globales**: Notas de entrenamiento persistentes que proporcionan contexto en todas las series de una instancia de ejercicio.
 - **Gestión de Series Fluida**: Añade o elimina series con un solo toque, con persistencia automática.
 
@@ -44,6 +45,7 @@ Mapas anatómicos interactivos (Frontal y Posterior) que proporcionan una interf
 - **Progreso Visual**: Gráficos y métricas de alto contraste que resaltan tus ganancias semanales.
 - **Objetivos Personalizados**: Define y personaliza tus metas semanales.
 - **Acceso claro a rutinas**: `VER TODAS` y el footer `RUTINAS` abren la lista completa; el detalle se muestra solo al elegir una rutina o continuar desde el dashboard.
+- **Historial detallado**: Las sesiones completadas pueden expandirse para revisar días, ejercicios, sets y valores registrados.
 
 ### 👤 Perfil Avanzado
 - **Avatar Personalizado**: Sube y ajusta tu avatar con zoom/crop integrado.
@@ -196,6 +198,7 @@ Interactive anatomical maps (Front & Back) that provide a direct interface for e
 - **Multi-Unit Support**: Log weights in `kg` or durations in `min/sec`.
 - **Failure Sets**: Plan sets as fixed reps or `To failure`, while still capturing actual reps at session completion.
 - **Controlled Bodyweight Load**: Supports bodyweight exercises and profile weight snapshots without enabling bodyweight by default for newly selected exercises.
+- **In-session corrections**: Captured sets can be opened again to edit values or remove the record if they were logged by mistake.
 - **Global Notes**: Persistent training notes that provide context across all sets of an exercise instance.
 - **Fluid Set Management**: Add or remove sets with a single tap, with automatic persistence.
 
@@ -204,6 +207,7 @@ Interactive anatomical maps (Front & Back) that provide a direct interface for e
 - **Visual Progress**: High-contrast charts and metrics that highlight your weekly gains.
 - **Custom Goals**: Set and personalize your weekly objectives.
 - **Clear routines access**: `View all` and the `RUTINAS` footer entry open the full routine list; routine detail appears only after selecting a routine or continuing from the dashboard.
+- **Detailed history**: Completed sessions can be expanded to review days, exercises, sets, and recorded values.
 
 ### 👤 Advanced Profile
 - **Custom Avatar**: Upload and adjust your avatar with integrated zoom/crop.

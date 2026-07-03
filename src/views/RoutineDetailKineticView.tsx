@@ -347,7 +347,9 @@ const SetCaptureOverlay = ({
   bodyWeightKg,
   targetType,
   totalSets,
+  isEditing,
   onCapture,
+  onClear,
 }: {
   open: boolean;
   onClose: () => void;
@@ -358,7 +360,9 @@ const SetCaptureOverlay = ({
   bodyWeightKg: number | null;
   targetType: 'fixed_reps' | 'failure';
   totalSets: number;
+  isEditing?: boolean;
   onCapture: (reps: number | null, weight: number | null) => void;
+  onClear?: () => void;
 }) => {
   const [actualReps, setActualReps] = useState<string>(String(plannedReps ?? ''));
   const [actualWeight, setActualWeight] = useState<string>(
@@ -389,7 +393,7 @@ const SetCaptureOverlay = ({
 
   return (
     <PopupShell
-      title={`Set ${setNumber} - ${exercise.name}`}
+      title={`${isEditing ? 'Editar' : 'Registrar'} set ${setNumber} - ${exercise.name}`}
       accent="primary"
       onClose={onClose}
     >
@@ -473,8 +477,17 @@ const SetCaptureOverlay = ({
           className="neon-button w-full flex items-center justify-center gap-2 rounded-[0.95rem] py-4 font-headline text-[1.2rem] font-semibold uppercase tracking-[0.16em]"
         >
           <Check size={18} strokeWidth={2.5} />
-          Confirmar
+          {isEditing ? 'Guardar cambios' : 'Confirmar'}
         </button>
+
+        {isEditing && onClear && (
+          <button
+            onClick={onClear}
+            className="w-full rounded-[0.95rem] border border-secondary/35 bg-secondary/10 py-4 text-sm font-bold uppercase tracking-[0.18em] text-secondary transition-colors hover:bg-secondary/15"
+          >
+            Borrar registro del set
+          </button>
+        )}
 
         <button
           onClick={onClose}
@@ -607,7 +620,7 @@ export const RoutineDetailKineticView = ({
   const [selectedGroupExerciseIds, setSelectedGroupExerciseIds] = useState<string[]>([]);
 
   // Estado para captura de set
-  const [setCapturePending, setSetCapturePending] = useState<{ exerciseId: string; setNumber: number; reps: number | null; weight: number | null; targetType: 'fixed_reps' | 'failure' } | null>(null);
+  const [setCapturePending, setSetCapturePending] = useState<{ exerciseId: string; setNumber: number; reps: number | null; weight: number | null; targetType: 'fixed_reps' | 'failure'; isEditing?: boolean } | null>(null);
   const [allExerciseSets, setAllExerciseSets] = useState<Exercise | null>(null);
 
   useEffect(() => {
@@ -691,6 +704,17 @@ export const RoutineDetailKineticView = ({
     handleSetCaptureClose();
   };
 
+  const handleClearSetCapture = () => {
+    if (!setCapturePending || !allExerciseSets) return;
+
+    onClearCapturedSetPerformance(
+      setCapturePending.exerciseId,
+      setCapturePending.setNumber,
+      allExerciseSets.sets.length,
+    );
+    handleSetCaptureClose();
+  };
+
   const handleSetChipClick = (dayEx: RoutineDayExercise, setIndex: number) => {
     if (isExerciseSkipped(activeSession, dayEx.id)) return;
 
@@ -698,12 +722,8 @@ export const RoutineDetailKineticView = ({
     if (!targetSet) return;
 
     const setNumber = targetSet.setNumber || setIndex + 1;
-    const isCaptured = !!activeSession?.performanceData[dayEx.id]?.[setNumber]?.captured;
-
-    if (isCaptured) {
-      onClearCapturedSetPerformance(dayEx.id, setNumber, dayEx.exercise.sets.length);
-      return;
-    }
+    const capturedSet = activeSession?.performanceData[dayEx.id]?.[setNumber] ?? null;
+    const isCaptured = !!capturedSet?.captured;
 
     let value: number | null = null;
     if (dayEx.exercise.measureUnit === 'min') {
@@ -718,9 +738,10 @@ export const RoutineDetailKineticView = ({
     setSetCapturePending({
       exerciseId: dayEx.id,
       setNumber,
-      reps: targetSet.reps ?? null,
-      weight: value,
+      reps: isCaptured ? capturedSet.actualReps : targetSet.reps ?? null,
+      weight: isCaptured ? capturedSet.actualWeight : value,
       targetType: targetSet.targetType ?? 'fixed_reps',
+      isEditing: isCaptured,
     });
   };
 
@@ -958,7 +979,7 @@ export const RoutineDetailKineticView = ({
 ? 'theme-primary-shadow-soft border-primary bg-primary text-black'
                                     : 'theme-hairline-border bg-surface-container-high text-on-surface-variant hover:border-primary/45 hover:text-on-surface'
                     }`}
-                    title={isSkipped ? 'Ejercicio salteado' : isCaptured ? 'Quitar set realizado' : 'Registrar set'}
+                    title={isSkipped ? 'Ejercicio salteado' : isCaptured ? 'Ver o editar set realizado' : 'Registrar set'}
                   >
                     {`Set ${setNumber} · ${getSetPreviewValue(dayEx.exercise, setIndex)}`}
                   </button>
@@ -1329,7 +1350,9 @@ className={`theme-primary-shadow-strong pointer-events-auto w-full max-w-md h-[4
           bodyWeightKg={profile?.bodyWeightKg ?? null}
           targetType={setCapturePending.targetType}
           totalSets={allExerciseSets.sets.length}
+          isEditing={setCapturePending.isEditing}
           onCapture={handleSetCapture}
+          onClear={setCapturePending.isEditing ? handleClearSetCapture : undefined}
         />
       )}
 

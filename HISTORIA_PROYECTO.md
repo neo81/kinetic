@@ -135,6 +135,7 @@ Cambios principales:
   - Se agrego soporte para `load_type` (`external` / `bodyweight`) en ejercicios dentro de rutinas.
   - Se agrego soporte para `target_type` (`fixed_reps` / `failure`) en series.
   - Las series al fallo guardan repeticiones planificadas como `null`, pero el registro de sesion permite capturar las repeticiones reales.
+  - Durante una sesion activa, los sets ya realizados pueden reabrirse para editar valores o borrar el registro si se cargaron por error.
   - Para peso corporal se guarda snapshot del peso del perfil en la sesion, evitando recalcular sesiones viejas.
   - El editor ya no activa peso corporal por defecto al cargar un ejercicio nuevo; solo conserva `bodyweight` si el ejercicio ya estaba guardado asi.
   - Se corrigio que valores `null` aparecieran como texto dentro de inputs al editar series.
@@ -172,6 +173,7 @@ Cambios principales:
   - Se agrego estructura inicial de pruebas E2E con Playwright.
   - Se agregaron smoke/load tests con k6 y Artillery.
   - Se hicieron pruebas multiusuario con rutinas grandes, incluyendo finalizacion de sesiones y revision de historial.
+  - El historial permite expandir sesiones completadas para ver dias, ejercicios, sets y valores registrados.
   - `npm run lint` ejecuta `tsc --noEmit`; `npm run build` puede requerir permisos elevados en Windows/OneDrive por restricciones de esbuild.
 
 ## Documentos consolidados

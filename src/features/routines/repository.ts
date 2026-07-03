@@ -652,15 +652,27 @@ const fetchCompletedSessions = async (userId: string): Promise<CompletedSession[
           routine_day_id,
           routine_days (
             day_type,
-            day_number
+            day_number,
+            position,
+            title
           ),
           session_exercise_logs (
             id,
+            position,
+            notes,
+            exercises (
+              name
+            ),
             session_set_logs (
+              id,
+              set_number,
               reps,
               weight,
               duration_minutes,
-              duration_seconds
+              duration_seconds,
+              load_type,
+              target_type,
+              body_weight_kg_snapshot
             )
           )
         )
@@ -684,7 +696,11 @@ const fetchCompletedSessions = async (userId: string): Promise<CompletedSession[
       const endDate = new Date(session.ended_at);
       const durationMs = endDate.getTime() - startDate.getTime();
 
-      const dayLogs = session.session_day_logs || [];
+      const dayLogs = [...(session.session_day_logs || [])].sort((left: any, right: any) => {
+        const leftPosition = Number(left.routine_days?.position ?? left.routine_days?.day_number ?? 0);
+        const rightPosition = Number(right.routine_days?.position ?? right.routine_days?.day_number ?? 0);
+        return leftPosition - rightPosition;
+      });
       const dayCount = dayLogs.length;
 
       // Build day info string (e.g., "Core + Día 1", "Día 1, Día 2")
@@ -702,6 +718,38 @@ const fetchCompletedSessions = async (userId: string): Promise<CompletedSession[
       let exerciseCount = 0;
       let totalVolumeWeight = 0;
       let totalVolumeMinutes = 0;
+      const detailedDays = dayLogs.map((dayLog: any) => {
+        const dayLabel = dayLog.routine_days?.day_type === 'core'
+          ? 'Core'
+          : dayLog.routine_days?.title || `Dia ${dayLog.routine_days?.day_number ?? '-'}`;
+        const exercises = [...(dayLog.session_exercise_logs || [])]
+          .sort((left: any, right: any) => Number(left.position ?? 0) - Number(right.position ?? 0))
+          .map((exercise: any) => ({
+            id: exercise.id,
+            name: exercise.exercises?.name || 'Ejercicio sin nombre',
+            notes: exercise.notes ?? null,
+            position: Number(exercise.position ?? 0),
+            sets: [...(exercise.session_set_logs || [])]
+              .sort((left: any, right: any) => Number(left.set_number ?? 0) - Number(right.set_number ?? 0))
+              .map((set: any) => ({
+                id: set.id,
+                setNumber: Number(set.set_number ?? 0),
+                reps: set.reps ?? null,
+                weight: set.weight ?? null,
+                durationMinutes: set.duration_minutes ?? null,
+                durationSeconds: set.duration_seconds ?? null,
+                loadType: set.load_type ?? 'external',
+                targetType: set.target_type ?? 'fixed_reps',
+                bodyWeightKgSnapshot: set.body_weight_kg_snapshot ?? null,
+              })),
+          }));
+
+        return {
+          id: dayLog.id,
+          label: dayLabel,
+          exercises,
+        };
+      });
 
       dayLogs.forEach((dayLog: any) => {
         const exercises = dayLog.session_exercise_logs || [];
@@ -737,6 +785,7 @@ const fetchCompletedSessions = async (userId: string): Promise<CompletedSession[
         totalVolume: totalVolumeWeight, // For backward compatibility
         totalVolumeWeight,
         totalVolumeMinutes,
+        days: detailedDays,
       };
     });
 
