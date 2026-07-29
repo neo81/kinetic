@@ -3,6 +3,7 @@ import type { Database } from '../../lib/supabase/database.types';
 import type { Exercise, Routine, CompletedSession, UserGoals, WeeklyStats, DashboardData } from '../../types';
 import { mapSupabaseErrorCode, RoutineRepositoryError } from './errors';
 import { loadCachedRoutines, saveCachedRoutines } from './localRoutineCache';
+import { reorderRoutineDayExercises } from './reorderExercises';
 import { syncQueue } from '../../services/syncQueue';
 
 type RoutineRow = Database['public']['Tables']['routines']['Row'];
@@ -282,7 +283,7 @@ const mapRoutine = (row: RoutineQueryRow): Routine => {
     updatedAt: row.updated_at,
     dayEntries: routineDays.map((day) => ({
       id: day.id,
-      dayType: day.day_type,
+      dayType: day.day_type === 'core' ? 'core' : 'weekday',
       dayNumber: day.day_number,
       title:
         day.title ||
@@ -313,26 +314,25 @@ const syncExerciseSets = async (
     return;
   }
 
-  const { error: deleteSetsError } = await supabase
-    .from('exercise_sets')
-    .delete()
-    .eq('routine_day_exercise_id', routineDayExerciseId);
-
-  if (deleteSetsError) {
-    throw new RoutineRepositoryError(
-      mapSupabaseErrorCode(deleteSetsError.message),
-      'No se pudieron actualizar las series del ejercicio.',
-      { cause: deleteSetsError },
-    );
-  }
-
   if (sets.length === 0) {
+    const { error: deleteSetsError } = await supabase
+      .from('exercise_sets')
+      .delete()
+      .eq('routine_day_exercise_id', routineDayExerciseId);
+
+    if (deleteSetsError) {
+      throw new RoutineRepositoryError(
+        mapSupabaseErrorCode(deleteSetsError.message),
+        'No se pudieron actualizar las series del ejercicio.',
+        { cause: deleteSetsError },
+      );
+    }
     return;
   }
 
   const setRows: Database['public']['Tables']['exercise_sets']['Insert'][] = sets.map((set, index) => ({
     routine_day_exercise_id: routineDayExerciseId,
-    set_number: set.setNumber ?? index + 1,
+    set_number: index + 1,
     reps: set.reps,
     weight: set.weight,
     duration_minutes: set.durationMinutes ?? null,
@@ -341,12 +341,31 @@ const syncExerciseSets = async (
     target_type: set.targetType ?? 'fixed_reps',
   }));
 
-  const { error: insertSetsError } = await supabase.from('exercise_sets').insert(setRows);
-  if (insertSetsError) {
+  const { error: upsertSetsError } = await supabase
+    .from('exercise_sets')
+    .upsert(setRows, {
+      onConflict: 'routine_day_exercise_id,set_number',
+    });
+
+  if (upsertSetsError) {
     throw new RoutineRepositoryError(
-      mapSupabaseErrorCode(insertSetsError.message),
+      mapSupabaseErrorCode(upsertSetsError.message),
       'No se pudieron guardar las series del ejercicio.',
-      { cause: insertSetsError },
+      { cause: upsertSetsError },
+    );
+  }
+
+  const { error: deleteExtraSetsError } = await supabase
+    .from('exercise_sets')
+    .delete()
+    .eq('routine_day_exercise_id', routineDayExerciseId)
+    .gt('set_number', sets.length);
+
+  if (deleteExtraSetsError) {
+    throw new RoutineRepositoryError(
+      mapSupabaseErrorCode(deleteExtraSetsError.message),
+      'No se pudieron quitar las series sobrantes del ejercicio.',
+      { cause: deleteExtraSetsError },
     );
   }
 };
@@ -1040,6 +1059,64 @@ export const routinesRepository = {
     );
 
     return normalizedRoutine;
+  },
+
+  async reorderDayExercises(
+    currentRoutine: Routine,
+    routineDayId: string,
+    orderedExerciseIds: string[],
+  ): Promise<Routine> {
+    const updatedRoutine = reorderRoutineDayExercises(
+      currentRoutine,
+      routineDayId,
+      orderedExerciseIds,
+    );
+
+    if (!supabase || currentRoutine.syncPending) {
+      throw new RoutineRepositoryError(
+        'SUPABASE_NETWORK',
+        'Necesitas conexión para cambiar el orden de los ejercicios.',
+      );
+    }
+
+    const { error } = await supabase.rpc('reorder_routine_day_exercises', {
+      p_routine_day_id: routineDayId,
+      p_ordered_exercise_ids: orderedExerciseIds,
+    });
+
+    if (error) {
+      throw new RoutineRepositoryError(
+        mapSupabaseErrorCode(error.message),
+        'No se pudo guardar el nuevo orden de ejercicios.',
+        { cause: error },
+      );
+    }
+
+    const { data: persistedOrder, error: persistedOrderError } = await supabase
+      .from('routine_day_exercises')
+      .select('id, position')
+      .eq('routine_day_id', routineDayId)
+      .order('position', { ascending: true });
+
+    if (
+      persistedOrderError
+      || !persistedOrder
+      || persistedOrder.map((item) => item.id).join(',') !== orderedExerciseIds.join(',')
+    ) {
+      throw new RoutineRepositoryError(
+        mapSupabaseErrorCode(persistedOrderError?.message),
+        'El servidor no confirmó el nuevo orden de ejercicios.',
+        { cause: persistedOrderError ?? undefined },
+      );
+    }
+
+    commitLocalRoutines(
+      localRoutines.map((routine) => (
+        routine.id === updatedRoutine.id ? updatedRoutine : routine
+      )),
+    );
+
+    return updatedRoutine;
   },
 
   async deleteRoutine(routineId: string): Promise<void> {

@@ -11,6 +11,7 @@ import { exportSessionDataForRPC } from '../services/sessionCompletion/exportSes
 import { invokeEndSession } from '../services/sessionCompletion/invokeEndSession';
 import { ensureWeeklyStatsBackfilled } from '../services/dataBackfill/backfillWeeklyStats';
 import { preferencesService } from '../services/preferencesService';
+import { reorderRoutineDayExercises } from '../features/routines/reorderExercises';
 import { useTheme } from '../hooks/useTheme';
 import type { ThemePreference } from '../theme/theme';
 
@@ -68,7 +69,7 @@ const mapProfileRow = (
   fullName: profile.full_name,
   username: profile.username,
   avatarUrl: profile.avatar_url,
-  unitSystem: profile.unit_system,
+  unitSystem: profile.unit_system === 'lb' ? 'lb' : 'kg',
   bio: profile.bio,
   fitnessLevel: profile.fitness_level,
   heightCm: profile.height_cm === null ? null : Number(profile.height_cm),
@@ -1074,6 +1075,46 @@ export const useAppState = () => {
     }
   };
 
+  const handleReorderDayExercises = async (dayId: string, orderedExerciseIds: string[]) => {
+    if (!currentRoutine) return;
+
+    const previousRoutine = currentRoutine;
+    const optimisticRoutine = reorderRoutineDayExercises(
+      previousRoutine,
+      dayId,
+      orderedExerciseIds,
+    );
+
+    setCurrentRoutine(optimisticRoutine);
+    setRoutines((prev) => prev.map((routine) => (
+      routine.id === optimisticRoutine.id ? optimisticRoutine : routine
+    )));
+
+    try {
+      const updatedRoutine = await routinesRepository.reorderDayExercises(
+        previousRoutine,
+        dayId,
+        orderedExerciseIds,
+      );
+      setCurrentRoutine(updatedRoutine);
+      setRoutines((prev) => prev.map((routine) => (
+        routine.id === updatedRoutine.id ? updatedRoutine : routine
+      )));
+      setAppBanner(null);
+    } catch (error) {
+      setCurrentRoutine(previousRoutine);
+      setRoutines((prev) => prev.map((routine) => (
+        routine.id === previousRoutine.id ? previousRoutine : routine
+      )));
+      setAppBanner({
+        level: 'error',
+        title: 'No se pudo reordenar',
+        message: getErrorMessage(error, 'El orden anterior fue restaurado.'),
+      });
+      throw error;
+    }
+  };
+
   /**
    * Agrega al estado local una rutina que ya fue persistida por routineImport.ts.
    * No hace llamadas adicionales a Supabase; simplemente prepende la rutina
@@ -1113,6 +1154,7 @@ export const useAppState = () => {
     handleDeleteRoutine,
     handleDeleteRoutineDay,
     handleDeleteExercise,
+    handleReorderDayExercises,
     handleImportRoutine,
     editingInstanceId,
     navigationSource,

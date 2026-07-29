@@ -23,7 +23,7 @@ export const ExerciseEditorView = ({
 }: {
   setView: (v: View) => void;
   exercise: Exercise | null;
-  onSave: (e: Exercise & { notes?: string; measureUnit?: 'kg' | 'min' | 'sec'; loadType?: ExerciseLoadType }) => void;
+  onSave: (e: Exercise & { notes?: string; measureUnit?: 'kg' | 'min' | 'sec'; loadType?: ExerciseLoadType }) => Promise<void>;
   onBack: () => void;
   profile?: UserProfile | null;
 }) => {
@@ -74,6 +74,7 @@ export const ExerciseEditorView = ({
   const [loadType, setLoadType] = useState<ExerciseLoadType>(defaultLoadType);
   const [localNotes, setLocalNotes] = useState(exercise?.sets?.[0]?.notes || exercise?.notes || '');
   const [showDescription, setShowDescription] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -156,8 +157,8 @@ export const ExerciseEditorView = ({
     }
   };
 
-  const handleSave = () => {
-    if (!exercise) {
+  const handleSave = async () => {
+    if (!exercise || isSaving) {
       return;
     }
 
@@ -170,7 +171,18 @@ export const ExerciseEditorView = ({
       targetType: set.targetType,
     }));
 
-    onSave({ ...exercise, sets: parsedSets, measureUnit: unit, loadType: unit === 'kg' ? loadType : 'external', notes: localNotes });
+    setIsSaving(true);
+    try {
+      await onSave({
+        ...exercise,
+        sets: parsedSets,
+        measureUnit: unit,
+        loadType: unit === 'kg' ? loadType : 'external',
+        notes: localNotes,
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   if (!exercise) {
@@ -421,9 +433,12 @@ export const ExerciseEditorView = ({
 
         <button
           onClick={handleSave}
-                className="neon-button theme-primary-shadow-strong mt-6 flex w-full items-center justify-center gap-3 rounded-2xl py-5 text-black transition-all active:scale-[0.98]"
+          disabled={isSaving}
+          className="neon-button theme-primary-shadow-strong mt-6 flex w-full items-center justify-center gap-3 rounded-2xl py-5 text-black transition-all active:scale-[0.98] disabled:cursor-wait disabled:opacity-65"
         >
-          <span className="font-headline text-lg font-bold uppercase tracking-tight">Guardar ejercicio</span>
+          <span className="font-headline text-lg font-bold uppercase tracking-tight">
+            {isSaving ? 'Guardando...' : 'Guardar ejercicio'}
+          </span>
           <ArrowRight size={20} strokeWidth={2.8} />
         </button>
       </section>

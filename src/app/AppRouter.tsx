@@ -43,10 +43,11 @@ type AppRouterProps = {
   onDeleteRoutineFromDashboard: (routineId: string) => void;
   onSelectMuscle: (muscle: string) => void;
   onSelectExercise: (exercise: Exercise, instanceId?: string) => void;
-  onSaveExercise: (exercise: Exercise) => void;
+  onSaveExercise: (exercise: Exercise) => Promise<void>;
   onDeleteRoutine: (routineId: string) => void;
   onDeleteRoutineDay: (routineDayId: string) => void;
   onDeleteExercise: (exerciseId: string, dayId?: string) => void;
+  onReorderDayExercises: (dayId: string, orderedExerciseIds: string[]) => Promise<void>;
   onImportRoutine: (routine: Routine) => void;
   navigationSource: View;
   setNavigationSource: (view: View) => void;
@@ -94,6 +95,7 @@ export const AppRouter = ({
   onDeleteRoutine,
   onDeleteRoutineDay,
   onDeleteExercise,
+  onReorderDayExercises,
   onImportRoutine,
   navigationSource,
   setNavigationSource,
@@ -161,6 +163,7 @@ export const AppRouter = ({
           onSelectRoutineDay={setSelectedRoutineDayId}
           onDeleteRoutineDay={onDeleteRoutineDay}
           onDeleteExercise={onDeleteExercise}
+          onReorderExercises={onReorderDayExercises}
           onEditExercise={(ex, instanceId) => {
             setNavigationSource('routine-creator');
             onSelectExercise(ex, instanceId);

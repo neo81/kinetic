@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { RoutineSyncPendingBadge } from '../components/RoutineSyncPendingBadge';
 import { PageShell } from '../components/layout/PageShell';
+import { buildSessionDayIds } from '../features/routines/sessionDays';
 import type { ActiveSession, Exercise, Routine, View, RoutineDayExercise, SessionExerciseGroup, UserProfile } from '../types';
 
 const DEFAULT_REST_SECONDS = 0;
@@ -618,6 +619,7 @@ export const RoutineDetailKineticView = ({
   const [isEndingSession, setIsEndingSession] = useState(false);
   const [isGroupingMode, setIsGroupingMode] = useState(false);
   const [selectedGroupExerciseIds, setSelectedGroupExerciseIds] = useState<string[]>([]);
+  const lastOpenedSessionDayRef = useRef<string | null>(null);
 
   // Estado para captura de set
   const [setCapturePending, setSetCapturePending] = useState<{ exerciseId: string; setNumber: number; reps: number | null; weight: number | null; targetType: 'fixed_reps' | 'failure'; isEditing?: boolean } | null>(null);
@@ -628,44 +630,20 @@ export const RoutineDetailKineticView = ({
     window.scrollTo(0, 0);
   }, []);
 
-  // Mantener CORE abierto cuando está en sesión activa, y cambiar el día abierto cuando el día activo cambia
+  // Abrir el día activo cuando comienza la sesión o cambia manualmente.
+  // No depende de openDayId para permitir que el usuario cierre el acordeón.
   useEffect(() => {
     if (!activeSession || activeSession.routineId !== routine?.id) {
+      lastOpenedSessionDayRef.current = null;
       return;
     }
 
-    // Si hay sesión activa, mantener abierto el día activo
-    if (openDayId !== activeSession.activeRoutineDayId) {
+    const sessionDayKey = `${activeSession.id}:${activeSession.activeRoutineDayId}`;
+    if (lastOpenedSessionDayRef.current !== sessionDayKey) {
+      lastOpenedSessionDayRef.current = sessionDayKey;
       onOpenDayChange(activeSession.activeRoutineDayId);
     }
-  }, [activeSession?.activeRoutineDayId, activeSession?.routineId, routine?.id, openDayId, onOpenDayChange]);
-
-  // Auto-avanzar al siguiente día si el actual está completado
-  useEffect(() => {
-    if (!activeSession || activeSession.routineId !== routine?.id) {
-      return;
-    }
-
-    // Obtener el día actualmente abierto
-    const currentDay = routine.dayEntries?.find(d => d.id === activeSession.activeRoutineDayId);
-    if (!currentDay) return;
-
-    // Verificar si todos los ejercicios de este día están completados
-    const allExercisesInDay = currentDay.exercises;
-    const dayExercisesCompleted = allExercisesInDay.every((dayEx) =>
-      isExerciseDoneForSession(activeSession, dayEx)
-    );
-
-    if (dayExercisesCompleted && allExercisesInDay.length > 0) {
-      // Encontrar el próximo día en la sesión
-      const currentIndex = activeSession.routineDayIds.indexOf(activeSession.activeRoutineDayId);
-      const nextDayId = activeSession.routineDayIds[currentIndex + 1];
-
-      if (nextDayId) {
-        onSwitchSessionDay(nextDayId);
-      }
-    }
-  }, [activeSession, routine?.dayEntries, onSwitchSessionDay]);
+  }, [activeSession?.id, activeSession?.activeRoutineDayId, activeSession?.routineId, routine?.id, onOpenDayChange]);
 
   useEffect(() => {
     if (!isSessionTimerRunning) {
@@ -1123,16 +1101,27 @@ export const RoutineDetailKineticView = ({
             }
 
             const isOpen = openDayId === day.id;
+            const isCurrentSessionDay = activeSession?.routineId === routine.id
+              && activeSession.routineDayIds.includes(day.id);
+            const isBlockedByOtherSession = !!activeSession && !isCurrentSessionDay;
             return (
               <div key={day.id} className={`overflow-hidden rounded-[1.2rem] ${isOpen ? 'border-l-4 border-primary bg-surface-container' : 'bg-surface-container'}`}>
                 <div className="flex items-center bg-surface-container-high/30 pr-3">
                   <button
                     onClick={() => {
-                      if (activeSession?.routineId === routine.id) return; // Bloquear cierre si hay sesión
+                      if (isCurrentSessionDay) {
+                        if (isOpen) {
+                          onOpenDayChange(null);
+                        } else {
+                          onSwitchSessionDay(day.id);
+                          onOpenDayChange(day.id);
+                        }
+                        return;
+                      }
                       onOpenDayChange(isOpen ? null : day.id);
                     }}
-                    disabled={!!activeSession}
-                    className={`flex flex-1 items-center justify-between gap-3 p-4 text-left transition-colors sm:p-5 ${isOpen ? 'bg-surface-container-high/55' : 'hover:bg-surface-bright/35'} ${activeSession ? 'cursor-not-allowed' : ''}`}
+                    disabled={isBlockedByOtherSession}
+                    className={`flex flex-1 items-center justify-between gap-3 p-4 text-left transition-colors sm:p-5 ${isOpen ? 'bg-surface-container-high/55' : 'hover:bg-surface-bright/35'} ${isBlockedByOtherSession ? 'cursor-not-allowed' : ''}`}
                   >
                     <div className="flex min-w-0 items-center gap-4">
                       <span className={`font-headline text-[1.4rem] font-semibold sm:text-[1.6rem] ${isOpen ? 'text-primary' : 'text-on-surface-variant'}`}>
@@ -1308,11 +1297,8 @@ className={`h-[4.5rem] rounded-[1.2rem] bg-secondary text-black shadow-[0_20px_4
                 if (selectedStartWeekdayId && routine) {
                   // Find CORE day if it exists
                   const coreDay = routine.dayEntries?.find(d => d.dayType === 'core');
-                  // Prepare day IDs: include CORE if exists, then the selected weekday
-                  const dayIds =
-                    coreDay && coreDay.id !== selectedStartWeekdayId
-                      ? [coreDay.id, selectedStartWeekdayId]
-                      : [selectedStartWeekdayId];
+                  // Start on the selected weekday and keep CORE available as an optional day.
+                  const dayIds = buildSessionDayIds(selectedStartWeekdayId, coreDay?.id);
                   onStartSession(routine.id, routine.name, dayIds);
                 }
               }}
