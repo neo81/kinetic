@@ -1,18 +1,18 @@
 import { AnimatePresence, motion } from 'motion/react';
 import { CheckCircle2, Sparkles, X } from 'lucide-react';
-import type { ReleaseNote } from '../app/releaseNotes';
+import type { AppRelease } from '../app/releaseNotes';
 
 type ReleaseNotesDialogProps = {
   isOpen: boolean;
-  version: string;
-  notes: ReleaseNote[];
+  mode: 'unread' | 'history';
+  releases: AppRelease[];
   onClose: () => void;
 };
 
 export const ReleaseNotesDialog = ({
   isOpen,
-  version,
-  notes,
+  mode,
+  releases,
   onClose,
 }: ReleaseNotesDialogProps) => (
   <AnimatePresence>
@@ -50,25 +50,45 @@ export const ReleaseNotesDialog = ({
             </div>
             <div>
               <p className="text-[10px] font-black uppercase tracking-[0.24em] text-primary">
-                Version {version}
+                {mode === 'unread' ? `${releases.length} sin leer` : `${releases.length} versiones`}
               </p>
               <h2 id="release-notes-title" className="mt-2 font-headline text-2xl font-black uppercase italic leading-none text-on-surface">
-                Novedades
+                {mode === 'unread' ? 'Novedades' : 'Historial'}
               </h2>
             </div>
           </div>
 
-          <div className="space-y-3">
-            {notes.map((note) => (
-              <div key={note.title} className="rounded-[1.1rem] bg-surface-container-low px-4 py-3">
-                <div className="flex items-start gap-3">
-                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" strokeWidth={2.6} />
+          <div className="space-y-6">
+            {releases.map((release) => (
+              <section key={release.version} className="space-y-3">
+                <div className="flex items-end justify-between gap-4 px-1">
                   <div>
-                    <h3 className="text-sm font-bold text-on-surface">{note.title}</h3>
-                    <p className="mt-1 text-xs leading-relaxed text-on-surface-variant">{note.description}</p>
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">
+                      Version {release.version}
+                    </p>
+                    <h3 className="mt-1 text-sm font-bold text-on-surface">{release.title}</h3>
                   </div>
+                  <time className="shrink-0 text-[9px] font-medium text-on-surface-variant/70">
+                    {new Date(release.publishedAt).toLocaleDateString('es-AR')}
+                  </time>
                 </div>
-              </div>
+                <div className="space-y-3">
+                  {release.notes.map((note) => (
+                    <div
+                      key={`${release.version}-${note.title}`}
+                      className="rounded-[1.1rem] bg-surface-container-low px-4 py-3"
+                    >
+                      <div className="flex items-start gap-3">
+                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" strokeWidth={2.6} />
+                        <div>
+                          <h4 className="text-sm font-bold text-on-surface">{note.title}</h4>
+                          <p className="mt-1 text-xs leading-relaxed text-on-surface-variant">{note.description}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
             ))}
           </div>
 

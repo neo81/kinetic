@@ -9,15 +9,18 @@ import { AppErrorBanner } from './components/layout/AppErrorBanner';
 import { SyncStatusBanner } from './components/layout/SyncStatusBanner';
 import { SplashScreen } from './components/layout/SplashScreen';
 import { ReleaseNotesDialog } from './components/ReleaseNotesDialog';
-import { CURRENT_RELEASE_NOTES_VERSION, currentReleaseNotes } from './app/releaseNotes';
-
-const RELEASE_NOTES_STORAGE_KEY = 'kinetic.lastSeenReleaseNotes';
+import { fallbackReleaseHistory, type AppRelease } from './app/releaseNotes';
+import { releaseNotesRepository } from './features/releaseNotes/repository';
 
 export default function AppRoot() {
   const app = useAppState();
   useSync();
   const syncState = useSyncState();
   const [showReleaseNotes, setShowReleaseNotes] = useState(false);
+  const [releaseNotesMode, setReleaseNotesMode] = useState<'unread' | 'history'>('unread');
+  const [releaseHistory, setReleaseHistory] = useState<AppRelease[]>([]);
+  const [unreadReleases, setUnreadReleases] = useState<AppRelease[]>([]);
+  const [releaseNotesLoaded, setReleaseNotesLoaded] = useState(false);
 
   useEffect(() => {
     if (import.meta.env.VITE_ENABLE_REMOTE_LOGGER !== 'true') {
@@ -39,33 +42,81 @@ export default function AppRoot() {
   }, []);
 
   useEffect(() => {
+    let isCancelled = false;
+
+    if (!app.user?.id) {
+      setReleaseHistory([]);
+      setUnreadReleases([]);
+      setReleaseNotesLoaded(false);
+      setShowReleaseNotes(false);
+      return;
+    }
+
+    setReleaseNotesLoaded(false);
+    void releaseNotesRepository
+      .getReleaseState(app.user.id)
+      .then(({ releases, unreadReleases: nextUnreadReleases }) => {
+        if (isCancelled) return;
+        setReleaseHistory(releases);
+        setUnreadReleases(nextUnreadReleases);
+      })
+      .catch((error) => {
+        if (isCancelled) return;
+        console.error('[ReleaseNotes] No se pudo cargar el historial:', error);
+        setReleaseHistory(fallbackReleaseHistory);
+        setUnreadReleases([]);
+      })
+      .finally(() => {
+        if (!isCancelled) setReleaseNotesLoaded(true);
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [app.user?.id]);
+
+  useEffect(() => {
     if (
       app.isAppLoading ||
       !app.user ||
       app.activeSession ||
       app.appBanner ||
-      syncState.status !== 'idle'
+      syncState.status !== 'idle' ||
+      !releaseNotesLoaded ||
+      unreadReleases.length === 0 ||
+      showReleaseNotes
     ) {
       return;
     }
 
-    try {
-      const lastSeenVersion = window.localStorage.getItem(RELEASE_NOTES_STORAGE_KEY);
-      if (lastSeenVersion !== CURRENT_RELEASE_NOTES_VERSION) {
-        setShowReleaseNotes(true);
-      }
-    } catch (_error) {
-      setShowReleaseNotes(false);
-    }
-  }, [app.activeSession, app.appBanner, app.isAppLoading, app.user, syncState.status]);
+    setReleaseNotesMode('unread');
+    setShowReleaseNotes(true);
+  }, [
+    app.activeSession,
+    app.appBanner,
+    app.isAppLoading,
+    app.user,
+    releaseNotesLoaded,
+    showReleaseNotes,
+    syncState.status,
+    unreadReleases.length,
+  ]);
 
   const handleCloseReleaseNotes = () => {
-    try {
-      window.localStorage.setItem(RELEASE_NOTES_STORAGE_KEY, CURRENT_RELEASE_NOTES_VERSION);
-    } catch (_error) {
-      // Ignore storage failures; closing should still work for the current session.
-    }
+    const versionsToMark = unreadReleases.map((release) => release.version);
+    setUnreadReleases([]);
     setShowReleaseNotes(false);
+
+    if (app.user?.id && versionsToMark.length > 0) {
+      void releaseNotesRepository.markReleasesRead(app.user.id, versionsToMark).catch((error) => {
+        console.error('[ReleaseNotes] No se pudieron marcar las novedades como leidas:', error);
+      });
+    }
+  };
+
+  const handleOpenReleaseHistory = () => {
+    setReleaseNotesMode('history');
+    setShowReleaseNotes(true);
   };
 
   const handleReturnToSession = () => {
@@ -95,8 +146,8 @@ export default function AppRoot() {
 
       <ReleaseNotesDialog
         isOpen={showReleaseNotes}
-        version={CURRENT_RELEASE_NOTES_VERSION}
-        notes={currentReleaseNotes}
+        mode={releaseNotesMode}
+        releases={releaseNotesMode === 'unread' ? unreadReleases : releaseHistory}
         onClose={handleCloseReleaseNotes}
       />
 
@@ -172,6 +223,7 @@ export default function AppRoot() {
         themePreference={app.themePreference}
         resolvedTheme={app.resolvedTheme}
         onThemeChange={app.handleThemeChange}
+        onOpenReleaseNotes={handleOpenReleaseHistory}
       />
     </div>
   );

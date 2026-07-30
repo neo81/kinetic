@@ -196,6 +196,9 @@ Se ajusto el inicio y desarrollo de las sesiones para que ningun dia se seleccio
   - Se vinculo el proyecto local con el proyecto remoto Kinetic.
   - Se incorporaron las migraciones locales recuperadas y la funcion RPC para reordenar ejercicios.
   - Se actualizaron los tipos generados de la base de datos.
+  - El historial de novedades y su estado de lectura pasaron de `localStorage` a Supabase.
+  - Se agregaron las tablas `app_releases`, `app_release_notes` y `user_release_reads`, con permisos minimos y RLS por usuario.
+  - Configuracion ofrece un acceso permanente al historial y el aviso automatico muestra todas las versiones pendientes.
 
 - Entorno y dependencias:
   - Node y la declaracion de Volta quedaron alineados en la version `24.18.0`.

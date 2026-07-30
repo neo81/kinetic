@@ -14,6 +14,65 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_release_notes: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          position: number
+          release_version: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          position: number
+          release_version: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          position?: number
+          release_version?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "app_release_notes_release_version_fkey"
+            columns: ["release_version"]
+            isOneToOne: false
+            referencedRelation: "app_releases"
+            referencedColumns: ["version"]
+          },
+        ]
+      }
+      app_releases: {
+        Row: {
+          created_at: string
+          is_published: boolean
+          published_at: string
+          title: string
+          version: string
+        }
+        Insert: {
+          created_at?: string
+          is_published?: boolean
+          published_at: string
+          title: string
+          version: string
+        }
+        Update: {
+          created_at?: string
+          is_published?: boolean
+          published_at?: string
+          title?: string
+          version?: string
+        }
+        Relationships: []
+      }
       exercise_favorites: {
         Row: {
           created_at: string
@@ -37,6 +96,32 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "exercises"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_release_reads: {
+        Row: {
+          read_at: string
+          release_version: string
+          user_id: string
+        }
+        Insert: {
+          read_at?: string
+          release_version: string
+          user_id: string
+        }
+        Update: {
+          read_at?: string
+          release_version?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_release_reads_release_version_fkey"
+            columns: ["release_version"]
+            isOneToOne: false
+            referencedRelation: "app_releases"
+            referencedColumns: ["version"]
           },
         ]
       }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, ChevronRight, Edit2, LogOut, Ruler, User, Target, Check, AlertCircle, Loader } from 'lucide-react';
+import { ArrowLeft, ChevronRight, Edit2, LogOut, Ruler, User, Target, Check, AlertCircle, Loader, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 import { supabase } from '../lib/supabase/client';
@@ -31,6 +31,7 @@ type SettingsViewProps = {
   themePreference: ThemePreference;
   resolvedTheme: ResolvedTheme;
   onThemeChange: (theme: ThemePreference) => Promise<void>;
+  onOpenReleaseNotes: () => void;
 };
 
 type FeedbackState = 'idle' | 'saving' | 'success' | 'error';
@@ -46,6 +47,7 @@ export const SettingsView = ({
   themePreference,
   resolvedTheme,
   onThemeChange,
+  onOpenReleaseNotes,
 }: SettingsViewProps) => {
   const prefersReducedMotion = useReducedMotion();
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -859,6 +861,21 @@ export const SettingsView = ({
                 </div>
                 <p className="text-[9px] text-on-surface-variant/60 mt-2">Idioma de la aplicación (coming soon)</p>
               </div>
+
+              <button
+                type="button"
+                onClick={onOpenReleaseNotes}
+                className="flex w-full items-center justify-between rounded-[0.95rem] bg-surface-container-low px-4 py-4 text-left transition-colors hover:bg-surface-container-high"
+              >
+                <div className="flex items-center gap-4">
+                  <Sparkles size={18} className="text-primary" />
+                  <div>
+                    <span className="font-medium text-on-surface">Novedades</span>
+                    <p className="mt-1 text-[9px] text-on-surface-variant/60">Consulta el historial de versiones.</p>
+                  </div>
+                </div>
+                <ChevronRight size={18} className="text-outline" />
+              </button>
             </div>
           </div>
 

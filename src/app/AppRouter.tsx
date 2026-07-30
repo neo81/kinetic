@@ -66,6 +66,7 @@ type AppRouterProps = {
   themePreference: ThemePreference;
   resolvedTheme: ResolvedTheme;
   onThemeChange: (theme: ThemePreference) => Promise<void>;
+  onOpenReleaseNotes: () => void;
 };
 
 export const AppRouter = ({
@@ -114,6 +115,7 @@ export const AppRouter = ({
   themePreference,
   resolvedTheme,
   onThemeChange,
+  onOpenReleaseNotes,
 }: AppRouterProps) => {
   switch (view) {
     case 'login':
@@ -256,6 +258,7 @@ export const AppRouter = ({
           themePreference={themePreference}
           resolvedTheme={resolvedTheme}
           onThemeChange={onThemeChange}
+          onOpenReleaseNotes={onOpenReleaseNotes}
         />
       );
     default:
