@@ -171,10 +171,41 @@ Cambios principales:
 
 - Pruebas:
   - Se agrego estructura inicial de pruebas E2E con Playwright.
-  - Se agregaron smoke/load tests con k6 y Artillery.
+  - Se agregaron smoke/load tests con k6.
   - Se hicieron pruebas multiusuario con rutinas grandes, incluyendo finalizacion de sesiones y revision de historial.
   - El historial permite expandir sesiones completadas para ver dias, ejercicios, sets y valores registrados.
   - `npm run lint` ejecuta `tsc --noEmit`; `npm run build` puede requerir permisos elevados en Windows/OneDrive por restricciones de esbuild.
+
+## 2026-07 - Sesiones CORE, orden de ejercicios y actualizacion tecnica
+
+Se ajusto el inicio y desarrollo de las sesiones para que ningun dia se seleccione o abra automaticamente.
+
+- Sesiones:
+  - Una sesion solo se inicia desde un dia de semana; el dia CORE no inicia sesiones por si mismo.
+  - CORE queda habilitado como parte opcional de la sesion una vez elegido el dia principal.
+  - El usuario puede comenzar por los ejercicios de CORE, alternar entre acordeones y volver al dia principal.
+  - CORE solo se contabiliza si se completa al menos uno de sus ejercicios. Si se omite por completo o solo se saltean sus ejercicios, no forma parte de la sesion completada.
+
+- Rutinas y ejercicios:
+  - Se agrego ordenamiento vertical mediante drag and drop con un asa lateral.
+  - El orden se persiste en Supabase y se verifica despues de guardarlo.
+  - Se corrigio la interpretacion de la posicion de destino para que el orden visual coincida con el orden persistido.
+  - Se corrigio el guardado de series al editar un ejercicio despues de reordenarlo, evitando inserciones duplicadas.
+
+- Supabase:
+  - Se vinculo el proyecto local con el proyecto remoto Kinetic.
+  - Se incorporaron las migraciones locales recuperadas y la funcion RPC para reordenar ejercicios.
+  - Se actualizaron los tipos generados de la base de datos.
+
+- Entorno y dependencias:
+  - Node y la declaracion de Volta quedaron alineados en la version `24.18.0`.
+  - Se actualizaron las dependencias compatibles dentro de sus ramas actuales, incluyendo React, Supabase JS, Tailwind, Playwright y Vitest.
+  - Se retiro Artillery porque sus dependencias transitivas no tenian una correccion de seguridad compatible; k6 permanece como herramienta de pruebas de carga.
+  - `npm audit` quedo sin vulnerabilidades conocidas.
+
+- Calidad:
+  - Vitest y Playwright quedaron separados para evitar que las pruebas E2E se ejecuten como unitarias.
+  - La linea base quedo en 84 pruebas unitarias aprobadas, TypeScript sin errores, build de produccion correcto y 6 pruebas E2E detectadas por Playwright.
 
 ## Documentos consolidados
 

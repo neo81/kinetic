@@ -77,12 +77,4 @@ o ejecuta:
 & "C:\Program Files\k6\k6.exe" run tests/load/smoke.k6.js
 ```
 
-## Carga con Artillery
-
-Ejecuta un escenario HTTP equivalente desde Node.
-
-```powershell
-npm run test:load:artillery
-```
-
 Estas pruebas son de humo. No usan usuarios reales ni escriben datos en Supabase.

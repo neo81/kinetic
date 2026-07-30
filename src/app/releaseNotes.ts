@@ -3,27 +3,19 @@ export type ReleaseNote = {
   description: string;
 };
 
-export const CURRENT_RELEASE_NOTES_VERSION = '2026.07.01';
+export const CURRENT_RELEASE_NOTES_VERSION = '2026.07.29';
 
 export const currentReleaseNotes: ReleaseNote[] = [
   {
-    title: 'Motor como biblioteca',
-    description: 'El acceso MOTOR ahora permite explorar ejercicios sin modificar rutinas por accidente.',
+    title: 'Ordena tus ejercicios',
+    description: 'Ahora podes cambiar el orden de los ejercicios arrastrandolos desde el asa lateral.',
   },
   {
-    title: 'Busqueda global de ejercicios',
-    description: 'Podes buscar ejercicios por nombre y ver a que grupo muscular pertenecen.',
+    title: 'CORE opcional en cada sesion',
+    description: 'CORE queda disponible al elegir un dia, pero solo cuenta si realizas alguno de sus ejercicios.',
   },
   {
-    title: 'Series al fallo',
-    description: 'Las rutinas ya pueden incluir series al fallo y registrar las repeticiones reales al entrenar.',
-  },
-  {
-    title: 'Peso corporal y perfil',
-    description: 'El perfil permite guardar altura y peso para ejercicios que usan peso corporal.',
-  },
-  {
-    title: 'Mejoras PWA',
-    description: 'Se suavizaron transiciones y se mejoro la carga del selector muscular en mobile.',
+    title: 'Edicion de rutinas mas estable',
+    description: 'El orden de los ejercicios se conserva al editarlos y se mejoro el guardado de sus series.',
   },
 ];

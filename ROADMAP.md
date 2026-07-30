@@ -54,7 +54,7 @@ Roadmap del desarrollo de la aplicación de fitness "Kinetic". Cada fase constru
 - ✅ Retry logic con exponential backoff (500ms → 2min cap, ±10% jitter)
 - ✅ Error classification (transient vs permanent)
 - ✅ SyncStateManager para state tracking (idle, syncing, pending, error, degraded)
-- ✅ Comprehensive test suite (76 tests) validando persistencia, reintentos y escenarios offline
+- ✅ Comprehensive test suite (84 tests) validando persistencia, reintentos y escenarios offline
 - ✅ Handler-based processing architecture
 - ✅ Priority-based queue (high priority sessions first)
 

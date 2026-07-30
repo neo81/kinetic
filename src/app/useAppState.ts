@@ -467,7 +467,7 @@ export const useAppState = () => {
   }) => {
     if (!supabase || !user) throw new Error('No hay sesion activa.');
 
-    const updateData: Record<string, any> = {
+    const updateData: Database['public']['Tables']['profiles']['Update'] = {
       full_name: input.fullName.trim() || null,
       username: input.username.trim() || null,
       bio: input.bio.trim() || null,

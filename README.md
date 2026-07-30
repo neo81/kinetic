@@ -148,7 +148,6 @@ npm run test:ui    # UI de Vitest
 npm run lint       # Verificar TypeScript con tsc --noEmit
 npm run test:e2e   # Ejecutar pruebas E2E con Playwright
 npm run test:load:k6        # Smoke/load test con k6
-npm run test:load:artillery # Smoke/load test con Artillery
 ```
 
 ## 🔐 Seguridad
@@ -310,7 +309,6 @@ npm run test:ui    # Vitest UI
 npm run lint       # Check TypeScript with tsc --noEmit
 npm run test:e2e   # Run E2E tests with Playwright
 npm run test:load:k6        # Smoke/load test with k6
-npm run test:load:artillery # Smoke/load test with Artillery
 ```
 
 ## 🔐 Security
