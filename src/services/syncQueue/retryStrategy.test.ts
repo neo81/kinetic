@@ -175,8 +175,8 @@ describe('Retry Strategy - shouldRetry', () => {
 
     expect(shouldRetry(0, transientErr, 5)).toBe(true);
     expect(shouldRetry(3, transientErr, 5)).toBe(true);
-    expect(shouldRetry(5, transientErr, 5)).toBe(true);
-    expect(shouldRetry(6, transientErr, 5)).toBe(false); // Exceeded max
+    expect(shouldRetry(4, transientErr, 5)).toBe(true);
+    expect(shouldRetry(5, transientErr, 5)).toBe(false); // Max retries reached
   });
 
   it('should not retry permanent errors', () => {
@@ -190,7 +190,7 @@ describe('Retry Strategy - shouldRetry', () => {
     const transientErr = new Error('Service unavailable');
 
     expect(shouldRetry(4, transientErr, 5)).toBe(true);
-    expect(shouldRetry(5, transientErr, 5)).toBe(true);
+    expect(shouldRetry(5, transientErr, 5)).toBe(false);
     expect(shouldRetry(6, transientErr, 5)).toBe(false);
     expect(shouldRetry(10, transientErr, 5)).toBe(false);
   });
@@ -198,7 +198,8 @@ describe('Retry Strategy - shouldRetry', () => {
   it('should use default maxRetries of 5 when not specified', () => {
     const transientErr = new Error('Timeout');
 
-    expect(shouldRetry(5, transientErr)).toBe(true);
+    expect(shouldRetry(4, transientErr)).toBe(true);
+    expect(shouldRetry(5, transientErr)).toBe(false);
     expect(shouldRetry(6, transientErr)).toBe(false);
   });
 });

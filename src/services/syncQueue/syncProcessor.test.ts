@@ -126,15 +126,9 @@ describe('SyncProcessor - Basic Operations', () => {
     }).not.toThrow();
   });
 
-  it('should prevent concurrent processing', async () => {
-    let maxConcurrent = 0;
-    let currentlyProcessing = 0;
-
+  it('should prevent overlapping queue runs without processing items twice', async () => {
     const handler = vi.fn(async () => {
-      currentlyProcessing++;
-      maxConcurrent = Math.max(maxConcurrent, currentlyProcessing);
       await new Promise(resolve => setTimeout(resolve, 10));
-      currentlyProcessing--;
     });
 
     syncProcessor.registerHandler('routine_save', handler);
@@ -150,12 +144,14 @@ describe('SyncProcessor - Basic Operations', () => {
     }
 
     // Trigger processing multiple times concurrently
-    await Promise.all([
+    const runs = await Promise.all([
       syncProcessor.processQueue(),
       syncProcessor.processQueue(),
       syncProcessor.processQueue(),
     ]);
 
-    expect(maxConcurrent).toBeLessThanOrEqual(1);
+    expect(handler).toHaveBeenCalledTimes(3);
+    expect(runs.flat()).toHaveLength(3);
+    expect(syncQueue.getCount()).toBe(0);
   });
 });

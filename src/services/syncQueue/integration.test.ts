@@ -64,7 +64,7 @@ describe('SyncQueue - End-to-End Integration Tests', () => {
 
       // Simulate app restart by creating new queue instance
       // (in real scenario, SyncQueue is a singleton that loads from storage on init)
-      const stored = localStorage.getItem('kinetic:sync-queue');
+      const stored = localStorage.getItem('kinetic:sync-queue:v1');
       expect(stored).toBeTruthy();
 
       const parsed = JSON.parse(stored!);
@@ -93,7 +93,7 @@ describe('SyncQueue - End-to-End Integration Tests', () => {
         error: 'Network timeout',
       });
 
-      const stored = localStorage.getItem('kinetic:sync-queue');
+      const stored = localStorage.getItem('kinetic:sync-queue:v1');
       const parsed = JSON.parse(stored!);
       const savedItem = parsed.items[0];
 
