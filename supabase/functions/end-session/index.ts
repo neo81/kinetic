@@ -167,8 +167,9 @@ Deno.serve(async req => {
     let rpcError: any = null;
     try {
       // Use Promise.race to enforce a 30s timeout on the RPC call itself
-      const rpcPromise = supabaseUser.rpc('end_session_transaction', {
+      const rpcPromise = supabaseAdmin.rpc('end_session_transaction_service', {
         p_session_id: payload.sessionId,
+        p_user_id: user.id,
         p_ended_at: payload.endedAt,
         p_session_data: payload.sessionData,
       });
@@ -178,7 +179,11 @@ Deno.serve(async req => {
         setTimeout(() => reject(new Error('RPC execution timeout')), 30000)
       );
 
-      await Promise.race([rpcPromise, timeoutPromise]);
+      const { error: transactionError } = await Promise.race([rpcPromise, timeoutPromise]);
+      if (transactionError) {
+        throw transactionError;
+      }
+
       console.log('[end-session] ✓ RPC completed successfully');
     } catch (err) {
       rpcError = err;

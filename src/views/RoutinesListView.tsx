@@ -168,8 +168,8 @@ export const RoutinesListView = ({
                   <div className="relative z-10 flex items-start justify-between gap-4">
                     <div className="min-w-0 flex-1 space-y-6">
                       <div>
-                        <div className="mb-3 flex items-center gap-3">
-                          <h4 className="min-w-0 truncate font-headline text-3xl font-black uppercase italic leading-none tracking-tight text-on-background transition-colors group-hover:text-primary sm:text-4xl">
+                        <div className="mb-3 flex min-w-0 items-start gap-3">
+                          <h4 className="min-w-0 flex-1 break-words pb-1 pr-1 font-headline text-3xl font-black uppercase italic leading-[0.95] tracking-tight text-on-background transition-colors [overflow-wrap:anywhere] group-hover:text-primary sm:text-4xl">
                             {routine.name}
                           </h4>
                           {routine.syncPending && <RoutineSyncPendingBadge />}

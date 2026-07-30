@@ -5,9 +5,10 @@ No reemplaza a `README.md` ni al dump tecnico de Supabase.
 
 ## Referencias actuales
 
-- `README.md`: presentacion e instrucciones generales del proyecto. No fue modificado durante esta limpieza.
+- `README.md`: presentacion, requisitos e instrucciones generales del proyecto.
 - `ROADMAP.md`: plan funcional y fases del producto.
-- `supabase/remote_schema_2026-06-02.sql`: foto limpia oficial del schema remoto `public`, generada con Supabase CLI.
+- `supabase/migrations/`: fuente versionada de los cambios actuales de base de datos.
+- `supabase/remote_schema_2026-06-02.sql`: snapshot historico del schema remoto, previo a las migraciones posteriores.
 
 ## 2026-04 - Rutina SportClub y grupos musculares
 
@@ -51,7 +52,7 @@ Cambios implementados:
   - Limpieza de sesion local solo despues de guardar directo o encolar correctamente.
 
 - `supabase/functions/end-session/index.ts`
-  - Timeout controlado para la RPC `end_session_transaction`.
+  - Timeout controlado para la RPC transaccional de cierre de sesion.
   - Logging del tamanio recibido.
   - Manejo de errores mas explicito.
 
@@ -114,11 +115,12 @@ Acciones realizadas:
   - `tmp/`
   - `supabase/.temp/`
 
-Notas de seguridad observadas en el snapshot remoto:
+Notas de seguridad observadas en el snapshot remoto en ese momento:
 
 - Todas las tablas publicas detectadas tienen RLS habilitado.
-- Algunas policies usan rol `public`; conviene revisarlas si el modelo de acceso cambia.
-- Existen funciones `security definer` en schema `public`, especialmente `end_session_transaction`, `handle_new_user` e `import_routine`. Conviene evaluar moverlas a un schema no expuesto si se hace una pasada de hardening.
+- Algunas policies usaban rol `public`.
+- Existian funciones `security definer` ejecutables desde roles expuestos.
+- Estas observaciones fueron corregidas en la pasada de hardening de julio de 2026 documentada mas abajo.
 
 ## 2026-06 / 2026-07 - Mejoras de ejercicios, PWA y pruebas
 
@@ -209,6 +211,47 @@ Se ajusto el inicio y desarrollo de las sesiones para que ningun dia se seleccio
 - Calidad:
   - Vitest y Playwright quedaron separados para evitar que las pruebas E2E se ejecuten como unitarias.
   - La linea base quedo en 84 pruebas unitarias aprobadas, TypeScript sin errores, build de produccion correcto y 6 pruebas E2E detectadas por Playwright.
+
+## 2026-07 - Persistencia de novedades y hardening de Supabase
+
+Se completo una revision controlada de seguridad, sincronizacion y rendimiento sobre el proyecto remoto.
+
+- Novedades:
+  - El historial de versiones, las notas y el estado de lectura se persisten en `app_releases`, `app_release_notes` y `user_release_reads`.
+  - El dialogo conserva el aviso de versiones pendientes y ofrece acceso permanente al historial.
+  - Este bloque de hardening no se publico como novedad visible porque no modifica funcionalidad para el usuario.
+
+- Sincronizacion y cierre de sesiones:
+  - La Edge Function ahora inspecciona el campo `error` devuelto por la RPC; un fallo de PostgREST ya no puede interpretarse como guardado exitoso.
+  - `syncQueue` conserva el cierre pendiente cuando la transaccion remota falla.
+  - La transaccion final se ejecuta mediante `end_session_transaction_service`, accesible solo para `service_role`.
+  - La Edge Function valida primero el JWT, pasa el usuario validado y la RPC comprueba que sea propietario de la sesion.
+  - Se retiro la RPC heredada `end_session_transaction`, que era `security definer` y estaba expuesta a `authenticated`.
+
+- RLS y funciones:
+  - Se elimino la policy `exercises_read_public` con `using (true)`, que podia ampliar la lectura de ejercicios personalizados.
+  - La lectura de ejercicios quedo separada entre catalogo publico para `anon` y catalogo publico mas ejercicios propios para `authenticated`.
+  - Las policies privadas quedaron limitadas explicitamente a `authenticated`.
+  - Las llamadas a `auth.uid()` dentro de RLS usan `(select auth.uid())` para evitar reevaluarlas por cada fila.
+  - Las funciones de triggers dejaron de ser ejecutables por `anon` y `authenticated`.
+  - Las funciones revisadas usan un `search_path` fijo y vacio.
+  - La RPC heredada `import_routine` quedo disponible solo para `service_role`; la importacion actual usa operaciones normales protegidas por RLS.
+
+- Indices:
+  - Se agregaron indices para las claves foraneas señaladas por el asesor de Supabase.
+  - Se eliminaron los indices independientes duplicados de `muscle_groups.code` y `profiles.username`, conservando los asociados a restricciones `unique`.
+  - Los avisos restantes de tablas sin clave primaria pertenecen al schema historico `backup_clean_20260630`.
+
+- Rutinas:
+  - El editor espera la confirmacion del guardado antes de navegar y bloquea dobles envios mientras muestra `Guardando`.
+  - El listado de rutinas permite nombres multilínea y evita recortes de la tipografia italica.
+
+- Verificacion:
+  - Se probaron lecturas y escrituras RLS con identidades controladas y transacciones revertidas.
+  - Se verificaron los permisos de las funciones y el rechazo de solicitudes no autenticadas.
+  - La Edge Function `end-session` quedo desplegada en su version 4.
+  - La linea base permanece en 84 pruebas aprobadas, TypeScript sin errores y build de produccion correcto.
+  - El unico aviso de seguridad restante es la proteccion contra contraseñas filtradas, disponible solo en planes Supabase Pro o superiores.
 
 ## Documentos consolidados
 

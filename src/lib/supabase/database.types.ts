@@ -734,8 +734,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      end_session_transaction: {
-        Args: { p_ended_at: string; p_session_data: Json; p_session_id: string }
+      end_session_transaction_service: {
+        Args: {
+          p_ended_at: string
+          p_session_data: Json
+          p_session_id: string
+          p_user_id: string
+        }
         Returns: string
       }
       import_routine: {

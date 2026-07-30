@@ -100,7 +100,7 @@ Ver [ROADMAP.md](ROADMAP.md) para detalles completos de todas las fases.
 
 ### Requisitos Previos
 
-- **Node.js** 20.x o superior
+- **Node.js** 24.18.0 (version fijada para Volta)
 - **NPM** o **PNPM**
 - **Cuenta en [Supabase](https://supabase.com/)** (gratuita)
 
@@ -127,15 +127,21 @@ Ver [ROADMAP.md](ROADMAP.md) para detalles completos de todas las fases.
    Obtén estas credenciales de tu proyecto en [Supabase Dashboard](https://app.supabase.com/)
 
 4. **Configurar Supabase (una sola vez):**
+   ```bash
+   npx supabase login
+   npx supabase link --project-ref <project-ref>
+   npx supabase db push
+   npx supabase functions deploy end-session --no-verify-jwt
+   ```
    - Crea un bucket `user-avatars` en Supabase Storage
    - Habilita acceso público para el bucket
-   - Ejecuta el SQL en `supabase_preferences.sql` en el SQL Editor de Supabase
+   - La Edge Function valida el JWT dentro de su implementación; por eso el despliegue conserva `--no-verify-jwt`
 
 5. **Lanzar la plataforma:**
    ```bash
    npm run dev
    ```
-   La app estará disponible en `http://localhost:5173`
+   La app estará disponible en `http://localhost:3000`
 
 ### Comandos Disponibles
 
@@ -154,6 +160,7 @@ npm run test:load:k6        # Smoke/load test con k6
 
 - **OAuth 2.0**: Autenticación segura con Google
 - **RLS (Row Level Security)**: Datos protegidos a nivel de base de datos
+- **Funciones internas**: La transacción de cierre solo puede ser ejecutada por `service_role` desde la Edge Function
 - **SSL/TLS**: Toda comunicación es encriptada
 - **Tokens**: JWT seguros manejados por Supabase
 
@@ -261,7 +268,7 @@ See [ROADMAP.md](ROADMAP.md) for complete details of all phases.
 
 ### Prerequisites
 
-- **Node.js** 20.x or higher
+- **Node.js** 24.18.0 (pinned for Volta)
 - **NPM** or **PNPM**
 - **[Supabase](https://supabase.com/) account** (free tier available)
 
@@ -288,15 +295,21 @@ See [ROADMAP.md](ROADMAP.md) for complete details of all phases.
    Get these credentials from your project in [Supabase Dashboard](https://app.supabase.com/)
 
 4. **Setup Supabase (one-time):**
+   ```bash
+   npx supabase login
+   npx supabase link --project-ref <project-ref>
+   npx supabase db push
+   npx supabase functions deploy end-session --no-verify-jwt
+   ```
    - Create a `user-avatars` bucket in Supabase Storage
    - Enable public access for the bucket
-   - Run the SQL in `supabase_preferences.sql` in the Supabase SQL Editor
+   - The Edge Function validates the JWT internally, so deployment intentionally keeps `--no-verify-jwt`
 
 5. **Launch the platform:**
    ```bash
    npm run dev
    ```
-   The app will be available at `http://localhost:5173`
+   The app will be available at `http://localhost:3000`
 
 ### Available Commands
 
@@ -315,6 +328,7 @@ npm run test:load:k6        # Smoke/load test with k6
 
 - **OAuth 2.0**: Secure authentication with Google
 - **RLS (Row Level Security)**: Database-level data protection
+- **Internal functions**: The completion transaction is executable only by `service_role` through the Edge Function
 - **SSL/TLS**: All communication is encrypted
 - **Tokens**: Secure JWT handling by Supabase
 

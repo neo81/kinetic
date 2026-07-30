@@ -162,6 +162,7 @@ export const RoutineCreatorView = ({
   const [errorMsg, setErrorMsg] = useState('');
   const [itemToTrash, setItemToTrash] = useState<{ type: 'day' | 'exercise'; id: string } | null>(null);
   const [isReordering, setIsReordering] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -264,7 +265,7 @@ export const RoutineCreatorView = ({
     );
   };
 
-  const handleGlobalSave = () => {
+  const handleGlobalSave = async () => {
     if (!name.trim()) {
       setErrorMsg('Ingresa un nombre para tu rutina');
       window.scrollTo(0, 0);
@@ -281,12 +282,21 @@ export const RoutineCreatorView = ({
       return;
     }
     
-    setErrorMsg(''); // Limpiar cualquier error previo si todo está OK
-    onSave({ name });
-    
-    // Si la rutina es nueva (no tiene ID o es primera vez), dashboard. Si es edición, volver al detalle.
-    const isEditing = !!currentRoutine?.id;
-    setView(isEditing ? (navigationSource === 'routine-detail' ? 'routine-detail' : 'dashboard') : 'dashboard');
+    setErrorMsg('');
+    setIsSaving(true);
+
+    try {
+      const savedRoutine = await onSave({ name: name.trim() });
+      if (!savedRoutine) {
+        return;
+      }
+
+      // Si la rutina es nueva (no tiene ID o es primera vez), dashboard. Si es edición, volver al detalle.
+      const isEditing = !!currentRoutine?.id;
+      setView(isEditing ? (navigationSource === 'routine-detail' ? 'routine-detail' : 'dashboard') : 'dashboard');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -516,11 +526,13 @@ export const RoutineCreatorView = ({
 
           <div className="pt-8">
             <button
+              type="button"
               onClick={handleGlobalSave}
-              className="neon-button flex w-full items-center justify-center gap-3 rounded-[1.2rem] py-5 shadow-[0_20px_50px_rgba(212,255,0,0.25)] transition-all active:scale-[0.97]"
+              disabled={isSaving}
+              className="neon-button flex w-full items-center justify-center gap-3 rounded-[1.2rem] py-5 shadow-[0_20px_50px_rgba(212,255,0,0.25)] transition-all active:scale-[0.97] disabled:cursor-wait disabled:opacity-60"
             >
               <span className="font-headline text-[1.1rem] font-bold uppercase tracking-[0.15em] text-black">
-                Guardar Rutina
+                {isSaving ? 'Guardando…' : 'Guardar Rutina'}
               </span>
               <ArrowRight size={20} strokeWidth={3} className="text-black" />
             </button>
