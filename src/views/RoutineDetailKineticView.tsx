@@ -94,7 +94,7 @@ const getCapturedSetDisplayValue = (exercise: Exercise, performance: CapturedSet
   const reps = performance.actualReps != null ? `${performance.actualReps} reps` : null;
   const load = exercise.loadType === 'bodyweight'
     ? performance.actualWeight != null
-      ? `Peso corporal · ${performance.actualWeight} kg`
+      ? `${performance.actualWeight} kg corporal`
       : 'Peso corporal'
     : performance.actualWeight != null
       ? `${performance.actualWeight} kg`
@@ -994,24 +994,24 @@ export const RoutineDetailKineticView = ({
                       {isCaptured && <Check size={13} strokeWidth={3} className="shrink-0 text-primary" />}
                     </span>
                     {isCaptured && capturedSet ? (
-                      <span className="mt-2.5 grid grid-cols-2 gap-3">
-                        <span className="min-w-0">
+                      <span className={`mt-2.5 grid gap-3 ${dayEx.exercise.loadType === 'bodyweight' ? 'grid-cols-1' : 'grid-cols-2'}`}>
+                        <span className={`min-w-0 ${dayEx.exercise.loadType === 'bodyweight' ? 'flex items-baseline justify-between gap-3' : ''}`}>
                           <span className="block text-[10px] font-black uppercase tracking-[0.13em] text-primary">Registrado</span>
-                          <span className="mt-0.5 block break-words text-[1.05rem] font-black leading-snug text-on-surface">
+                          <span className={`${dayEx.exercise.loadType === 'bodyweight' ? 'text-right' : 'mt-0.5'} block break-words text-[1.05rem] font-black leading-snug text-on-surface`}>
                             {getCapturedSetDisplayValue(dayEx.exercise, capturedSet)}
                           </span>
                         </span>
-                        <span className="min-w-0 border-l border-on-surface/10 pl-3">
+                        <span className={`min-w-0 ${dayEx.exercise.loadType === 'bodyweight' ? 'flex items-baseline justify-between gap-3 border-t border-on-surface/10 pt-2' : 'border-l border-on-surface/10 pl-3'}`}>
                           <span className="block text-[10px] font-black uppercase tracking-[0.13em] text-on-surface-variant/70">Planificado</span>
-                          <span className="mt-0.5 block break-words text-sm font-bold leading-snug text-on-surface-variant">
+                          <span className={`${dayEx.exercise.loadType === 'bodyweight' ? 'text-right' : 'mt-0.5'} block break-words text-sm font-bold leading-snug text-on-surface-variant`}>
                             {getPlannedSetDisplayValue(dayEx.exercise, setIndex)}
                           </span>
                         </span>
                       </span>
                     ) : (
-                      <span className="mt-2 flex items-baseline justify-between gap-3">
+                      <span className={`mt-2 ${dayEx.exercise.loadType === 'bodyweight' ? 'block' : 'flex items-baseline justify-between gap-3'}`}>
                         <span className="text-[11px] font-black uppercase tracking-[0.12em] text-on-surface-variant/70">Planificado</span>
-                        <span className="text-right text-[1.05rem] font-black leading-snug text-on-surface">
+                        <span className={`${dayEx.exercise.loadType === 'bodyweight' ? 'mt-1 block text-left' : 'text-right'} text-[1.05rem] font-black leading-snug text-on-surface`}>
                         {getPlannedSetDisplayValue(dayEx.exercise, setIndex)}
                         </span>
                       </span>
