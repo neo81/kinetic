@@ -253,6 +253,28 @@ Se completo una revision controlada de seguridad, sincronizacion y rendimiento s
   - La linea base permanece en 84 pruebas aprobadas, TypeScript sin errores y build de produccion correcto.
   - El unico aviso de seguridad restante es la proteccion contra contraseñas filtradas, disponible solo en planes Supabase Pro o superiores.
 
+## 2026-07 - Catalogo, busqueda y lectura de series durante la sesion
+
+Se mejoro la biblioteca de ejercicios y la lectura del progreso sin alterar la configuracion de las rutinas ni la finalizacion de las series.
+
+- Catalogo de ejercicios:
+  - Se agregaron variantes de remo con pecho apoyado con mancuernas, barra T y maquina.
+  - Se agregaron variantes de curl de biceps en polea con barra recta, cuerda y asa unilateral.
+  - Se agregaron variantes de pullover en polea alta, con mancuerna y en maquina.
+  - Se eliminaron `Press E2E Test` y `Remo E2E Multiusuario` despues de comprobar que no estaban referenciados por rutinas, sesiones ni favoritos.
+
+- Motor de ejercicios:
+  - Los resultados de busqueda se reorganizaron para PWA y pantallas angostas, evitando recortes en nombres y desalineaciones entre grupo y equipamiento.
+  - Al elegir un resultado global se conserva su identificador y se abre automaticamente la ficha del ejercicio exacto dentro de su grupo muscular.
+
+- Sesion activa:
+  - Las series registradas muestran el valor realizado y el planificado con una jerarquia visual diferenciada.
+  - Las series pendientes muestran el objetivo en una fila compacta con tipografia legible en navegador y PWA.
+  - La mejora es exclusivamente visual: no modifica la rutina guardada, los datos capturados ni las reglas de finalizacion de ejercicios y sesiones.
+
+- Verificacion:
+  - La linea base permanece en 84 pruebas aprobadas, TypeScript sin errores y build de produccion correcto.
+
 ## Documentos consolidados
 
 Este archivo reemplaza la informacion historica de:

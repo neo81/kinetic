@@ -63,14 +63,43 @@ const getGroupLabel = (exerciseCount: number) => {
   return 'Circuito';
 };
 
-const getSetPreviewValue = (exercise: Exercise, setIndex: number) => {
+type CapturedSetPerformance = ActiveSession['performanceData'][string][number];
+
+const joinSetValues = (values: Array<string | null>) => values.filter((value): value is string => !!value).join(' · ');
+
+const getPlannedSetDisplayValue = (exercise: Exercise, setIndex: number) => {
   const set = exercise.sets[setIndex];
   if (!set) return '-';
-  if (set.targetType === 'failure') return 'Al fallo';
   if (exercise.measureUnit === 'min') return `${set.durationMinutes ?? 0} min`;
   if (exercise.measureUnit === 'sec') return `${set.durationSeconds ?? 0} seg`;
-  if (exercise.loadType === 'bodyweight') return 'Peso corporal';
-  return `${set.weight ?? 0} kg`;
+  const reps = set.targetType === 'failure' ? 'Al fallo' : set.reps != null ? `${set.reps} reps` : null;
+  const load = exercise.loadType === 'bodyweight'
+    ? 'Peso corporal'
+    : set.weight != null
+      ? `${set.weight} kg`
+      : null;
+  return joinSetValues([reps, load]) || '-';
+};
+
+const getCapturedSetDisplayValue = (exercise: Exercise, performance: CapturedSetPerformance) => {
+  if (exercise.measureUnit === 'min') {
+    const minutes = performance.actualDurationMinutes ?? performance.actualWeight;
+    return minutes != null ? `${minutes} min` : 'Sin dato';
+  }
+  if (exercise.measureUnit === 'sec') {
+    const seconds = performance.actualDurationSeconds ?? performance.actualWeight;
+    return seconds != null ? `${seconds} seg` : 'Sin dato';
+  }
+
+  const reps = performance.actualReps != null ? `${performance.actualReps} reps` : null;
+  const load = exercise.loadType === 'bodyweight'
+    ? performance.actualWeight != null
+      ? `Peso corporal · ${performance.actualWeight} kg`
+      : 'Peso corporal'
+    : performance.actualWeight != null
+      ? `${performance.actualWeight} kg`
+      : null;
+  return joinSetValues([reps, load]) || 'Sin datos';
 };
 
 type DayRenderItem =
@@ -941,25 +970,52 @@ export const RoutineDetailKineticView = ({
         {activeSession?.routineId === routine.id && (
           <div className="mt-4">
             <p className="mb-2 text-[9px] font-bold uppercase tracking-[0.16em] text-on-surface-variant">Sets realizados</p>
-            <div className="flex flex-wrap gap-2">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {dayEx.exercise.sets.map((set, setIndex) => {
                 const setNumber = set.setNumber || setIndex + 1;
-                const isCaptured = !!activeSession.performanceData[dayEx.id]?.[setNumber]?.captured;
+                const capturedSet = activeSession.performanceData[dayEx.id]?.[setNumber];
+                const isCaptured = !!capturedSet?.captured;
                 return (
                   <button
                     key={`${dayEx.id}-set-${setNumber}`}
                     onClick={() => handleSetChipClick(dayEx, setIndex)}
                     disabled={isSkipped}
-                    className={`rounded-full border px-3 py-2 text-xs font-bold uppercase tracking-[0.18em] transition-all ${
+                    className={`rounded-[0.9rem] border px-3.5 py-3 text-left transition-all ${
                       isSkipped
                         ? 'theme-hairline-border cursor-not-allowed bg-surface-container-high text-on-surface-variant/30'
                         : isCaptured
-? 'theme-primary-shadow-soft border-primary bg-primary text-black'
-                                    : 'theme-hairline-border bg-surface-container-high text-on-surface-variant hover:border-primary/45 hover:text-on-surface'
+                          ? 'theme-primary-shadow-soft border-primary/70 bg-primary/10'
+                          : 'theme-hairline-border bg-surface-container-high hover:border-primary/45'
                     }`}
                     title={isSkipped ? 'Ejercicio salteado' : isCaptured ? 'Ver o editar set realizado' : 'Registrar set'}
                   >
-                    {`Set ${setNumber} · ${getSetPreviewValue(dayEx.exercise, setIndex)}`}
+                    <span className="flex items-center justify-between gap-2 text-[10px] font-black uppercase tracking-[0.16em] text-on-surface-variant">
+                      Serie {setNumber}
+                      {isCaptured && <Check size={13} strokeWidth={3} className="shrink-0 text-primary" />}
+                    </span>
+                    {isCaptured && capturedSet ? (
+                      <span className="mt-2.5 grid grid-cols-2 gap-3">
+                        <span className="min-w-0">
+                          <span className="block text-[10px] font-black uppercase tracking-[0.13em] text-primary">Registrado</span>
+                          <span className="mt-0.5 block break-words text-[1.05rem] font-black leading-snug text-on-surface">
+                            {getCapturedSetDisplayValue(dayEx.exercise, capturedSet)}
+                          </span>
+                        </span>
+                        <span className="min-w-0 border-l border-on-surface/10 pl-3">
+                          <span className="block text-[10px] font-black uppercase tracking-[0.13em] text-on-surface-variant/70">Planificado</span>
+                          <span className="mt-0.5 block break-words text-sm font-bold leading-snug text-on-surface-variant">
+                            {getPlannedSetDisplayValue(dayEx.exercise, setIndex)}
+                          </span>
+                        </span>
+                      </span>
+                    ) : (
+                      <span className="mt-2 flex items-baseline justify-between gap-3">
+                        <span className="text-[11px] font-black uppercase tracking-[0.12em] text-on-surface-variant/70">Planificado</span>
+                        <span className="text-right text-[1.05rem] font-black leading-snug text-on-surface">
+                        {getPlannedSetDisplayValue(dayEx.exercise, setIndex)}
+                        </span>
+                      </span>
+                    )}
                   </button>
                 );
               })}

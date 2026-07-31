@@ -37,6 +37,7 @@ Mapas anatómicos interactivos (Frontal y Posterior) que proporcionan una interf
 - **Series al fallo**: Permite planificar series por repeticiones fijas o `Al fallo`, manteniendo el registro real de repeticiones al finalizar la sesión.
 - **Peso corporal controlado**: Soporte para ejercicios con peso corporal y snapshot del peso del perfil, sin activarlo por defecto al cargar una serie nueva.
 - **Corrección durante la sesión**: Los sets ya realizados pueden abrirse nuevamente para editar valores o borrar el registro si fueron cargados por error.
+- **Comparación durante la sesión**: Cada serie registrada muestra el valor realizado junto al planificado; las series pendientes conservan una referencia clara y compacta del objetivo.
 - **Notas Globales**: Notas de entrenamiento persistentes que proporcionan contexto en todas las series de una instancia de ejercicio.
 - **Gestión de Series Fluida**: Añade o elimina series con un solo toque, con persistencia automática.
 
@@ -61,9 +62,12 @@ Mapas anatómicos interactivos (Frontal y Posterior) que proporcionan una interf
 
 ### 🔎 Biblioteca y Motor de Ejercicios
 - **Búsqueda global**: Permite buscar ejercicios fuera de un grupo muscular e informa a qué grupo pertenecen.
+- **Resultados adaptados a PWA**: Los nombres, grupos y equipos se presentan sin recortes ni columnas comprimidas en pantallas angostas.
+- **Apertura directa**: Al elegir un resultado global se abre la ficha del ejercicio exacto dentro de su grupo muscular.
 - **Modo visor desde el footer**: El acceso `MOTOR` funciona como biblioteca consultiva; no crea series ni modifica rutinas accidentalmente.
 - **Selección contextual**: Al abrir el selector desde una rutina, el flujo vuelve al editor de series para cargar el ejercicio como antes.
 - **Imágenes por grupo muscular**: Los ejercicios usan imágenes representativas por grupo, optimizadas en formato WebP.
+- **Catálogo ampliado**: Incluye variantes de remo con pecho apoyado, curl de bíceps en polea y pullover; los ejercicios internos de pruebas E2E no forman parte del catálogo visible.
 
 ### 📱 PWA y rendimiento móvil
 - **Transiciones suavizadas**: Ajustes para evitar pantallazos negros y cortes duros en iOS/Android PWA.
