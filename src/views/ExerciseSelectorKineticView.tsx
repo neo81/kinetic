@@ -19,6 +19,8 @@ type GlobalExerciseResult = Exercise & {
   muscleGroupCode: string;
 };
 
+const FOCUSED_EXERCISE_STORAGE_KEY = 'kinetic.focusedExerciseId';
+
 const selectorData: Record<MuscleSide, { image: string; targets: MuscleTarget[] }> = {
   front: {
     image: '/body-front.webp',
@@ -206,6 +208,7 @@ export const ExerciseSelectorKineticView = ({
   }, [globalExercises, searchQuery]);
 
   const handleOpenLibrary = (group: string) => {
+    window.sessionStorage.removeItem(FOCUSED_EXERCISE_STORAGE_KEY);
     onSelectMuscle(group);
     setView('exercise-list');
   };
@@ -213,6 +216,7 @@ export const ExerciseSelectorKineticView = ({
   const handleSelectGlobalExercise = (exercise: GlobalExerciseResult) => {
     const selectorSource = window.sessionStorage.getItem('kinetic.selectorSource');
     if (selectorSource === 'global') {
+      window.sessionStorage.setItem(FOCUSED_EXERCISE_STORAGE_KEY, exercise.id);
       onSelectMuscle(exercise.muscleGroupCode || exercise.muscleGroup);
       setView('exercise-list');
       return;
@@ -292,17 +296,17 @@ export const ExerciseSelectorKineticView = ({
                     key={exercise.id}
                     type="button"
                     onClick={() => handleSelectGlobalExercise(exercise)}
-                    className="flex w-full items-center justify-between gap-3 rounded-[0.9rem] bg-surface-container-low px-4 py-3 text-left transition-colors hover:bg-surface-container-high"
+                    className="flex w-full flex-col items-start gap-3 rounded-[0.9rem] bg-surface-container-low px-4 py-3 text-left transition-colors hover:bg-surface-container-high sm:flex-row sm:items-center sm:justify-between"
                   >
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-bold text-on-surface">{exercise.name}</p>
-                      <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-primary">
+                    <div className="min-w-0 w-full sm:flex-1">
+                      <p className="break-words text-sm font-bold leading-snug text-on-surface">{exercise.name}</p>
+                      <p className="mt-1.5 text-[10px] font-bold uppercase leading-relaxed tracking-[0.14em] text-primary">
                         Pertenece a {exercise.muscleGroup}
                       </p>
                     </div>
-                    <div className="flex shrink-0 items-center gap-2 text-[10px] font-bold uppercase tracking-[0.12em] text-on-surface-variant">
-                      <Dumbbell size={14} />
-                      {exercise.equipment || 'General'}
+                    <div className="flex min-w-0 w-full items-start gap-2 text-[10px] font-bold uppercase leading-relaxed tracking-[0.12em] text-on-surface-variant sm:w-auto sm:max-w-[45%] sm:justify-end sm:text-right">
+                      <Dumbbell className="mt-0.5 shrink-0" size={14} />
+                      <span className="min-w-0 break-words">{exercise.equipment || 'General'}</span>
                     </div>
                   </button>
                 ))}

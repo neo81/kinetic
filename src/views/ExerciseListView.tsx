@@ -28,6 +28,7 @@ const DEFAULT_FILTER: ExerciseFilter = {
   source: 'todos',
   onlyFavorites: false,
 };
+const FOCUSED_EXERCISE_STORAGE_KEY = 'kinetic.focusedExerciseId';
 
 // ─── Delete Confirmation Modal ─────────────────────────────────────────────────
 
@@ -586,6 +587,19 @@ export const ExerciseListView = ({
     window.scrollTo(0, 0);
     fetchExercises();
   }, [fetchExercises]);
+
+  useEffect(() => {
+    if (!isViewerMode || loading) return;
+
+    const focusedExerciseId = window.sessionStorage.getItem(FOCUSED_EXERCISE_STORAGE_KEY);
+    if (!focusedExerciseId) return;
+
+    window.sessionStorage.removeItem(FOCUSED_EXERCISE_STORAGE_KEY);
+    const focusedExercise = allExercises.find((exercise) => exercise.id === focusedExerciseId);
+    if (focusedExercise) {
+      setPreviewExercise(focusedExercise);
+    }
+  }, [allExercises, isViewerMode, loading]);
 
   // ── Filtering ──────────────────────────────────────────────────────────────
 
