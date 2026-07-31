@@ -269,7 +269,8 @@ Se mejoro la biblioteca de ejercicios y la lectura del progreso sin alterar la c
 
 - Sesion activa:
   - Las series registradas muestran el valor realizado y el planificado con una jerarquia visual diferenciada.
-  - Las series pendientes muestran el objetivo en una fila compacta con tipografia legible en navegador y PWA.
+  - Las series registradas y pendientes comparten una estructura vertical unificada, legible tanto con valores numericos como con objetivos al fallo y peso corporal.
+  - Al iniciar una sesion, la vista se reposiciona en el encabezado del dia activo despues de que se estabiliza el contenido del acordeon, aunque previamente se estuviera revisando una serie intermedia o final.
   - La mejora es exclusivamente visual: no modifica la rutina guardada, los datos capturados ni las reglas de finalizacion de ejercicios y sesiones.
 
 - Verificacion:

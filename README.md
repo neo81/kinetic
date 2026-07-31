@@ -37,7 +37,8 @@ Mapas anatómicos interactivos (Frontal y Posterior) que proporcionan una interf
 - **Series al fallo**: Permite planificar series por repeticiones fijas o `Al fallo`, manteniendo el registro real de repeticiones al finalizar la sesión.
 - **Peso corporal controlado**: Soporte para ejercicios con peso corporal y snapshot del peso del perfil, sin activarlo por defecto al cargar una serie nueva.
 - **Corrección durante la sesión**: Los sets ya realizados pueden abrirse nuevamente para editar valores o borrar el registro si fueron cargados por error.
-- **Comparación durante la sesión**: Cada serie registrada muestra el valor realizado junto al planificado; las series pendientes conservan una referencia clara y compacta del objetivo.
+- **Comparación durante la sesión**: Todas las series usan una presentación unificada y legible en navegador y PWA; las registradas muestran el valor realizado junto al planificado y las pendientes conservan el objetivo.
+- **Inicio posicionado en el día**: Al comenzar una sesión, la vista vuelve al encabezado del día iniciado aunque el usuario estuviera revisando una serie intermedia o final.
 - **Notas Globales**: Notas de entrenamiento persistentes que proporcionan contexto en todas las series de una instancia de ejercicio.
 - **Gestión de Series Fluida**: Añade o elimina series con un solo toque, con persistencia automática.
 

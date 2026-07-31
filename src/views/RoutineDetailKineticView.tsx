@@ -649,6 +649,7 @@ export const RoutineDetailKineticView = ({
   const [isGroupingMode, setIsGroupingMode] = useState(false);
   const [selectedGroupExerciseIds, setSelectedGroupExerciseIds] = useState<string[]>([]);
   const lastOpenedSessionDayRef = useRef<string | null>(null);
+  const daySectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   // Estado para captura de set
   const [setCapturePending, setSetCapturePending] = useState<{ exerciseId: string; setNumber: number; reps: number | null; weight: number | null; targetType: 'fixed_reps' | 'failure'; isEditing?: boolean } | null>(null);
@@ -671,6 +672,23 @@ export const RoutineDetailKineticView = ({
     if (lastOpenedSessionDayRef.current !== sessionDayKey) {
       lastOpenedSessionDayRef.current = sessionDayKey;
       onOpenDayChange(activeSession.activeRoutineDayId);
+
+      // Esperar a que aparezcan los controles de sesión y se abra el acordeón
+      // antes de posicionar la vista en el encabezado del día activo.
+      let secondFrame: number | null = null;
+      const firstFrame = window.requestAnimationFrame(() => {
+        secondFrame = window.requestAnimationFrame(() => {
+          daySectionRefs.current[activeSession.activeRoutineDayId]?.scrollIntoView({
+            behavior: 'auto',
+            block: 'start',
+          });
+        });
+      });
+
+      return () => {
+        window.cancelAnimationFrame(firstFrame);
+        if (secondFrame !== null) window.cancelAnimationFrame(secondFrame);
+      };
     }
   }, [activeSession?.id, activeSession?.activeRoutineDayId, activeSession?.routineId, routine?.id, onOpenDayChange]);
 
@@ -994,24 +1012,24 @@ export const RoutineDetailKineticView = ({
                       {isCaptured && <Check size={13} strokeWidth={3} className="shrink-0 text-primary" />}
                     </span>
                     {isCaptured && capturedSet ? (
-                      <span className={`mt-2.5 grid gap-3 ${dayEx.exercise.loadType === 'bodyweight' ? 'grid-cols-1' : 'grid-cols-2'}`}>
-                        <span className={`min-w-0 ${dayEx.exercise.loadType === 'bodyweight' ? 'flex items-baseline justify-between gap-3' : ''}`}>
+                      <span className="mt-2.5 grid grid-cols-1 gap-3">
+                        <span className="flex min-w-0 items-baseline justify-between gap-3">
                           <span className="block text-[10px] font-black uppercase tracking-[0.13em] text-primary">Registrado</span>
-                          <span className={`${dayEx.exercise.loadType === 'bodyweight' ? 'text-right' : 'mt-0.5'} block break-words text-[1.05rem] font-black leading-snug text-on-surface`}>
+                          <span className="block break-words text-right text-[1.05rem] font-black leading-snug text-on-surface">
                             {getCapturedSetDisplayValue(dayEx.exercise, capturedSet)}
                           </span>
                         </span>
-                        <span className={`min-w-0 ${dayEx.exercise.loadType === 'bodyweight' ? 'flex items-baseline justify-between gap-3 border-t border-on-surface/10 pt-2' : 'border-l border-on-surface/10 pl-3'}`}>
+                        <span className="flex min-w-0 items-baseline justify-between gap-3 border-t border-on-surface/10 pt-2">
                           <span className="block text-[10px] font-black uppercase tracking-[0.13em] text-on-surface-variant/70">Planificado</span>
-                          <span className={`${dayEx.exercise.loadType === 'bodyweight' ? 'text-right' : 'mt-0.5'} block break-words text-sm font-bold leading-snug text-on-surface-variant`}>
+                          <span className="block break-words text-right text-sm font-bold leading-snug text-on-surface-variant">
                             {getPlannedSetDisplayValue(dayEx.exercise, setIndex)}
                           </span>
                         </span>
                       </span>
                     ) : (
-                      <span className={`mt-2 ${dayEx.exercise.loadType === 'bodyweight' ? 'block' : 'flex items-baseline justify-between gap-3'}`}>
+                      <span className="mt-2 block">
                         <span className="text-[11px] font-black uppercase tracking-[0.12em] text-on-surface-variant/70">Planificado</span>
-                        <span className={`${dayEx.exercise.loadType === 'bodyweight' ? 'mt-1 block text-left' : 'text-right'} text-[1.05rem] font-black leading-snug text-on-surface`}>
+                        <span className="mt-1 block text-left text-[1.05rem] font-black leading-snug text-on-surface">
                         {getPlannedSetDisplayValue(dayEx.exercise, setIndex)}
                         </span>
                       </span>
@@ -1161,7 +1179,13 @@ export const RoutineDetailKineticView = ({
               && activeSession.routineDayIds.includes(day.id);
             const isBlockedByOtherSession = !!activeSession && !isCurrentSessionDay;
             return (
-              <div key={day.id} className={`overflow-hidden rounded-[1.2rem] ${isOpen ? 'border-l-4 border-primary bg-surface-container' : 'bg-surface-container'}`}>
+              <div
+                key={day.id}
+                ref={(element) => {
+                  daySectionRefs.current[day.id] = element;
+                }}
+                className={`scroll-mt-[calc(env(safe-area-inset-top)+7rem)] overflow-hidden rounded-[1.2rem] ${isOpen ? 'border-l-4 border-primary bg-surface-container' : 'bg-surface-container'}`}
+              >
                 <div className="flex items-center bg-surface-container-high/30 pr-3">
                   <button
                     onClick={() => {
