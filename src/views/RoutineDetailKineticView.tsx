@@ -335,7 +335,7 @@ const SessionStopwatchModal = ({
   }
 
   return (
-    <PopupShell title="Cronometro de sesion" accent="secondary" onClose={onClose}>
+    <PopupShell title="Cronómetro de sesión" accent="secondary" onClose={onClose}>
       <div className="text-center">
 <div className="theme-primary-text font-headline text-[4.2rem] font-semibold leading-none tracking-[0.02em] sm:text-[4.8rem]">
           {formatStopwatch(elapsedMs)}
@@ -423,7 +423,7 @@ const SetCaptureOverlay = ({
 
   return (
     <PopupShell
-      title={`${isEditing ? 'Editar' : 'Registrar'} set ${setNumber} - ${exercise.name}`}
+      title={`${isEditing ? 'Editar' : 'Registrar'} serie ${setNumber} - ${exercise.name}`}
       accent="primary"
       onClose={onClose}
     >
@@ -436,7 +436,7 @@ const SetCaptureOverlay = ({
             />
           </div>
           <p className="mt-2 text-center text-xs font-bold uppercase tracking-widest text-on-surface-variant/70">
-            Set {setNumber} de {totalSets}
+            Serie {setNumber} de {totalSets}
           </p>
         </div>
       </div>
@@ -515,7 +515,7 @@ const SetCaptureOverlay = ({
             onClick={onClear}
             className="w-full rounded-[0.95rem] border border-secondary/35 bg-secondary/10 py-4 text-sm font-bold uppercase tracking-[0.18em] text-secondary transition-colors hover:bg-secondary/15"
           >
-            Borrar registro del set
+            Borrar registro de la serie
           </button>
         )}
 
@@ -926,7 +926,7 @@ export const RoutineDetailKineticView = ({
               <p className="mt-0.5 text-[9px] font-bold uppercase tracking-widest text-on-surface-variant/60">{dayEx.exercise.muscleGroup || dayEx.exercise.muscle}</p>
               {activeSession?.routineId === routine.id && (
 <p className={`mt-2 text-[10px] font-bold uppercase tracking-[0.18em] ${isSkipped ? 'text-secondary' : 'theme-primary-text-soft'}`}>
-                  {isSkipped ? 'Salteado' : `${completedSetCount}/${dayEx.exercise.sets.length} sets`}
+                  {isSkipped ? 'Salteado' : `${completedSetCount}/${dayEx.exercise.sets.length} series`}
                 </p>
               )}
             </div>
@@ -968,7 +968,7 @@ export const RoutineDetailKineticView = ({
 
         <div className="grid grid-cols-3 gap-4">
           <div>
-            <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-on-surface-variant">Sets</p>
+            <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-on-surface-variant">Series</p>
             <p className="font-headline text-[1.6rem] font-semibold leading-none text-on-surface">{dayEx.exercise.sets.length}</p>
           </div>
           <div>
@@ -987,7 +987,7 @@ export const RoutineDetailKineticView = ({
 
         {activeSession?.routineId === routine.id && (
           <div className="mt-4">
-            <p className="mb-2 text-[9px] font-bold uppercase tracking-[0.16em] text-on-surface-variant">Sets realizados</p>
+            <p className="mb-2 text-[9px] font-bold uppercase tracking-[0.16em] text-on-surface-variant">Series realizadas</p>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {dayEx.exercise.sets.map((set, setIndex) => {
                 const setNumber = set.setNumber || setIndex + 1;
@@ -1290,7 +1290,7 @@ export const RoutineDetailKineticView = ({
                                     Bloque {index + 1} · {getGroupLabel(item.exercises.length)}
                                   </p>
                                   <p className="mt-1 text-sm text-on-surface-variant">
-                                    {completedSets}/{totalSets} sets completados
+                                    {completedSets}/{totalSets} series completadas
                                   </p>
                                 </div>
                                 <button

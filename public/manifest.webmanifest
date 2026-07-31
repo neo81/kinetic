@@ -1,11 +1,12 @@
 {
   "name": "KINETIC | Performance Engine",
   "short_name": "Kinetic",
+  "lang": "es-419",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#090B0E",
   "theme_color": "#090B0E",
-  "description": "Premium Fitness and Gym Routine Tracker",
+  "description": "Aplicación de entrenamiento y seguimiento de rutinas de gimnasio",
   "icons": [
     {
       "src": "/assets/icon/icon-72.png",

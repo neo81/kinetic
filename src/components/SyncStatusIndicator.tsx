@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useSyncStatus } from '../hooks/useSyncStatus';
+import { formatAppTime } from '../i18n/locale';
 
 interface SyncStatusIndicatorProps {
   showDetails?: boolean;
@@ -36,7 +37,7 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({
   };
 
   const lastSyncText = status.lastSyncAt
-    ? new Date(status.lastSyncAt).toLocaleTimeString('es-ES')
+    ? formatAppTime(status.lastSyncAt)
     : 'Nunca';
 
   if (compact) {

@@ -1,15 +1,7 @@
 /**
  * Formatting utilities for session history display
  */
-
-const SPANISH_MONTHS = [
-  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-];
-
-const SPANISH_WEEKDAYS = [
-  'Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'
-];
+import { formatAppDate, formatAppNumber, formatAppTime } from '../i18n/locale';
 
 export const formatSessionDate = (timestamp: Date | string): string => {
   const date = typeof timestamp === 'string' ? new Date(timestamp) : timestamp;
@@ -21,9 +13,7 @@ export const formatSessionDate = (timestamp: Date | string): string => {
     date.getMonth() === now.getMonth() &&
     date.getDate() === now.getDate()
   ) {
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    return `Hoy a las ${hours}:${minutes}`;
+    return `Hoy a las ${formatAppTime(date)}`;
   }
 
   // Check if it's yesterday
@@ -34,19 +24,15 @@ export const formatSessionDate = (timestamp: Date | string): string => {
     date.getMonth() === yesterday.getMonth() &&
     date.getDate() === yesterday.getDate()
   ) {
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    return `Ayer a las ${hours}:${minutes}`;
+    return `Ayer a las ${formatAppTime(date)}`;
   }
 
-  // Format as "14 de Abril, 2026 a las 14:30"
+  // Formato latinoamericano: "14 de abril de 2026 a las 14:30".
   const day = date.getDate();
-  const month = SPANISH_MONTHS[date.getMonth()];
+  const month = formatAppDate(date, { month: 'long' });
   const year = date.getFullYear();
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
 
-  return `${day} de ${month}, ${year} a las ${hours}:${minutes}`;
+  return `${day} de ${month} de ${year} a las ${formatAppTime(date)}`;
 };
 
 export const formatSessionDuration = (startMs: number, endMs: number): string => {
@@ -71,10 +57,10 @@ export const formatSessionVolume = (totalKg: number, totalMinutes: number = 0): 
 
   // Add weight volume if present
   if (totalKg > 0) {
-    const formatted = new Intl.NumberFormat('es-AR', {
+    const formatted = formatAppNumber(Math.round(totalKg), {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    }).format(Math.round(totalKg));
+    });
     parts.push(`${formatted} kg`);
   }
 

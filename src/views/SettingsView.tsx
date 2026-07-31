@@ -347,7 +347,7 @@ export const SettingsView = ({
               <ArrowLeft size={20} strokeWidth={2.5} />
             </button>
             <h1 className={`font-headline text-lg font-semibold uppercase italic tracking-[0.16em] ${isInAnyEditMode ? 'text-on-surface' : 'text-primary'}`}>
-              {isEditingProfile ? 'Editar perfil' : isEditingGoals ? 'Editar objetivos' : 'Configuracion'}
+              {isEditingProfile ? 'Editar perfil' : isEditingGoals ? 'Editar objetivos' : 'Configuración'}
             </h1>
           </div>
 
@@ -859,7 +859,7 @@ export const SettingsView = ({
                     Español
                   </div>
                 </div>
-                <p className="text-[9px] text-on-surface-variant/60 mt-2">Idioma de la aplicación (coming soon)</p>
+                <p className="mt-2 text-[9px] text-on-surface-variant/60">Español latinoamericano</p>
               </div>
 
               <button
@@ -918,7 +918,7 @@ export const SettingsView = ({
             >
               <LogOut size={18} />
               <span className="font-headline text-sm font-black italic uppercase tracking-[0.18em]">
-                {isLoggingOut ? 'Cerrando...' : 'Cerrar sesion'}
+                {isLoggingOut ? 'Cerrando...' : 'Cerrar sesión'}
               </span>
             </button>
             <p className="mt-6 text-center text-[10px] font-medium uppercase tracking-[0.4em] text-on-surface-variant/40">Kinetic Engine</p>

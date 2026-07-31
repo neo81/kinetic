@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSyncStatus } from '../hooks/useSyncStatus';
 import { syncQueue } from '../services/syncQueue';
+import { formatAppDate } from '../i18n/locale';
 
 export const SyncDiagnosticsPanel: React.FC = () => {
   const { status, triggerManualSync, isPending, isSyncing, hasError } = useSyncStatus();
@@ -107,7 +108,7 @@ export const SyncDiagnosticsPanel: React.FC = () => {
           <span className="text-on-surface-variant">Último sincronizado:</span>
           <span className="font-mono text-on-surface">
             {status.lastSyncAt
-              ? new Date(status.lastSyncAt).toLocaleString('es-ES')
+              ? formatAppDate(status.lastSyncAt, { dateStyle: 'short', timeStyle: 'medium' })
               : 'Aún no se sincroniza'}
           </span>
         </div>

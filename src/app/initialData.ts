@@ -22,13 +22,13 @@ export const fallbackExerciseLibrary: LocalExercise[] = [
   { id: 'f8', name: 'Dominadas', muscleGroupCode: 'dorsales', equipment: 'Barra', muscleGroup: 'Dorsales', sets: [] },
   { id: 'f9', name: 'Remo con Barra', muscleGroupCode: 'dorsales', equipment: 'Barra', muscleGroup: 'Dorsales', sets: [] },
   { id: 'f10', name: 'Jalón al Pecho', muscleGroupCode: 'dorsales', equipment: 'Polea', muscleGroup: 'Dorsales', sets: [] },
-  { id: 'f11', name: 'Encorogimientos', muscleGroupCode: 'trapecio', equipment: 'Mancuernas', muscleGroup: 'Trapecio', sets: [] },
+  { id: 'f11', name: 'Encogimientos', muscleGroupCode: 'trapecio', equipment: 'Mancuernas', muscleGroup: 'Trapecio', sets: [] },
 
   // Brazos (Biceps/Triceps/Antebrazo)
-  { id: 'f12', name: 'Curl de Biceps con Barra', muscleGroupCode: 'biceps', equipment: 'Barra', muscleGroup: 'Biceps', sets: [] },
-  { id: 'f13', name: 'Martillo', muscleGroupCode: 'biceps', equipment: 'Mancuernas', muscleGroup: 'Biceps', sets: [] },
-  { id: 'f14', name: 'Extensión de Triceps', muscleGroupCode: 'triceps', equipment: 'Polea', muscleGroup: 'Triceps', sets: [] },
-  { id: 'f15', name: 'Fondos en Paralelas', muscleGroupCode: 'triceps', equipment: 'Estación', muscleGroup: 'Triceps', sets: [] },
+  { id: 'f12', name: 'Curl de Bíceps con Barra', muscleGroupCode: 'biceps', equipment: 'Barra', muscleGroup: 'Bíceps', sets: [] },
+  { id: 'f13', name: 'Martillo', muscleGroupCode: 'biceps', equipment: 'Mancuernas', muscleGroup: 'Bíceps', sets: [] },
+  { id: 'f14', name: 'Extensión de Tríceps', muscleGroupCode: 'triceps', equipment: 'Polea', muscleGroup: 'Tríceps', sets: [] },
+  { id: 'f15', name: 'Fondos en Paralelas', muscleGroupCode: 'triceps', equipment: 'Estación', muscleGroup: 'Tríceps', sets: [] },
   { id: 'f16', name: 'Curl de Antebrazo', muscleGroupCode: 'antebrazo', equipment: 'Barra', muscleGroup: 'Antebrazo', sets: [] },
 
   // Core (Abdomen/Oblicuos/Lumbares)
@@ -38,8 +38,8 @@ export const fallbackExerciseLibrary: LocalExercise[] = [
   { id: 'f20', name: 'Hiperextensiones', muscleGroupCode: 'lumbares', equipment: 'Banco Romano', muscleGroup: 'Lumbares', sets: [] },
 
   // Piernas (Cuadriceps/Isquios/Gluteos/Pantorrillas)
-  { id: 'f21', name: 'Sentadilla con Barra', muscleGroupCode: 'cuadriceps', equipment: 'Barra', muscleGroup: 'Cuadriceps', sets: [] },
-  { id: 'f22', name: 'Prensa de Piernas', muscleGroupCode: 'cuadriceps', equipment: 'Máquina', muscleGroup: 'Cuadriceps', sets: [] },
+  { id: 'f21', name: 'Sentadilla con Barra', muscleGroupCode: 'cuadriceps', equipment: 'Barra', muscleGroup: 'Cuádriceps', sets: [] },
+  { id: 'f22', name: 'Prensa de Piernas', muscleGroupCode: 'cuadriceps', equipment: 'Máquina', muscleGroup: 'Cuádriceps', sets: [] },
   { id: 'f23', name: 'Peso Muerto Rumano', muscleGroupCode: 'isquiotibiales', equipment: 'Barra', muscleGroup: 'Isquiotibiales', sets: [] },
   { id: 'f24', name: 'Curl Femoral', muscleGroupCode: 'isquiotibiales', equipment: 'Máquina', muscleGroup: 'Isquiotibiales', sets: [] },
   { id: 'f25', name: 'Hip Thrust', muscleGroupCode: 'gluteos', equipment: 'Barra', muscleGroup: 'Glúteos', sets: [] },

@@ -273,8 +273,15 @@ Se mejoro la biblioteca de ejercicios y la lectura del progreso sin alterar la c
   - Al iniciar una sesion, la vista se reposiciona en el encabezado del dia activo despues de que se estabiliza el contenido del acordeon, aunque previamente se estuviera revisando una serie intermedia o final.
   - La mejora es exclusivamente visual: no modifica la rutina guardada, los datos capturados ni las reglas de finalizacion de ejercicios y sesiones.
 
+- Idioma y formatos:
+  - Se establecio `es-419` como configuracion regional unica para la interfaz en español latinoamericano.
+  - Se centralizaron los formatos de fechas, horas y numeros, eliminando las referencias directas a `es-AR` y `es-ES`.
+  - Se normalizaron textos visibles a español neutral, incluyendo el uso de `serie` en lugar de `set`, tildes y mensajes sin voseo.
+  - El documento HTML, el manifiesto PWA, las novedades locales y las novedades persistidas en Supabase quedaron alineados con la misma configuracion regional.
+  - Esta etapa no incorpora traducciones ni una interfaz en ingles.
+
 - Verificacion:
-  - La linea base permanece en 84 pruebas aprobadas, TypeScript sin errores y build de produccion correcto.
+  - La linea base queda en 86 pruebas aprobadas, TypeScript sin errores y build de produccion correcto.
 
 ## Documentos consolidados
 

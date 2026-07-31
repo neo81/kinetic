@@ -226,7 +226,7 @@ export const ExerciseEditorView = ({
         <header className="space-y-3">
           <div className="flex items-center gap-3">
             <div className="h-1.5 w-12 rounded-full bg-secondary/80"></div>
-            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-on-surface-variant/40">SESION ACTIVA</span>
+            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-on-surface-variant/40">SESIÓN ACTIVA</span>
           </div>
           <h1 className="font-headline text-[3.2rem] font-bold uppercase italic leading-none tracking-tight text-primary">
             Editor
@@ -279,7 +279,7 @@ export const ExerciseEditorView = ({
                 unit === item ? 'bg-primary text-black' : 'bg-surface-container-highest text-on-surface-variant hover:text-on-surface'
               }`}
             >
-              {item}
+              {item === 'sec' ? 'seg' : item}
             </button>
           ))}
         </div>
@@ -318,7 +318,7 @@ export const ExerciseEditorView = ({
         </div>
 
         <div className="grid grid-cols-[2rem_minmax(5.25rem,1.05fr)_minmax(4.5rem,0.95fr)_2rem] gap-1.5 px-2 sm:grid-cols-[2.5rem_minmax(0,1fr)_minmax(0,1fr)_2.25rem] sm:gap-2">
-          <span className="text-[9px] uppercase tracking-widest text-on-surface-variant">Set</span>
+          <span className="text-[9px] uppercase tracking-widest text-on-surface-variant">Serie</span>
           <span className="text-center text-[9px] uppercase tracking-widest text-on-surface-variant">Reps</span>
           <span className="text-center text-[9px] uppercase tracking-widest text-on-surface-variant">{metricLabel}</span>
           <span></span>

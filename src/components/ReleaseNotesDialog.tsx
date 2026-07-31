@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'motion/react';
 import { CheckCircle2, Sparkles, X } from 'lucide-react';
 import type { AppRelease } from '../app/releaseNotes';
+import { formatAppDate } from '../i18n/locale';
 
 type ReleaseNotesDialogProps = {
   isOpen: boolean;
@@ -69,7 +70,7 @@ export const ReleaseNotesDialog = ({
                     <h3 className="mt-1 text-sm font-bold text-on-surface">{release.title}</h3>
                   </div>
                   <time className="shrink-0 text-[9px] font-medium text-on-surface-variant/70">
-                    {new Date(release.publishedAt).toLocaleDateString('es-AR')}
+                    {formatAppDate(release.publishedAt, { year: 'numeric', month: '2-digit', day: '2-digit' })}
                   </time>
                 </div>
                 <div className="space-y-3">

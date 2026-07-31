@@ -965,9 +965,9 @@ export const ExerciseListView = ({
               </div>
               <p className="px-8 text-[11px] font-black uppercase italic tracking-[0.2em] text-on-surface-variant/40">
                 {filters.onlyFavorites
-                  ? 'No tenés favoritos en este grupo'
+                  ? 'No tienes favoritos en este grupo'
                   : filters.source === 'custom'
-                  ? 'No creaste ejercicios en este grupo aún'
+                  ? 'Todavía no creaste ejercicios en este grupo'
                   : 'No hay ejercicios para estos filtros'}
               </p>
             </div>

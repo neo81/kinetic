@@ -203,7 +203,7 @@ export const HistoryView = ({ setView, profile }: { setView: (v: View) => void; 
                   <div className="space-y-4 border-t theme-hairline-border px-4 pb-4 pt-2">
                     {session.days.length === 0 ? (
                       <p className="rounded-[0.8rem] bg-surface-container p-3 text-sm text-on-surface-variant">
-                        Esta sesion no tiene detalle de ejercicios guardado.
+                        Esta sesión no tiene detalles de ejercicios guardados.
                       </p>
                     ) : (
                       session.days.map((day) => (
@@ -219,7 +219,7 @@ export const HistoryView = ({ setView, profile }: { setView: (v: View) => void; 
                                     {exercise.name}
                                   </h4>
                                   <span className="shrink-0 text-[0.62rem] font-bold uppercase tracking-[0.12em] text-on-surface-variant">
-                                    {exercise.sets.length} sets
+                                    {exercise.sets.length} series
                                   </span>
                                 </div>
 
@@ -227,7 +227,7 @@ export const HistoryView = ({ setView, profile }: { setView: (v: View) => void; 
                                   {exercise.sets.map((set) => (
                                     <div key={set.id} className="flex items-center justify-between gap-3 rounded-[0.65rem] bg-background/40 px-3 py-2">
                                       <span className="font-headline text-[0.95rem] font-semibold uppercase text-primary">
-                                        Set {set.setNumber}
+                                        Serie {set.setNumber}
                                       </span>
                                       <span className="text-right text-[0.8rem] font-bold text-on-surface">
                                         {formatSessionSetValue(set)}

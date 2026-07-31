@@ -74,6 +74,7 @@ Mapas anatómicos interactivos (Frontal y Posterior) que proporcionan una interf
 - **Transiciones suavizadas**: Ajustes para evitar pantallazos negros y cortes duros en iOS/Android PWA.
 - **Selector muscular optimizado**: Precarga de imágenes frontal/posterior y regreso respetando la vista activa.
 - **Iconografía PWA renovada**: Iconos de app, favicon y Apple Touch generados desde la imagen base corregida.
+- **Español latinoamericano**: La interfaz, las fechas, los números y los metadatos PWA usan una configuración regional centralizada `es-419`.
 
 ## 🛠 Tech Stack
 

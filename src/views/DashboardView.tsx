@@ -12,7 +12,7 @@ import type { Routine, View, DashboardData, UserProfile } from '../types';
 
 const getGreeting = () => {
   const hour = new Date().getHours();
-  if (hour < 12) return 'BUENOS DIAS';
+  if (hour < 12) return 'BUENOS DÍAS';
   if (hour < 18) return 'BUENAS TARDES';
   return 'BUENAS NOCHES';
 };

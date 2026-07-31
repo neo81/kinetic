@@ -28,11 +28,11 @@ const getErrorMessage = (error: unknown, fallbackMessage: string) => {
   if (error instanceof RoutineRepositoryError) {
     switch (error.code) {
       case 'SUPABASE_AUTH':
-        return 'Tu sesion no pudo validarse. Inicia sesion nuevamente.';
+        return 'Tu sesión no pudo validarse. Inicia sesión nuevamente.';
       case 'SUPABASE_NETWORK':
-        return 'No hay conexion estable. Se usaran datos locales cuando sea posible.';
+        return 'No hay una conexión estable. Se usarán datos locales cuando sea posible.';
       case 'SUPABASE_QUERY':
-        return 'Hubo un problema con el servidor. Intentalo nuevamente en unos minutos.';
+        return 'Hubo un problema con el servidor. Inténtalo nuevamente en unos minutos.';
       default:
         return fallbackMessage;
     }
@@ -291,7 +291,7 @@ export const useAppState = () => {
         if (loading) console.warn('Forcing splash screen hide after timeout');
         return false;
       });
-    }, 6000); // Dar un poco mas de margen en iOS
+    }, 6000); // Dar un poco más de margen en iOS
 
     if (!supabase) {
       // Si supabase no está configurado, no hacer nada más
@@ -465,7 +465,7 @@ export const useAppState = () => {
     bodyWeightKg?: number | null;
     avatarUrl?: string;
   }) => {
-    if (!supabase || !user) throw new Error('No hay sesion activa.');
+    if (!supabase || !user) throw new Error('No hay una sesión activa.');
 
     const updateData: Database['public']['Tables']['profiles']['Update'] = {
       full_name: input.fullName.trim() || null,
@@ -506,7 +506,7 @@ export const useAppState = () => {
     if (activeSession) {
       setAppBanner({
         level: 'warning',
-        title: 'Sesion en curso',
+        title: 'Sesión en curso',
         message: 'Finaliza el entrenamiento activo antes de iniciar otro.',
       });
       return;
@@ -979,7 +979,7 @@ export const useAppState = () => {
       setAppBanner({
         level: 'error',
         title: 'Error',
-        message: getErrorMessage(error, 'Intentalo de nuevo.'),
+        message: getErrorMessage(error, 'Inténtalo de nuevo.'),
       });
     }
   };
@@ -1037,7 +1037,7 @@ export const useAppState = () => {
       setAppBanner({
         level: 'error',
         title: 'Error',
-        message: getErrorMessage(error, 'Intentalo mas tarde.'),
+        message: getErrorMessage(error, 'Inténtalo más tarde.'),
       });
     }
   };
@@ -1053,8 +1053,8 @@ export const useAppState = () => {
       }
       setAppBanner(null);
     } catch (error) {
-      console.error('Error eliminando dia:', error);
-      setAppBanner({ level: 'error', title: 'Error', message: getErrorMessage(error, 'Intentalo mas tarde.') });
+      console.error('Error eliminando día:', error);
+      setAppBanner({ level: 'error', title: 'Error', message: getErrorMessage(error, 'Inténtalo más tarde.') });
     }
   };
 
@@ -1071,7 +1071,7 @@ export const useAppState = () => {
       setAppBanner(null);
     } catch (error) {
       console.error('Error eliminando ejercicio:', error);
-      setAppBanner({ level: 'error', title: 'Error', message: getErrorMessage(error, 'Intentalo mas tarde.') });
+      setAppBanner({ level: 'error', title: 'Error', message: getErrorMessage(error, 'Inténtalo más tarde.') });
     }
   };
 

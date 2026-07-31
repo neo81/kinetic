@@ -124,7 +124,7 @@ const normalizeRoutineDayEntries = (dayEntries: Routine['dayEntries'] = []) => {
     .map((day, index) => ({
       ...day,
       position: index + 1,
-      title: day.title || `Dia ${day.dayNumber}`,
+      title: day.title || `Día ${day.dayNumber}`,
       exercises: normalizeDayExercises(day.exercises),
     }));
 
@@ -182,7 +182,7 @@ const buildRoutineDayInputs = (
         id: existingDay?.id,
         dayType: 'weekday' as const,
         dayNumber,
-        title: `Dia ${dayNumber}`,
+        title: `Día ${dayNumber}`,
         position: index + 1,
         exercises: existingDay?.exercises ?? [],
       };
@@ -289,7 +289,7 @@ const mapRoutine = (row: RoutineQueryRow): Routine => {
         day.title ||
         (day.day_type === 'core'
           ? 'Core'
-          : `Dia ${day.day_number}`),
+          : `Día ${day.day_number}`),
       position: day.position,
       exercises: (day.routine_day_exercises ?? [])
         .sort((left, right) => left.position - right.position)
@@ -386,7 +386,7 @@ const syncRoutineDayExercises = async (
   if (existingRowsError) {
     throw new RoutineRepositoryError(
       mapSupabaseErrorCode(existingRowsError.message),
-      'No se pudieron cargar los ejercicios del dia.',
+      'No se pudieron cargar los ejercicios del día.',
       { cause: existingRowsError },
     );
   }
@@ -405,7 +405,7 @@ const syncRoutineDayExercises = async (
     if (deleteRowsError) {
       throw new RoutineRepositoryError(
         mapSupabaseErrorCode(deleteRowsError.message),
-        'No se pudieron quitar ejercicios eliminados del dia.',
+        'No se pudieron quitar ejercicios eliminados del día.',
         { cause: deleteRowsError },
       );
     }
@@ -432,7 +432,7 @@ const syncRoutineDayExercises = async (
     if (upsertRowError || !savedRow) {
       throw new RoutineRepositoryError(
         mapSupabaseErrorCode(upsertRowError?.message),
-        'No se pudo guardar un ejercicio del dia.',
+        'No se pudo guardar un ejercicio del día.',
         { cause: upsertRowError ?? undefined },
       );
     }
@@ -454,7 +454,7 @@ const listSupabaseRoutines = async (): Promise<Routine[] | null> => {
   if (userError) {
     throw new RoutineRepositoryError(
       'SUPABASE_AUTH',
-      'No se pudo validar la sesion de usuario.',
+      'No se pudo validar la sesión del usuario.',
       { cause: userError },
     );
   }
@@ -554,7 +554,7 @@ const saveSupabaseRoutine = async (
   if (userError) {
     throw new RoutineRepositoryError(
       'SUPABASE_AUTH',
-      'No se pudo validar la sesion de usuario.',
+      'No se pudo validar la sesión del usuario.',
       { cause: userError },
     );
   }
@@ -599,7 +599,7 @@ const saveSupabaseRoutine = async (
   if (existingDaysError) {
     throw new RoutineRepositoryError(
       mapSupabaseErrorCode(existingDaysError.message),
-      'No se pudieron cargar los dias actuales de la rutina.',
+      'No se pudieron cargar los días actuales de la rutina.',
       { cause: existingDaysError },
     );
   }
@@ -614,7 +614,7 @@ const saveSupabaseRoutine = async (
     if (deleteDaysError) {
       throw new RoutineRepositoryError(
         mapSupabaseErrorCode(deleteDaysError.message),
-        'No se pudieron eliminar dias removidos de la rutina.',
+        'No se pudieron eliminar los días quitados de la rutina.',
         { cause: deleteDaysError },
       );
     }
@@ -639,7 +639,7 @@ const saveSupabaseRoutine = async (
     if (upsertDayError || !savedDay) {
       throw new RoutineRepositoryError(
         mapSupabaseErrorCode(upsertDayError?.message),
-        'No se pudo guardar un dia de la rutina.',
+        'No se pudo guardar un día de la rutina.',
         { cause: upsertDayError ?? undefined },
       );
     }
@@ -740,7 +740,7 @@ const fetchCompletedSessions = async (userId: string): Promise<CompletedSession[
       const detailedDays = dayLogs.map((dayLog: any) => {
         const dayLabel = dayLog.routine_days?.day_type === 'core'
           ? 'Core'
-          : dayLog.routine_days?.title || `Dia ${dayLog.routine_days?.day_number ?? '-'}`;
+          : dayLog.routine_days?.title || `Día ${dayLog.routine_days?.day_number ?? '-'}`;
         const exercises = [...(dayLog.session_exercise_logs || [])]
           .sort((left: any, right: any) => Number(left.position ?? 0) - Number(right.position ?? 0))
           .map((exercise: any) => ({
@@ -1139,10 +1139,10 @@ export const routinesRepository = {
     if (supabase) {
       const { error } = await supabase.from('routine_days').delete().eq('id', routineDayId);
       if (error) {
-        console.error('Error al borrar dia de rutina:', error);
+        console.error('Error al borrar día de rutina:', error);
         throw new RoutineRepositoryError(
           mapSupabaseErrorCode(error.message),
-          'No se pudo borrar el dia remotamente.',
+          'No se pudo borrar el día de forma remota.',
           { cause: error },
         );
       }
