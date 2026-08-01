@@ -12,6 +12,8 @@ import { usernameValidationService, type UsernameValidationResult } from '../ser
 import type { UserProfile, View, UserGoals } from '../types';
 import { SyncDiagnosticsPanel } from '../components/SyncDiagnosticsPanel';
 import type { ResolvedTheme, ThemePreference } from '../theme/theme';
+import type { AppLanguage, TranslationKey } from '../i18n/translations';
+import { useLanguage } from '../i18n/LanguageContext';
 
 type SettingsViewProps = {
   setView: (view: View) => void;
@@ -31,12 +33,21 @@ type SettingsViewProps = {
   themePreference: ThemePreference;
   resolvedTheme: ResolvedTheme;
   onThemeChange: (theme: ThemePreference) => Promise<void>;
+  onLanguageChange: (language: AppLanguage) => Promise<void>;
   onOpenReleaseNotes: () => void;
 };
 
 type FeedbackState = 'idle' | 'saving' | 'success' | 'error';
 
 const fitnessLevels = ['Principiante', 'Intermedio', 'Avanzado', 'Competidor'];
+const usernameValidationKeys: Record<NonNullable<UsernameValidationResult['reason']>, TranslationKey> = {
+  empty: 'settings.username.empty',
+  'too-short': 'settings.username.tooShort',
+  'too-long': 'settings.username.tooLong',
+  'invalid-characters': 'settings.username.invalidCharacters',
+  taken: 'settings.username.taken',
+  available: 'settings.username.available',
+};
 
 export const SettingsView = ({
   setView,
@@ -47,8 +58,10 @@ export const SettingsView = ({
   themePreference,
   resolvedTheme,
   onThemeChange,
+  onLanguageChange,
   onOpenReleaseNotes,
 }: SettingsViewProps) => {
+  const { language, t } = useLanguage();
   const prefersReducedMotion = useReducedMotion();
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isEditingGoals, setIsEditingGoals] = useState(false);
@@ -57,6 +70,7 @@ export const SettingsView = ({
   const [isSavingGoals, setIsSavingGoals] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [isUpdatingTheme, setIsUpdatingTheme] = useState(false);
+  const [isUpdatingLanguage, setIsUpdatingLanguage] = useState(false);
   const [isAvatarDialogOpen, setIsAvatarDialogOpen] = useState(false);
   const [profileImageError, setProfileImageError] = useState(false);
   const [fullName, setFullName] = useState('');
@@ -188,14 +202,14 @@ export const SettingsView = ({
     }
 
     setIsSavingProfile(true);
-    setProfileFeedback({ state: 'saving', message: 'Guardando cambios...' });
+    setProfileFeedback({ state: 'saving', message: t('settings.savingChanges') });
     try {
       await saveProfile();
-      setProfileFeedback({ state: 'success', message: 'Perfil actualizado correctamente' });
+      setProfileFeedback({ state: 'success', message: t('settings.profileSaved') });
       setIsEditingProfile(false);
     } catch (error) {
       console.error('Error saving profile:', error);
-      setProfileFeedback({ state: 'error', message: 'No se pudo guardar el perfil. Intenta de nuevo.' });
+      setProfileFeedback({ state: 'error', message: t('settings.profileSaveError') });
     } finally {
       setIsSavingProfile(false);
     }
@@ -214,7 +228,7 @@ export const SettingsView = ({
     }
 
     setIsSavingGoals(true);
-    setGoalsFeedback({ state: 'saving', message: 'Guardando objetivos...' });
+    setGoalsFeedback({ state: 'saving', message: t('settings.goalsSaving') });
     try {
       const userId = profile?.id;
       if (!userId) {
@@ -225,10 +239,10 @@ export const SettingsView = ({
       setGoals(updated);
       setEditingGoals(null);
       setIsEditingGoals(false);
-      setGoalsFeedback({ state: 'success', message: 'Objetivos actualizados correctamente' });
+      setGoalsFeedback({ state: 'success', message: t('settings.goalsSaved') });
     } catch (error) {
       console.error('Error saving goals:', error);
-      setGoalsFeedback({ state: 'error', message: 'No se pudieron guardar los objetivos. Intenta de nuevo.' });
+      setGoalsFeedback({ state: 'error', message: t('settings.goalsSaveError') });
     } finally {
       setIsSavingGoals(false);
     }
@@ -281,12 +295,27 @@ export const SettingsView = ({
     }
   };
 
+  const handleLanguagePreferenceChange = async (nextLanguage: AppLanguage) => {
+    if (isUpdatingLanguage || language === nextLanguage) {
+      return;
+    }
+
+    setIsUpdatingLanguage(true);
+    try {
+      await onLanguageChange(nextLanguage);
+    } catch (error) {
+      console.error('No se pudo actualizar el idioma:', error);
+    } finally {
+      setIsUpdatingLanguage(false);
+    }
+  };
+
   const themeLabel =
     themePreference === 'auto'
-      ? `Auto (${resolvedTheme === 'dark' ? 'oscuro' : 'claro'})`
+      ? `${t('settings.theme.auto')} (${t(resolvedTheme === 'dark' ? 'settings.theme.dark' : 'settings.theme.light')})`
       : themePreference === 'dark'
-        ? 'Oscuro'
-        : 'Claro';
+        ? t('settings.theme.dark')
+        : t('settings.theme.light');
 
   const handleAvatarUpload = async (file: File): Promise<string> => {
     if (!profile?.id) {
@@ -314,8 +343,15 @@ export const SettingsView = ({
     }
   };
 
-  const displayName = fullName.trim() || profile?.fullName?.trim() || 'Perfil sin configurar';
-  const displayLevel = fitnessLevel || profile?.fitnessLevel || 'Sin nivel asignado';
+  const displayName = fullName.trim() || profile?.fullName?.trim() || t('settings.noProfile');
+  const levelLabels = {
+    Principiante: t('settings.level.beginner'),
+    Intermedio: t('settings.level.intermediate'),
+    Avanzado: t('settings.level.advanced'),
+    Competidor: t('settings.level.competitor'),
+  };
+  const storedLevel = fitnessLevel || profile?.fitnessLevel || '';
+  const displayLevel = levelLabels[storedLevel as keyof typeof levelLabels] || storedLevel || t('settings.noLevel');
   const displayUnits = units.toUpperCase();
   const shouldShowProfileImage = Boolean(profile?.avatarUrl && !profileImageError);
 
@@ -347,7 +383,7 @@ export const SettingsView = ({
               <ArrowLeft size={20} strokeWidth={2.5} />
             </button>
             <h1 className={`font-headline text-lg font-semibold uppercase italic tracking-[0.16em] ${isInAnyEditMode ? 'text-on-surface' : 'text-primary'}`}>
-              {isEditingProfile ? 'Editar perfil' : isEditingGoals ? 'Editar objetivos' : 'Configuración'}
+              {isEditingProfile ? t('settings.editProfile') : isEditingGoals ? t('settings.editGoals') : t('settings.title')}
             </h1>
           </div>
 
@@ -357,7 +393,7 @@ export const SettingsView = ({
               disabled={isSavingProfile}
               className="font-headline text-sm font-bold uppercase italic tracking-[0.18em] text-primary transition-colors hover:text-primary/80 disabled:opacity-50"
             >
-              {isSavingProfile ? 'Guardando...' : 'Guardar'}
+              {isSavingProfile ? t('settings.saving') : t('settings.save')}
             </button>
           ) : isEditingGoals ? (
             <button
@@ -365,7 +401,7 @@ export const SettingsView = ({
               disabled={isSavingGoals}
               className="font-headline text-sm font-bold uppercase italic tracking-[0.18em] text-primary transition-colors hover:text-primary/80 disabled:opacity-50"
             >
-              {isSavingGoals ? 'Guardando...' : 'Guardar'}
+              {isSavingGoals ? t('settings.saving') : t('settings.save')}
             </button>
           ) : (
             <div className="flex items-center gap-3">
@@ -389,20 +425,20 @@ export const SettingsView = ({
 
           <form className="space-y-6" onSubmit={(event) => event.preventDefault()}>
             <div className="space-y-2">
-              <label htmlFor="fullname-input" className="block text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">Nombre completo</label>
+              <label htmlFor="fullname-input" className="block text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">{t('settings.fullName')}</label>
               <div className="control-shell rounded-[0.95rem]">
                 <input
                   id="fullname-input"
                   value={fullName}
                   onChange={(event) => setFullName(event.target.value)}
-                  placeholder="Ingresa tu nombre"
+                  placeholder={t('settings.fullNamePlaceholder')}
                   className="h-14 w-full rounded-[0.95rem] bg-transparent px-4 text-on-surface outline-none"
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="username-input" className="block text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">Usuario</label>
+              <label htmlFor="username-input" className="block text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">{t('settings.username')}</label>
               <div className={`relative control-shell rounded-[0.95rem] ${
                 usernameValidation ? (usernameValidation.available ? 'border-green-500/30' : 'border-red-500/30') : ''
               }`}>
@@ -410,7 +446,7 @@ export const SettingsView = ({
                   id="username-input"
                   value={username}
                   onChange={(event) => setUsername(event.target.value)}
-                  placeholder="@usuario"
+                  placeholder={t('settings.usernamePlaceholder')}
                   className="h-14 w-full rounded-[0.95rem] bg-transparent px-4 pr-10 text-on-surface outline-none"
                 />
                 {isValidatingUsername && (
@@ -438,14 +474,16 @@ export const SettingsView = ({
                       usernameValidation.available ? 'text-green-400' : 'text-red-400'
                     }`}
                   >
-                    {usernameValidation.message}
+                    {usernameValidation.reason
+                      ? t(usernameValidationKeys[usernameValidation.reason])
+                      : usernameValidation.message}
                   </motion.p>
                 )}
               </AnimatePresence>
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="email-input" className="block text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">Correo electronico</label>
+              <label htmlFor="email-input" className="block text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">{t('settings.email')}</label>
               <div className="control-shell rounded-[0.95rem]">
                 <input
                   id="email-input"
@@ -458,13 +496,13 @@ export const SettingsView = ({
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="bio-input" className="block text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">Bio</label>
+              <label htmlFor="bio-input" className="block text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">{t('settings.bio')}</label>
               <div className="control-shell rounded-[0.95rem]">
                 <textarea
                   id="bio-input"
                   value={bio}
                   onChange={(event) => setBio(event.target.value)}
-                  placeholder="Agrega una descripcion breve de tu perfil."
+                  placeholder={t('settings.bioPlaceholder')}
                   rows={4}
                   className="w-full resize-none rounded-[0.95rem] bg-transparent px-4 py-4 text-on-surface outline-none"
                 />
@@ -472,7 +510,7 @@ export const SettingsView = ({
             </div>
 
             <div className="space-y-3">
-              <label htmlFor="fitness-level" className="block text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">Nivel fitness</label>
+              <label htmlFor="fitness-level" className="block text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">{t('settings.fitnessLevel')}</label>
               <div className="flex flex-wrap gap-3">
                 {fitnessLevels.map((level) => (
                   <button
@@ -483,7 +521,7 @@ export const SettingsView = ({
                       fitnessLevel === level ? 'theme-primary-shadow-soft bg-primary text-black' : 'theme-hairline-border border bg-surface-container-low text-on-surface'
                     }`}
                   >
-                    {level}
+                    {levelLabels[level as keyof typeof levelLabels]}
                   </button>
                 ))}
               </div>
@@ -491,7 +529,7 @@ export const SettingsView = ({
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <label htmlFor="height-input" className="block text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">Altura</label>
+                <label htmlFor="height-input" className="block text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">{t('settings.height')}</label>
                 <div className="control-shell rounded-[0.95rem]">
                   <input
                     id="height-input"
@@ -505,7 +543,7 @@ export const SettingsView = ({
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="body-weight-input" className="block text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">Peso</label>
+                <label htmlFor="body-weight-input" className="block text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">{t('settings.weight')}</label>
                 <div className="control-shell rounded-[0.95rem]">
                   <input
                     id="body-weight-input"
@@ -529,10 +567,10 @@ export const SettingsView = ({
                 {isSavingProfile ? (
                   <>
                     <Loader size={16} className="animate-spin" />
-                    Guardando cambios...
+                    {t('settings.savingChanges')}
                   </>
                 ) : (
-                  'Guardar cambios'
+                  t('settings.saveChanges')
                 )}
               </button>
               <AnimatePresence>
@@ -569,13 +607,13 @@ export const SettingsView = ({
               </div>
             </div>
             <p className="mt-4 text-[10px] font-black uppercase italic tracking-[0.3em] text-on-surface-variant">
-              Establece tus objetivos semanales
+              {t('settings.weeklyGoalsHint')}
             </p>
           </div>
 
           <form className="space-y-6" onSubmit={(event) => event.preventDefault()}>
             <div className="space-y-3">
-              <label htmlFor="volume-target-input" className="block text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">Volumen Objetivo (kg/semana)</label>
+              <label htmlFor="volume-target-input" className="block text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">{t('settings.volumeGoal')}</label>
               <div className="control-shell rounded-[0.95rem]">
                 <input
                   id="volume-target-input"
@@ -595,11 +633,11 @@ export const SettingsView = ({
                   className="h-14 w-full rounded-[0.95rem] bg-transparent px-4 text-on-surface outline-none"
                 />
               </div>
-              <p className="text-[9px] text-on-surface-variant/60">Meta semanal de kilogramos a levantar</p>
+              <p className="text-[9px] text-on-surface-variant/60">{t('settings.volumeGoalHint')}</p>
             </div>
 
             <div className="space-y-3">
-              <label htmlFor="exercises-target-input" className="block text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">Ejercicios Objetivo (cantidad/semana)</label>
+              <label htmlFor="exercises-target-input" className="block text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">{t('settings.exerciseGoal')}</label>
               <div className="control-shell rounded-[0.95rem]">
                 <input
                   id="exercises-target-input"
@@ -619,11 +657,11 @@ export const SettingsView = ({
                   className="h-14 w-full rounded-[0.95rem] bg-transparent px-4 text-on-surface outline-none"
                 />
               </div>
-              <p className="text-[9px] text-on-surface-variant/60">Meta semanal de ejercicios a completar</p>
+              <p className="text-[9px] text-on-surface-variant/60">{t('settings.exerciseGoalHint')}</p>
             </div>
 
             <div className="space-y-3">
-              <label htmlFor="duration-target-input" className="block text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">Tiempo Objetivo (minutos/semana)</label>
+              <label htmlFor="duration-target-input" className="block text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">{t('settings.timeGoal')}</label>
               <div className="control-shell rounded-[0.95rem]">
                 <input
                   id="duration-target-input"
@@ -643,7 +681,7 @@ export const SettingsView = ({
                   className="h-14 w-full rounded-[0.95rem] bg-transparent px-4 text-on-surface outline-none"
                 />
               </div>
-              <p className="text-[9px] text-on-surface-variant/60">Meta semanal de minutos de entrenamiento</p>
+              <p className="text-[9px] text-on-surface-variant/60">{t('settings.timeGoalHint')}</p>
             </div>
 
             <div className="space-y-3">
@@ -656,10 +694,10 @@ export const SettingsView = ({
                 {isSavingGoals ? (
                   <>
                     <Loader size={16} className="animate-spin" />
-                    Guardando objetivos...
+                    {t('settings.goalsSaving')}
                   </>
                 ) : (
-                  'Guardar objetivos'
+                  t('settings.saveGoals')
                 )}
               </button>
               <AnimatePresence>
@@ -695,7 +733,7 @@ export const SettingsView = ({
                 {shouldShowProfileImage ? (
                   <img
                     src={profile?.avatarUrl}
-                    alt="Foto de perfil"
+                    alt={t('header.profilePhoto')}
                     className="h-full w-full rounded-full object-cover"
                     onError={() => setProfileImageError(true)}
                   />
@@ -716,44 +754,44 @@ export const SettingsView = ({
                 <span className="text-xs text-secondary">•</span>
                 <span className="text-[0.72rem] font-medium uppercase tracking-[0.24em] text-on-surface-variant">{displayLevel}</span>
               </div>
-              <p className="text-sm text-on-surface-variant">{userEmail ?? 'Sin correo disponible'}</p>
+              <p className="text-sm text-on-surface-variant">{userEmail ?? t('settings.noEmail')}</p>
             </div>
           </div>
 
           <div className="space-y-3">
-            <h3 className="px-1 text-[10px] font-black uppercase italic tracking-[0.4em] text-on-surface-variant/60">Cuenta</h3>
+            <h3 className="px-1 text-[10px] font-black uppercase italic tracking-[0.4em] text-on-surface-variant/60">{t('settings.account')}</h3>
             <button
               onClick={() => setIsEditingProfile(true)}
               className="flex w-full items-center justify-between rounded-[0.95rem] bg-surface-container-low px-4 py-4 text-left transition-colors hover:bg-surface-container-high"
             >
               <div className="flex items-center gap-4">
                 <User size={18} className="text-on-surface-variant" />
-                <span className="font-medium text-on-surface">Editar perfil</span>
+                <span className="font-medium text-on-surface">{t('settings.editProfile')}</span>
               </div>
               <ChevronRight size={18} className="text-outline" />
             </button>
           </div>
 
           <div className="space-y-3">
-            <h3 className="px-1 text-[10px] font-black uppercase italic tracking-[0.4em] text-on-surface-variant/60">Objetivos de Entrenamiento</h3>
+            <h3 className="px-1 text-[10px] font-black uppercase italic tracking-[0.4em] text-on-surface-variant/60">{t('settings.trainingGoals')}</h3>
             {goals ? (
               <div className="space-y-3">
                 <div className="rounded-[0.95rem] bg-surface-container-low px-4 py-4 space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-on-surface-variant">Volumen</p>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-on-surface-variant">{t('settings.volume')}</p>
                       <p className="mt-1 text-2xl font-black text-primary">{Math.round(goals.weeklyVolumeTarget / 1000)}k kg</p>
                     </div>
                   </div>
                   <div className="border-t theme-hairline-border pt-4 flex items-center justify-between">
                     <div>
-                      <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-on-surface-variant">Ejercicios</p>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-on-surface-variant">{t('settings.exercises')}</p>
                       <p className="mt-1 text-2xl font-black text-secondary">{goals.weeklyExercisesTarget}</p>
                     </div>
                   </div>
                   <div className="border-t theme-hairline-border pt-4 flex items-center justify-between">
                     <div>
-                      <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-on-surface-variant">Tiempo</p>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-on-surface-variant">{t('settings.time')}</p>
                       <p className="mt-1 text-2xl font-black text-primary">{goals.weeklyDurationTarget}m</p>
                     </div>
                   </div>
@@ -764,25 +802,25 @@ export const SettingsView = ({
                 >
                   <div className="flex items-center gap-4">
                     <Target size={18} className="text-on-surface-variant" />
-                    <span className="font-medium text-on-surface">Editar objetivos</span>
+                    <span className="font-medium text-on-surface">{t('settings.editGoals')}</span>
                   </div>
                   <ChevronRight size={18} className="text-outline" />
                 </button>
               </div>
             ) : (
               <div className="rounded-[0.95rem] bg-surface-container-low px-4 py-4 text-center">
-                <p className="text-[9px] font-medium uppercase tracking-[0.15em] text-on-surface-variant">Cargando objetivos...</p>
+                <p className="text-[9px] font-medium uppercase tracking-[0.15em] text-on-surface-variant">{t('settings.loadingGoals')}</p>
               </div>
             )}
           </div>
 
           <div className="space-y-3">
-            <h3 className="px-1 text-[10px] font-black uppercase italic tracking-[0.4em] text-on-surface-variant/60">Preferencias</h3>
+            <h3 className="px-1 text-[10px] font-black uppercase italic tracking-[0.4em] text-on-surface-variant/60">{t('settings.preferences')}</h3>
             <div className="rounded-[0.95rem] bg-surface-container-low px-4 py-4">
               <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
                   <Ruler size={18} className="text-on-surface-variant" />
-                  <span className="font-medium text-on-surface">Sistema de unidades</span>
+                  <span className="font-medium text-on-surface">{t('settings.units')}</span>
                 </div>
                 <div className="flex rounded-[0.6rem] bg-surface-container-highest p-1">
                   <button
@@ -804,31 +842,31 @@ export const SettingsView = ({
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-[0.95rem] bg-surface-container-low px-4 py-4">
-                <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-on-surface-variant">Altura</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-on-surface-variant">{t('settings.height')}</p>
                 <p className="mt-1 text-2xl font-black text-on-surface">{profile?.heightCm ? `${profile.heightCm} cm` : '--'}</p>
               </div>
               <div className="rounded-[0.95rem] bg-surface-container-low px-4 py-4">
-                <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-on-surface-variant">Peso</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-on-surface-variant">{t('settings.weight')}</p>
                 <p className="mt-1 text-2xl font-black text-on-surface">{profile?.bodyWeightKg ? `${profile.bodyWeightKg} kg` : '--'}</p>
               </div>
             </div>
           </div>
 
           <div className="space-y-3">
-            <h3 className="px-1 text-[10px] font-black uppercase italic tracking-[0.4em] text-on-surface-variant/60">Preferencias</h3>
+            <h3 className="px-1 text-[10px] font-black uppercase italic tracking-[0.4em] text-on-surface-variant/60">{t('settings.preferences')}</h3>
             <div className="space-y-3">
               <div className="rounded-[0.95rem] bg-surface-container-low px-4 py-4">
                 <div className="flex items-center justify-between gap-4">
-                  <span className="font-medium text-on-surface">Tema</span>
+                  <span className="font-medium text-on-surface">{t('settings.theme')}</span>
                   <div className="text-sm text-on-surface-variant bg-surface-container-highest px-3 py-1 rounded-full">
                     {themeLabel}
                   </div>
                 </div>
                 <div className="mt-3 flex rounded-[0.75rem] bg-surface-container-highest p-1">
                   {([
-                    { value: 'light', label: 'Claro' },
-                    { value: 'dark', label: 'Oscuro' },
-                    { value: 'auto', label: 'Auto' },
+                    { value: 'light', label: t('settings.theme.light') },
+                    { value: 'dark', label: t('settings.theme.dark') },
+                    { value: 'auto', label: t('settings.theme.auto') },
                   ] as { value: ThemePreference; label: string }[]).map((option) => (
                     <button
                       key={option.value}
@@ -847,19 +885,39 @@ export const SettingsView = ({
                 </div>
                 <p className="mt-2 text-[9px] text-on-surface-variant/60">
                   {themePreference === 'auto'
-                    ? `Se adapta al sistema. Tema efectivo actual: ${resolvedTheme === 'dark' ? 'oscuro' : 'claro'}.`
-                    : 'Preferencia visual aplicada en toda la app.'}
+                    ? `${t('settings.theme.autoDescription')} ${t(resolvedTheme === 'dark' ? 'settings.theme.dark' : 'settings.theme.light').toLocaleLowerCase(language)}.`
+                    : t('settings.theme.description')}
                 </p>
               </div>
               
               <div className="rounded-[0.95rem] bg-surface-container-low px-4 py-4">
                 <div className="flex items-center justify-between gap-4">
-                  <span className="font-medium text-on-surface">Idioma</span>
+                  <span className="font-medium text-on-surface">{t('settings.language.title')}</span>
                   <div className="text-sm text-on-surface-variant bg-surface-container-highest px-3 py-1 rounded-full">
-                    Español
+                    {t(`settings.language.current.${language}`)}
                   </div>
                 </div>
-                <p className="mt-2 text-[9px] text-on-surface-variant/60">Español latinoamericano</p>
+                <div className="mt-3 flex rounded-[0.75rem] bg-surface-container-highest p-1">
+                  {(['es-419', 'en'] as const).map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      onClick={() => void handleLanguagePreferenceChange(option)}
+                      disabled={isUpdatingLanguage}
+                      aria-pressed={language === option}
+                      className={`flex-1 rounded-[0.55rem] px-3 py-2 text-[10px] font-bold uppercase transition-all ${
+                        language === option
+                          ? 'bg-primary text-black'
+                          : 'text-on-surface-variant theme-interactive-hover'
+                      }`}
+                    >
+                      {t(`settings.language.option.${option}`)}
+                    </button>
+                  ))}
+                </div>
+                <p className="mt-2 text-[9px] text-on-surface-variant/60">
+                  {t(`settings.language.description.${language}`)}
+                </p>
               </div>
 
               <button
@@ -870,8 +928,8 @@ export const SettingsView = ({
                 <div className="flex items-center gap-4">
                   <Sparkles size={18} className="text-primary" />
                   <div>
-                    <span className="font-medium text-on-surface">Novedades</span>
-                    <p className="mt-1 text-[9px] text-on-surface-variant/60">Consulta el historial de versiones.</p>
+                    <span className="font-medium text-on-surface">{t('release.news')}</span>
+                    <p className="mt-1 text-[9px] text-on-surface-variant/60">{t('settings.releaseDescription')}</p>
                   </div>
                 </div>
                 <ChevronRight size={18} className="text-outline" />
@@ -880,32 +938,32 @@ export const SettingsView = ({
           </div>
 
           <div className="space-y-3">
-            <h3 className="px-1 text-[10px] font-black uppercase italic tracking-[0.4em] text-on-surface-variant/60">Actividad</h3>
+            <h3 className="px-1 text-[10px] font-black uppercase italic tracking-[0.4em] text-on-surface-variant/60">{t('settings.activity')}</h3>
             <div className="grid grid-cols-2 gap-3">
               <div className="relative overflow-hidden rounded-[1rem] border-l-2 border-primary bg-surface-container-low p-5">
-                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-on-surface-variant">Historial</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-on-surface-variant">{t('nav.history')}</p>
                 <p className="mt-2 text-2xl font-black text-on-surface">0</p>
-                <p className="text-[11px] text-on-surface-variant">Entrenamientos</p>
+                <p className="text-[11px] text-on-surface-variant">{t('settings.workouts')}</p>
               </div>
               <div className="relative overflow-hidden rounded-[1rem] border-l-2 border-secondary bg-surface-container-low p-5">
-                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-on-surface-variant">Records</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-on-surface-variant">{t('settings.records')}</p>
                 <p className="mt-2 text-2xl font-black text-on-surface">0</p>
-                <p className="text-[11px] text-on-surface-variant">PR registrados</p>
+                <p className="text-[11px] text-on-surface-variant">{t('settings.registeredPrs')}</p>
               </div>
             </div>
           </div>
 
           <div className="space-y-3">
-            <h3 className="px-1 text-[10px] font-black uppercase italic tracking-[0.4em] text-on-surface-variant/60">Sincronización</h3>
+            <h3 className="px-1 text-[10px] font-black uppercase italic tracking-[0.4em] text-on-surface-variant/60">{t('settings.sync')}</h3>
             <div className="rounded-[0.95rem] bg-surface-container-low px-4 py-4">
               <SyncDiagnosticsPanel />
             </div>
           </div>
 
           <div className="space-y-3">
-            <h3 className="px-1 text-[10px] font-black uppercase italic tracking-[0.4em] text-on-surface-variant/60">Perfil</h3>
+            <h3 className="px-1 text-[10px] font-black uppercase italic tracking-[0.4em] text-on-surface-variant/60">{t('settings.profile')}</h3>
             <div className="rounded-[0.95rem] bg-surface-container-low px-4 py-4 text-sm text-on-surface-variant">
-              {bio?.trim() ? bio : 'Aun no agregaste una bio a tu perfil.'}
+              {bio?.trim() ? bio : t('settings.noBio')}
             </div>
           </div>
 
@@ -918,7 +976,7 @@ export const SettingsView = ({
             >
               <LogOut size={18} />
               <span className="font-headline text-sm font-black italic uppercase tracking-[0.18em]">
-                {isLoggingOut ? 'Cerrando...' : 'Cerrar sesión'}
+                {isLoggingOut ? t('settings.signingOut') : t('settings.signOut')}
               </span>
             </button>
             <p className="mt-6 text-center text-[10px] font-medium uppercase tracking-[0.4em] text-on-surface-variant/40">Kinetic Engine</p>

@@ -4,6 +4,7 @@ export type UsernameValidationResult = {
   available: boolean;
   message: string;
   isValid: boolean;
+  reason?: 'empty' | 'too-short' | 'too-long' | 'invalid-characters' | 'taken' | 'available';
 };
 
 export const usernameValidationService = {
@@ -22,6 +23,7 @@ export const usernameValidationService = {
         available: false,
         message: 'El usuario no puede estar vacío',
         isValid: false,
+        reason: 'empty',
       };
     }
 
@@ -30,6 +32,7 @@ export const usernameValidationService = {
         available: false,
         message: 'El usuario debe tener al menos 3 caracteres',
         isValid: false,
+        reason: 'too-short',
       };
     }
 
@@ -38,6 +41,7 @@ export const usernameValidationService = {
         available: false,
         message: 'El usuario no puede exceder 30 caracteres',
         isValid: false,
+        reason: 'too-long',
       };
     }
 
@@ -47,6 +51,7 @@ export const usernameValidationService = {
         available: false,
         message: 'Solo se permiten letras, números y guiones bajos',
         isValid: false,
+        reason: 'invalid-characters',
       };
     }
 
@@ -86,6 +91,7 @@ export const usernameValidationService = {
           available: false,
           message: 'Este usuario ya está en uso',
           isValid: true,
+          reason: 'taken',
         };
       }
 
@@ -93,6 +99,7 @@ export const usernameValidationService = {
         available: true,
         message: 'Usuario disponible',
         isValid: true,
+        reason: 'available',
       };
     } catch (error) {
       console.error('Error validating username:', error);

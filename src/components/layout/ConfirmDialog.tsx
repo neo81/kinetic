@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { AlertCircle, Trash2, X } from 'lucide-react';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 type ConfirmDialogProps = {
   isOpen: boolean;
@@ -16,12 +17,13 @@ export const ConfirmDialog = ({
   isOpen,
   title,
   message,
-  confirmText = 'Confirmar',
-  cancelText = 'Cancelar',
+  confirmText,
+  cancelText,
   onConfirm,
   onCancel,
   variant = 'danger'
 }: ConfirmDialogProps) => {
+  const { t } = useLanguage();
   return (
     <AnimatePresence>
       {isOpen && (
@@ -55,7 +57,7 @@ export const ConfirmDialog = ({
                 onClick={onCancel}
                 className="theme-interactive-hover flex-1 rounded-xl bg-surface-container-highest py-3 text-[10px] font-bold uppercase tracking-widest text-on-surface active:scale-95"
               >
-                {cancelText}
+                {cancelText ?? t('common.cancel')}
               </button>
               <button
                 onClick={onConfirm}
@@ -65,7 +67,7 @@ export const ConfirmDialog = ({
                   : 'bg-primary text-black shadow-primary/20'
                 }`}
               >
-                {confirmText}
+                {confirmText ?? t('common.confirm')}
               </button>
             </div>
           </motion.div>

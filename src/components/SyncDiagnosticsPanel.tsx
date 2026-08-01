@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useSyncStatus } from '../hooks/useSyncStatus';
 import { syncQueue } from '../services/syncQueue';
 import { formatAppDate } from '../i18n/locale';
+import { useLanguage } from '../i18n/LanguageContext';
 
 export const SyncDiagnosticsPanel: React.FC = () => {
+  const { language, t } = useLanguage();
   const { status, triggerManualSync, isPending, isSyncing, hasError } = useSyncStatus();
   const [showDebugInfo, setShowDebugInfo] = useState(false);
   const [exportMessage, setExportMessage] = useState<string | null>(null);
@@ -35,18 +37,18 @@ export const SyncDiagnosticsPanel: React.FC = () => {
       a.click();
       URL.revokeObjectURL(url);
 
-      setExportMessage('Datos exportados correctamente');
+      setExportMessage(t('sync.exportSuccess'));
       setTimeout(() => setExportMessage(null), 3000);
     } catch (error) {
       console.error('Error exporting state:', error);
-      setExportMessage('Error al exportar datos');
+      setExportMessage(t('sync.exportError'));
     }
   };
 
   const handleClearQueue = () => {
-    if (confirm('¿Descartar todos los items pendientes de sincronización? Esto no se puede deshacer.')) {
+    if (confirm(t('sync.clearConfirm'))) {
       syncQueue.clear();
-      setExportMessage('Cola de sincronización limpiada');
+      setExportMessage(t('sync.queueCleared'));
       setTimeout(() => setExportMessage(null), 3000);
     }
   };
@@ -66,10 +68,10 @@ export const SyncDiagnosticsPanel: React.FC = () => {
   };
 
   const getStatusMessage = () => {
-    if (isSyncing) return 'Sincronizando datos...';
-    if (hasError) return 'Hay errores de sincronización';
-    if (isPending) return 'Datos pendientes de guardar';
-    return 'Todo está sincronizado';
+    if (isSyncing) return t('sync.dataSyncing');
+    if (hasError) return t('sync.hasErrors');
+    if (isPending) return t('sync.dataPending');
+    return t('sync.allSynced');
   };
 
   return (
@@ -79,7 +81,7 @@ export const SyncDiagnosticsPanel: React.FC = () => {
         <div className="flex items-center gap-2">
           <span className={`text-2xl ${getStatusColor()}`}>{getStatusIcon()}</span>
           <div>
-            <h3 className="font-semibold text-on-surface">Estado de Sincronización</h3>
+            <h3 className="font-semibold text-on-surface">{t('sync.statusTitle')}</h3>
             <p className="text-xs text-on-surface-variant">
               {getStatusMessage()}
             </p>
@@ -92,7 +94,7 @@ export const SyncDiagnosticsPanel: React.FC = () => {
             disabled={isSyncing}
             className="control-shell whitespace-nowrap rounded px-3 py-2 text-sm font-semibold uppercase tracking-wide hover:bg-surface-container-highest disabled:opacity-50 sm:px-4"
           >
-            {isSyncing ? 'Sincronizando...' : 'Resincronizar Ahora'}
+            {isSyncing ? t('common.syncing') : t('sync.retryNow')}
           </button>
         )}
       </div>
@@ -100,27 +102,27 @@ export const SyncDiagnosticsPanel: React.FC = () => {
       {/* Status Details */}
       <div className="space-y-2 text-sm">
         <div className="flex justify-between">
-          <span className="text-on-surface-variant">Items pendientes:</span>
+          <span className="text-on-surface-variant">{t('sync.pendingItems')}:</span>
           <span className="font-mono font-semibold text-on-surface">{status.totalPending}</span>
         </div>
 
         <div className="flex justify-between">
-          <span className="text-on-surface-variant">Último sincronizado:</span>
+          <span className="text-on-surface-variant">{t('sync.lastSync')}:</span>
           <span className="font-mono text-on-surface">
             {status.lastSyncAt
-              ? formatAppDate(status.lastSyncAt, { dateStyle: 'short', timeStyle: 'medium' })
-              : 'Aún no se sincroniza'}
+              ? formatAppDate(status.lastSyncAt, { dateStyle: 'short', timeStyle: 'medium' }, language)
+              : t('sync.notSyncedYet')}
           </span>
         </div>
 
         {status.lastError && (
           <div className="rounded bg-error/10 p-3 text-error">
-            <div className="mb-1.5 text-xs font-semibold">Último error:</div>
+            <div className="mb-1.5 text-xs font-semibold">{t('sync.lastError')}:</div>
             <div className="mb-2 flex flex-col gap-1.5 rounded bg-error/5 p-2">
               <div className="break-words font-mono text-xs">{status.lastError}</div>
               <div className="text-xs text-error/80">
                 {currentTime ? (
-                  <>Hace {Math.round((currentTime - (status.lastErrorAt ?? 0)) / 1000)}s</>
+                  <>{t('sync.agoPrefix')}{Math.round((currentTime - (status.lastErrorAt ?? 0)) / 1000)}s{t('sync.agoSuffix')}</>
                 ) : (
                   <>—</>
                 )}
@@ -133,7 +135,7 @@ export const SyncDiagnosticsPanel: React.FC = () => {
       {/* Queue Breakdown */}
       {status.totalPending > 0 && (
         <div className="rounded bg-surface-container-high p-3">
-          <div className="mb-2 text-xs font-semibold text-on-surface">Detalles por tipo:</div>
+          <div className="mb-2 text-xs font-semibold text-on-surface">{t('sync.detailsByType')}:</div>
           <div className="space-y-1.5 font-mono text-xs text-on-surface-variant">
             {Object.entries(status.byType)
               .filter((entry): entry is [string, number] => typeof entry[1] === 'number' && entry[1] > 0)
@@ -160,14 +162,14 @@ export const SyncDiagnosticsPanel: React.FC = () => {
           onClick={handleExportState}
           className="control-shell flex-1 rounded px-2 py-2 text-xs font-semibold uppercase tracking-wide hover:bg-surface-container-highest sm:px-3"
         >
-          📥 Exportar
+          📥 {t('sync.export')}
         </button>
 
         <button
           onClick={() => setShowDebugInfo(!showDebugInfo)}
           className="control-shell flex-1 rounded px-2 py-2 text-xs font-semibold uppercase tracking-wide hover:bg-surface-container-highest sm:px-3"
         >
-          {showDebugInfo ? '✕ Ocultar' : '🔍 Detalles'}
+          {showDebugInfo ? `✕ ${t('sync.hideDetails')}` : `🔍 ${t('sync.showDetails')}`}
         </button>
 
         {status.totalPending > 0 && (
@@ -175,7 +177,7 @@ export const SyncDiagnosticsPanel: React.FC = () => {
             onClick={handleClearQueue}
             className="control-shell flex-1 rounded px-2 py-2 text-xs font-semibold uppercase tracking-wide text-error hover:bg-error/10 sm:px-3"
           >
-            🗑️ Limpiar
+            🗑️ {t('sync.clear')}
           </button>
         )}
       </div>
@@ -183,16 +185,16 @@ export const SyncDiagnosticsPanel: React.FC = () => {
       {/* Debug Info */}
       {showDebugInfo && (
         <div className="space-y-2 rounded bg-surface-container-high p-2 font-mono text-xs text-on-surface-variant">
-          <div className="text-on-surface font-semibold">Información Técnica:</div>
-          <div>Versión de cola: {status.stats?.totalPending ?? 0}</div>
-          <div>Items listos: {status.stats?.readyToProcess ?? 0}</div>
+          <div className="text-on-surface font-semibold">{t('sync.technicalInfo')}:</div>
+          <div>{t('sync.queueVersion')}: {status.stats?.totalPending ?? 0}</div>
+          <div>{t('sync.readyItems')}: {status.stats?.readyToProcess ?? 0}</div>
           <div>
-            Prioridad alta: {status.stats?.byPriority?.high ?? 0} | Normal:{' '}
+            {t('sync.highPriority')}: {status.stats?.byPriority?.high ?? 0} | {t('sync.normalPriority')}:{' '}
             {status.stats?.byPriority?.normal ?? 0}
           </div>
           <div className="mt-2 break-words">
             {status.lastSyncAt && (
-              <>Último sync: {status.lastSyncAt}</>
+              <>{t('sync.lastSync')}: {status.lastSyncAt}</>
             )}
           </div>
         </div>

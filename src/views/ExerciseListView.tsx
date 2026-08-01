@@ -9,6 +9,9 @@ import type { Exercise, ExerciseEquipmentFilter, ExerciseFilter, ExerciseSourceF
 import { supabase, isSupabaseConfigured } from '../lib/supabase/client';
 import { fallbackExerciseLibrary } from '../app/initialData';
 import { getExerciseGroupImage } from '../utils/exerciseGroupImages';
+import { useLanguage } from '../i18n/LanguageContext';
+import type { TranslationKey } from '../i18n/translations';
+import { getExerciseDisplayDescription, getExerciseDisplayName } from '../i18n/exerciseLocalization';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -29,6 +32,29 @@ const DEFAULT_FILTER: ExerciseFilter = {
   onlyFavorites: false,
 };
 const FOCUSED_EXERCISE_STORAGE_KEY = 'kinetic.focusedExerciseId';
+const equipmentKeys: Record<string, TranslationKey> = {
+  Todos: 'equipment.all',
+  'Peso corporal': 'equipment.bodyweight',
+  Barra: 'equipment.barbell',
+  Mancuerna: 'equipment.dumbbell',
+  Mancuernas: 'equipment.dumbbell',
+  Maquina: 'equipment.machine',
+  Máquina: 'equipment.machine',
+  Cable: 'equipment.cable',
+  Polea: 'equipment.cable',
+  Estación: 'equipment.station',
+  Disco: 'equipment.plate',
+  'Banco Romano': 'equipment.romanBench',
+};
+const muscleKeys: Record<string, TranslationKey> = {
+  hombros: 'muscle.hombros', pectorales: 'muscle.pectorales', biceps: 'muscle.biceps',
+  abdomen: 'muscle.abdomen', oblicuos: 'muscle.oblicuos', antebrazo: 'muscle.antebrazo',
+  abductores: 'muscle.abductores', aductores: 'muscle.aductores', cuadriceps: 'muscle.cuadriceps',
+  trapecio: 'muscle.trapecio', triceps: 'muscle.triceps', dorsales: 'muscle.dorsales',
+  lumbares: 'muscle.lumbares', gluteos: 'muscle.gluteos', isquiotibiales: 'muscle.isquiotibiales',
+  pantorrillas: 'muscle.pantorrillas',
+};
+const normalizeLabel = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
 // ─── Delete Confirmation Modal ─────────────────────────────────────────────────
 
@@ -42,7 +68,9 @@ const DeleteConfirmModal = ({
   onConfirm: () => void;
   onCancel: () => void;
   isDeleting: boolean;
-}) => (
+}) => {
+  const { t } = useLanguage();
+  return (
   <motion.div
     initial={{ opacity: 0 }}
     animate={{ opacity: 1 }}
@@ -62,30 +90,30 @@ const DeleteConfirmModal = ({
         <AlertTriangle size={22} strokeWidth={2.5} />
       </div>
       <h3 className="mb-1 font-headline text-lg font-black uppercase tracking-tight text-on-surface">
-        Eliminar ejercicio
+        {t('engine.deleteExercise')}
       </h3>
       <p className="mb-6 text-sm font-medium leading-relaxed text-on-surface-variant">
-        ¿Eliminar <span className="font-bold text-on-surface">"{exerciseName}"</span>? Esta acción no se puede deshacer.
-        Las rutinas que usen este ejercicio no se verán afectadas.
+        {t('engine.deletePrefix')} <span className="font-bold text-on-surface">"{exerciseName}"</span>? {t('engine.deleteSuffix')}
       </p>
       <div className="flex gap-3">
         <button
           onClick={onCancel}
           className="theme-muted-surface theme-interactive-hover flex-1 rounded-xl py-3 text-xs font-bold uppercase tracking-widest text-on-surface-variant transition-colors"
         >
-          Cancelar
+          {t('common.cancel')}
         </button>
         <button
           onClick={onConfirm}
           disabled={isDeleting}
           className="flex-1 rounded-xl bg-red-500/80 py-3 text-xs font-bold uppercase tracking-widest text-on-background hover:bg-red-500 disabled:opacity-50 transition-colors"
         >
-          {isDeleting ? 'Eliminando...' : 'Eliminar'}
+          {isDeleting ? t('engine.deleting') : t('routines.delete')}
         </button>
       </div>
     </motion.div>
   </motion.div>
-);
+  );
+};
 
 // ─── Filter Panel ──────────────────────────────────────────────────────────────
 
@@ -98,6 +126,7 @@ const FilterPanel = ({
   onChange: (f: ExerciseFilter) => void;
   resultCount: number;
 }) => {
+  const { t } = useLanguage();
   const [open, setOpen] = useState(false);
 
   const hasActiveFilters =
@@ -124,7 +153,7 @@ const FilterPanel = ({
           }`}
         >
           <SlidersHorizontal size={13} strokeWidth={2.5} />
-          Filtros
+          {t('engine.filters')}
           {activeCount > 0 && (
             <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[9px] font-black text-black">
               {activeCount}
@@ -138,7 +167,7 @@ const FilterPanel = ({
         </button>
 
         <span className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/50">
-          {resultCount} resultado{resultCount !== 1 ? 's' : ''}
+          {resultCount} {t(resultCount === 1 ? 'engine.result' : 'engine.results')}
         </span>
       </div>
 
@@ -156,7 +185,7 @@ const FilterPanel = ({
               {/* Equipamiento */}
               <div>
                 <p className="mb-2.5 text-[9px] font-black uppercase tracking-[0.3em] text-on-surface-variant/60">
-                  Equipamiento
+                  {t('engine.equipment')}
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {EQUIPMENT_OPTIONS.map((opt) => (
@@ -169,7 +198,7 @@ const FilterPanel = ({
                           : 'theme-hairline-border theme-muted-surface text-on-surface-variant hover:border-outline'
                       }`}
                     >
-                      {opt}
+                      {t(equipmentKeys[opt] ?? 'engine.unspecified')}
                     </button>
                   ))}
                 </div>
@@ -178,13 +207,13 @@ const FilterPanel = ({
               {/* Fuente */}
               <div>
                 <p className="mb-2.5 text-[9px] font-black uppercase tracking-[0.3em] text-on-surface-variant/60">
-                  Fuente
+                  {t('engine.source')}
                 </p>
                 <div className="flex gap-2">
                   {([
-                    { val: 'todos', label: 'Todos' },
-                    { val: 'global', label: 'Catálogo' },
-                    { val: 'custom', label: 'Mis ejercicios' },
+                    { val: 'todos', label: t('engine.all') },
+                    { val: 'global', label: t('engine.catalog') },
+                    { val: 'custom', label: t('engine.myExercises') },
                   ] as { val: ExerciseSourceFilter; label: string }[]).map(({ val, label }) => (
                     <button
                       key={val}
@@ -204,7 +233,7 @@ const FilterPanel = ({
               {/* Solo favoritos */}
               <div className="flex items-center justify-between">
                 <p className="text-[11px] font-black uppercase tracking-[0.2em] text-on-surface-variant">
-                  Solo favoritos
+                  {t('engine.favoritesOnly')}
                 </p>
                 <button
                   onClick={() => onChange({ ...filters, onlyFavorites: !filters.onlyFavorites })}
@@ -227,7 +256,7 @@ const FilterPanel = ({
                   className="flex w-full items-center justify-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-on-surface-variant/50 hover:text-primary transition-colors"
                 >
                   <X size={11} strokeWidth={3} />
-                  Limpiar filtros
+                  {t('engine.clearFilters')}
                 </button>
               )}
             </div>
@@ -262,7 +291,9 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
   onDeleteRequest,
   isTogglingFavorite,
   isViewerMode,
-}) => (
+}) => {
+  const { language, t } = useLanguage();
+  return (
   <motion.div
     initial={{ opacity: 0, y: 30 }}
     animate={{ opacity: 1, y: 0 }}
@@ -290,7 +321,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
             : 'theme-hairline-border theme-inverted-surface text-on-background/25 hover:text-secondary'
         } ${isTogglingFavorite ? 'pointer-events-none opacity-50' : ''}`}
         onClick={(ev) => { ev.stopPropagation(); onToggleFavorite(exercise); }}
-        title={exercise.isFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}
+        title={exercise.isFavorite ? t('engine.removeFavorite') : t('engine.addFavorite')}
       >
         <Star
           size={13}
@@ -300,7 +331,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
       </button>
       <img
         src={exercise.image ?? getExerciseGroupImage(exercise.muscleGroupCode ?? muscle)}
-        alt="Ejercicio"
+        alt={t('engine.exerciseImage')}
         className="h-[90%] w-[90%] object-contain mix-blend-multiply opacity-90"
       />
     </div>
@@ -320,18 +351,18 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
     >
       <div className="flex items-start justify-between">
         <h3 className="line-clamp-2 text-sm font-semibold leading-tight text-on-surface group-hover:text-primary transition-colors pr-2">
-          {exercise.name}
+          {getExerciseDisplayName(exercise, language)}
         </h3>
         {exercise.isCustom && (
           <div className="flex shrink-0 items-center justify-center rounded bg-primary/20 px-1.5 py-0.5 border border-primary/30 ml-2">
             <User size={10} strokeWidth={3} className="text-primary mr-1" />
-            <span className="text-[8px] font-black uppercase text-primary tracking-wider">Custom</span>
+            <span className="text-[8px] font-black uppercase text-primary tracking-wider">{t('engine.custom')}</span>
           </div>
         )}
       </div>
       {exercise.equipment && (
         <span className="mt-1 text-[10px] font-medium tracking-wide text-on-surface-variant/60">
-          ({exercise.equipment})
+          ({exercise.equipment && equipmentKeys[exercise.equipment] ? t(equipmentKeys[exercise.equipment]) : exercise.equipment})
         </span>
       )}
     </div>
@@ -344,19 +375,20 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
           className="theme-hairline-right flex flex-1 items-center justify-center gap-1.5 border-r py-2.5 text-[9px] font-black uppercase tracking-wider text-on-surface-variant transition-colors hover:text-primary"
         >
           <Edit2 size={10} strokeWidth={2.5} />
-          Editar
+          {t('routines.edit')}
         </button>
         <button
           onClick={(ev) => { ev.stopPropagation(); onDeleteRequest(exercise); }}
           className="flex flex-1 items-center justify-center gap-1.5 py-2.5 text-[9px] font-black uppercase tracking-wider text-on-surface-variant hover:text-red-400 transition-colors"
         >
           <Trash2 size={10} strokeWidth={2.5} />
-          Eliminar
+          {t('routines.delete')}
         </button>
       </div>
     )}
   </motion.div>
-);
+  );
+};
 
 // ─── Create / Edit Form ────────────────────────────────────────────────────────
 
@@ -368,7 +400,7 @@ const ExerciseForm = ({
   onSave,
   onCancel,
   isSubmitting,
-  nameError,
+  nameErrorCode,
 }: {
   muscle: string;
   editingId: string | null;
@@ -377,8 +409,14 @@ const ExerciseForm = ({
   onSave: (name: string, equipment: string) => void;
   onCancel: () => void;
   isSubmitting: boolean;
-  nameError: string;
+  nameErrorCode: 'duplicate' | 'save' | null;
 }) => {
+  const { t } = useLanguage();
+  const nameError = nameErrorCode === 'duplicate'
+    ? t('engine.duplicateName')
+    : nameErrorCode === 'save'
+      ? t('engine.saveError')
+      : '';
   const [name, setName] = useState(initialName);
   const [equipment, setEquipment] = useState(initialEquipment);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -397,13 +435,13 @@ const ExerciseForm = ({
       className="theme-elevated-surface rounded-[2rem] p-6"
     >
       <h3 className="mb-4 font-headline text-xl font-black uppercase italic tracking-widest text-on-surface">
-        {editingId ? 'Editar Ejercicio' : 'Crear Nuevo'}
+        {editingId ? t('engine.editExercise') : t('engine.createNew')}
       </h3>
       <div className="space-y-3">
         {/* Grupo muscular (readonly) */}
         <div className="theme-hairline-border theme-input-surface flex w-full rounded-xl border px-5 py-4 text-sm text-on-surface opacity-70">
-          <span className="mr-2 self-center text-xs font-bold uppercase tracking-widest text-on-surface-variant/70">Grupo:</span>
-          <span className="font-black uppercase text-primary">{muscle}</span>
+          <span className="mr-2 self-center text-xs font-bold uppercase tracking-widest text-on-surface-variant/70">{t('engine.group')}:</span>
+          <span className="font-black uppercase text-primary">{muscleKeys[normalizeLabel(muscle)] ? t(muscleKeys[normalizeLabel(muscle)]) : muscle}</span>
         </div>
 
         {/* Nombre */}
@@ -412,7 +450,7 @@ const ExerciseForm = ({
             ref={inputRef}
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Nombre del ejercicio (mín. 3 caracteres)"
+            placeholder={t('engine.namePlaceholder')}
             maxLength={60}
             className={`theme-input-surface w-full rounded-xl border px-5 py-4 text-sm text-on-surface outline-none transition-colors focus:border-primary/50 ${
               nameError ? 'border-red-500/60' : 'theme-hairline-border'
@@ -436,11 +474,11 @@ const ExerciseForm = ({
           onChange={(e) => setEquipment(e.target.value)}
           className="theme-hairline-border theme-input-surface w-full appearance-none rounded-xl border px-5 py-4 text-sm text-on-surface outline-none focus:border-primary/50"
         >
-          <option value="Peso corporal">Peso corporal</option>
-          <option value="Barra">Barra</option>
-          <option value="Mancuerna">Mancuerna</option>
-          <option value="Maquina">Máquina</option>
-          <option value="Cable">Cable / Polea</option>
+          <option value="Peso corporal">{t('equipment.bodyweight')}</option>
+          <option value="Barra">{t('equipment.barbell')}</option>
+          <option value="Mancuerna">{t('equipment.dumbbell')}</option>
+          <option value="Maquina">{t('equipment.machine')}</option>
+          <option value="Cable">{t('equipment.cable')}</option>
         </select>
 
         {/* Buttons */}
@@ -449,14 +487,14 @@ const ExerciseForm = ({
             onClick={onCancel}
             className="theme-muted-surface theme-interactive-hover flex-1 rounded-xl py-3 text-xs font-bold uppercase tracking-widest text-on-surface-variant transition-colors"
           >
-            Cancelar
+            {t('common.cancel')}
           </button>
           <button
             onClick={() => onSave(name.trim(), equipment)}
             disabled={isSubmitting || !canSave}
             className="flex-1 rounded-xl bg-primary py-3 text-xs font-bold uppercase tracking-widest text-black hover:bg-primary/90 disabled:opacity-40 transition-all"
           >
-            {isSubmitting ? 'Guardando...' : 'Guardar'}
+            {isSubmitting ? t('settings.saving') : t('settings.save')}
           </button>
         </div>
       </div>
@@ -477,12 +515,15 @@ export const ExerciseListView = ({
   onSelectExercise: (e: Exercise) => void;
   profile?: UserProfile | null;
 }) => {
+  const { language, t } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState<ExerciseFilter>(DEFAULT_FILTER);
   const [allExercises, setAllExercises] = useState<ExerciseLibraryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const selectorSource = typeof window !== 'undefined' ? window.sessionStorage.getItem('kinetic.selectorSource') : null;
   const isViewerMode = selectorSource === 'global';
+  const equipmentLabel = (value?: string) => value && equipmentKeys[value] ? t(equipmentKeys[value]) : value || t('engine.general');
+  const muscleLabel = (value?: string) => value && muscleKeys[normalizeLabel(value)] ? t(muscleKeys[normalizeLabel(value)]) : value || t('engine.noGroup');
 
   // Create / Edit form state
   const [isCreating, setIsCreating] = useState(false);
@@ -491,7 +532,7 @@ export const ExerciseListView = ({
   const [editingInitialName, setEditingInitialName] = useState('');
   const [editingInitialEq, setEditingInitialEq] = useState('Peso corporal');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [nameError, setNameError] = useState('');
+  const [nameErrorCode, setNameErrorCode] = useState<'duplicate' | 'save' | null>(null);
 
   // Delete state
   const [deletingExercise, setDeletingExercise] = useState<ExerciseLibraryItem | null>(null);
@@ -523,8 +564,10 @@ export const ExerciseListView = ({
         .select(`
           id,
           name,
+          name_en,
           equipment,
           description,
+          description_en,
           muscle_group_id,
           user_id,
           is_active,
@@ -552,10 +595,12 @@ export const ExerciseListView = ({
       const mapped: ExerciseLibraryItem[] = (exData ?? []).map((item: any) => ({
         id: item.id,
         name: item.name,
+        nameEn: item.name_en ?? undefined,
         muscleGroup: item.muscle_groups?.name || muscle,
         muscleGroupCode: item.muscle_groups?.code || muscle.toLowerCase(),
-        equipment: item.equipment || 'No especificado',
+        equipment: item.equipment || t('engine.unspecified'),
         description: item.description,
+        descriptionEn: item.description_en ?? undefined,
         notes: '',
         sets: [],
         isCustom: !!item.user_id,
@@ -581,7 +626,7 @@ export const ExerciseListView = ({
     } finally {
       setLoading(false);
     }
-  }, [muscle]);
+  }, [muscle, t]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -604,7 +649,7 @@ export const ExerciseListView = ({
   // ── Filtering ──────────────────────────────────────────────────────────────
 
   const filteredExercises = allExercises.filter((ex) => {
-    if (searchQuery && !ex.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    if (searchQuery && !ex.name.toLowerCase().includes(searchQuery.toLowerCase()) && !ex.nameEn?.toLowerCase().includes(searchQuery.toLowerCase())) return false;
     if (filters.equipment !== 'Todos' && !(ex.equipment ?? '').toLowerCase().includes(filters.equipment.toLowerCase())) return false;
     if (filters.source === 'global' && ex.isCustom) return false;
     if (filters.source === 'custom' && !ex.isCustom) return false;
@@ -666,7 +711,7 @@ export const ExerciseListView = ({
     setEditingExerciseId(null);
     setEditingInitialName('');
     setEditingInitialEq('Peso corporal');
-    setNameError('');
+    setNameErrorCode(null);
   };
 
   const startEdit = (ex: ExerciseLibraryItem, e: React.MouseEvent) => {
@@ -675,14 +720,14 @@ export const ExerciseListView = ({
     setEditingExerciseId(ex.id);
     setEditingInitialName(ex.name);
     setEditingInitialEq(ex.equipment || 'Peso corporal');
-    setNameError('');
+    setNameErrorCode(null);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleSaveExercise = async (name: string, equipment: string) => {
     if (!supabase) return;
     setIsSubmitting(true);
-    setNameError('');
+    setNameErrorCode(null);
 
     try {
       if (editingExerciseId) {
@@ -696,7 +741,7 @@ export const ExerciseListView = ({
           .maybeSingle();
 
         if (dup) {
-          setNameError('Ya existe un ejercicio con ese nombre.');
+          setNameErrorCode('duplicate');
           return;
         }
 
@@ -715,7 +760,7 @@ export const ExerciseListView = ({
           .maybeSingle();
 
         if (dup) {
-          setNameError('Ya existe un ejercicio con ese nombre.');
+          setNameErrorCode('duplicate');
           return;
         }
 
@@ -741,7 +786,7 @@ export const ExerciseListView = ({
       await fetchExercises();
     } catch (err) {
       console.error('Error guardando ejercicio:', err);
-      setNameError('Ocurrió un error. Intenta nuevamente.');
+      setNameErrorCode('save');
     } finally {
       setIsSubmitting(false);
     }
@@ -806,10 +851,10 @@ export const ExerciseListView = ({
               <div className="mb-5 flex items-start justify-between gap-4">
                 <div className="min-w-0">
                   <p className="text-[10px] font-black uppercase tracking-[0.24em] text-primary">
-                    {previewExercise.muscleGroup || muscle}
+                    {muscleLabel(previewExercise.muscleGroup || muscle)}
                   </p>
                   <h3 className="mt-2 font-headline text-2xl font-black uppercase italic leading-tight text-on-surface">
-                    {previewExercise.name}
+                    {getExerciseDisplayName(previewExercise, language)}
                   </h3>
                 </div>
                 <button
@@ -824,19 +869,19 @@ export const ExerciseListView = ({
               <div className="theme-contrast-surface mb-5 flex aspect-[4/3] w-full items-center justify-center rounded-[1.4rem] p-4">
                 <img
                   src={previewExercise.image ?? getExerciseGroupImage(previewExercise.muscleGroupCode ?? muscle)}
-                  alt="Ejercicio"
+                  alt={t('engine.exerciseImage')}
                   className="h-full w-full object-contain mix-blend-multiply opacity-90"
                 />
               </div>
 
               <div className="space-y-3 text-sm text-on-surface-variant">
                 <div className="flex items-center justify-between rounded-xl bg-surface-container-low px-4 py-3">
-                  <span className="text-[10px] font-black uppercase tracking-[0.18em]">Equipo</span>
-                  <span className="font-semibold text-on-surface">{previewExercise.equipment || 'General'}</span>
+                  <span className="text-[10px] font-black uppercase tracking-[0.18em]">{t('engine.equipment')}</span>
+                  <span className="font-semibold text-on-surface">{equipmentLabel(previewExercise.equipment)}</span>
                 </div>
-                {previewExercise.description ? (
+                {getExerciseDisplayDescription(previewExercise, language) ? (
                   <p className="rounded-xl bg-surface-container-low px-4 py-3 leading-relaxed">
-                    {previewExercise.description}
+                    {getExerciseDisplayDescription(previewExercise, language)}
                   </p>
                 ) : null}
               </div>
@@ -859,26 +904,26 @@ export const ExerciseListView = ({
             <div className="theme-muted-surface flex h-8 w-8 items-center justify-center rounded-full transition-all group-hover:bg-primary/20">
               <ArrowLeft size={16} strokeWidth={2.5} />
             </div>
-            <span className="font-headline text-[0.72rem] font-black uppercase italic tracking-[0.22em]">Volver a grupos</span>
+            <span className="font-headline text-[0.72rem] font-black uppercase italic tracking-[0.22em]">{t('engine.backToGroups')}</span>
           </button>
 
           <header className="space-y-3">
              <div className="flex items-center justify-between pr-2">
                <div className="flex items-center gap-3">
                  <div className="h-1.5 w-12 rounded-full bg-primary/80"></div>
-                 <span className="text-[10px] font-black uppercase tracking-[0.4em] text-on-surface-variant/40">BIBLIOTECA DE MOVIMIENTOS</span>
+                 <span className="text-[10px] font-black uppercase tracking-[0.4em] text-on-surface-variant/40">{t('engine.movementLibrary')}</span>
                </div>
                {!isViewerMode && (
                  <button
                     onClick={startCreate}
                     className="text-[0.7rem] font-black uppercase tracking-widest text-secondary transition-transform hover:scale-105 sm:text-xs"
                   >
-                    + Crear
+                    {t('engine.create')}
                  </button>
                )}
              </div>
              <h1 className="font-headline text-[3.2rem] font-bold uppercase italic leading-none tracking-tight text-on-surface">
-                {muscle || 'Sin grupo'}
+                {muscleLabel(muscle)}
              </h1>
           </header>
         </section>
@@ -892,9 +937,9 @@ export const ExerciseListView = ({
               initialName={editingInitialName}
               initialEquipment={editingInitialEq}
               onSave={handleSaveExercise}
-              onCancel={() => { setIsCreating(false); setEditingExerciseId(null); setNameError(''); }}
+              onCancel={() => { setIsCreating(false); setEditingExerciseId(null); setNameErrorCode(null); }}
               isSubmitting={isSubmitting}
-              nameError={nameError}
+              nameErrorCode={nameErrorCode}
             />
           )}
         </AnimatePresence>
@@ -908,7 +953,7 @@ export const ExerciseListView = ({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="theme-hairline-border theme-muted-surface w-full rounded-[2.5rem] border py-5 pl-14 pr-6 font-headline text-sm font-black uppercase tracking-[0.2em] text-on-surface shadow-2xl backdrop-blur-xl transition-all placeholder:text-on-surface-variant/20 focus:ring-2 focus:ring-primary/30"
-            placeholder="Buscar movimiento..."
+            placeholder={t('engine.searchMovement')}
             type="text"
           />
           {searchQuery && (
@@ -940,9 +985,9 @@ export const ExerciseListView = ({
                 <Loader2 size={22} className="animate-pulse" />
               </div>
               <div>
-                <p className="font-headline text-[0.75rem] font-black uppercase tracking-[0.25em] text-primary">Modo Respaldo</p>
+                <p className="font-headline text-[0.75rem] font-black uppercase tracking-[0.25em] text-primary">{t('engine.fallbackMode')}</p>
                 <p className="mt-0.5 text-[0.68rem] font-medium text-on-surface-variant/70">
-                  Mostrando datos locales. Las rutinas no se sincronizarán.
+                  {t('engine.fallbackHint')}
                 </p>
               </div>
             </div>
@@ -955,7 +1000,7 @@ export const ExerciseListView = ({
             <div className="flex flex-col items-center justify-center space-y-4 py-24 opacity-70">
               <Loader2 size={40} className="animate-spin text-primary" />
               <p className="text-[11px] font-black uppercase italic tracking-[0.3em] text-primary">
-                Cargando biblioteca...
+                {t('engine.loadingLibrary')}
               </p>
             </div>
           ) : filteredExercises.length === 0 ? (
@@ -965,10 +1010,10 @@ export const ExerciseListView = ({
               </div>
               <p className="px-8 text-[11px] font-black uppercase italic tracking-[0.2em] text-on-surface-variant/40">
                 {filters.onlyFavorites
-                  ? 'No tienes favoritos en este grupo'
+                  ? t('engine.noFavorites')
                   : filters.source === 'custom'
-                  ? 'Todavía no creaste ejercicios en este grupo'
-                  : 'No hay ejercicios para estos filtros'}
+                  ? t('engine.noCustom')
+                  : t('engine.noFiltered')}
               </p>
             </div>
           ) : (

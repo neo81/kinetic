@@ -2,6 +2,7 @@ import { useState, useRef, type ChangeEvent } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Upload, X, Check, AlertCircle, Loader, ZoomIn, ZoomOut } from 'lucide-react';
 import { useReducedMotion } from '../hooks/useReducedMotion';
+import { useLanguage } from '../i18n/LanguageContext';
 
 interface AvatarUploadDialogProps {
   isOpen: boolean;
@@ -18,6 +19,7 @@ export const AvatarUploadDialog = ({
   onUpload,
   isLoading = false,
 }: AvatarUploadDialogProps) => {
+  const { t } = useLanguage();
   const prefersReducedMotion = useReducedMotion();
   const [state, setState] = useState<UploadState>('idle');
   const [preview, setPreview] = useState<string | null>(null);
@@ -32,14 +34,14 @@ export const AvatarUploadDialog = ({
 
     // Validar tipo de archivo
     if (!file.type.startsWith('image/')) {
-      setError('Por favor selecciona una imagen válida');
+      setError(t('avatar.selectValid'));
       setState('error');
       return;
     }
 
     // Validar tamaño (máximo 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      setError('La imagen no debe pesar más de 5MB');
+      setError(t('avatar.maxSize'));
       setState('error');
       return;
     }
@@ -70,7 +72,7 @@ export const AvatarUploadDialog = ({
         setSelectedFile(null);
       }, 1500);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al subir la imagen');
+      setError(err instanceof Error ? err.message : t('avatar.uploadError'));
       setState('error');
     }
   };
@@ -109,7 +111,7 @@ export const AvatarUploadDialog = ({
               {/* Header */}
               <div className="mb-6 flex items-center justify-between">
                 <h2 className="font-headline text-lg font-bold uppercase tracking-tight text-on-surface">
-                  Cambiar Avatar
+                  {t('avatar.change')}
                 </h2>
                 <button
                   onClick={handleClose}
@@ -137,10 +139,10 @@ export const AvatarUploadDialog = ({
                   >
                     <Upload size={32} className="mb-3 text-primary" />
                     <p className="text-sm font-semibold text-on-surface">
-                      Arrastra tu imagen aquí o haz clic para seleccionar
+                      {t('avatar.dragOrSelect')}
                     </p>
                     <p className="mt-1 text-xs text-on-surface-variant">
-                      PNG, JPG, GIF (máx. 5MB)
+                      {t('avatar.fileHint')}
                     </p>
                   </div>
                   <input
@@ -149,7 +151,7 @@ export const AvatarUploadDialog = ({
                     accept="image/*"
                     onChange={handleFileSelect}
                     className="hidden"
-                    aria-label="Select avatar image"
+                    aria-label={t('avatar.selectImage')}
                   />
                 </div>
               )}
@@ -160,7 +162,7 @@ export const AvatarUploadDialog = ({
                     <div className="theme-dialog-preview relative h-48 w-48 overflow-hidden rounded-full border-4 border-primary/30">
                       <img
                         src={preview}
-                        alt="Preview"
+                        alt={t('avatar.preview')}
                         className="h-full w-full object-cover"
                         style={{ transform: `scale(${scale})` }}
                       />
@@ -173,7 +175,7 @@ export const AvatarUploadDialog = ({
                       onClick={() => setScale(Math.max(0.5, scale - 0.1))}
                       disabled={scale <= 0.5}
                       className="theme-hairline-border theme-interactive-hover flex h-8 w-8 items-center justify-center rounded-full border transition-colors disabled:opacity-30"
-                      title="Zoom out"
+                      title={t('avatar.zoomOut')}
                     >
                       <ZoomOut size={16} />
                     </button>
@@ -192,7 +194,7 @@ export const AvatarUploadDialog = ({
                       onClick={() => setScale(Math.min(3, scale + 0.1))}
                       disabled={scale >= 3}
                       className="theme-hairline-border theme-interactive-hover flex h-8 w-8 items-center justify-center rounded-full border transition-colors disabled:opacity-30"
-                      title="Zoom in"
+                      title={t('avatar.zoomIn')}
                     >
                       <ZoomIn size={16} />
                     </button>
@@ -210,7 +212,7 @@ export const AvatarUploadDialog = ({
                       disabled={isLoading}
                       className="theme-hairline-border theme-interactive-hover flex-1 rounded-lg border bg-transparent py-2.5 text-sm font-bold uppercase tracking-wider text-on-surface transition-colors disabled:opacity-50"
                     >
-                      Cambiar imagen
+                      {t('avatar.replace')}
                     </button>
                     <button
                       onClick={handleUpload}
@@ -220,12 +222,12 @@ export const AvatarUploadDialog = ({
                       {isLoading ? (
                         <>
                           <Loader size={14} className="animate-spin" />
-                          Subiendo...
+                          {t('avatar.uploading')}
                         </>
                       ) : (
                         <>
                           <Check size={14} />
-                          Confirmar
+                          {t('common.confirm')}
                         </>
                       )}
                     </button>
@@ -236,7 +238,7 @@ export const AvatarUploadDialog = ({
                     accept="image/*"
                     onChange={handleFileSelect}
                     className="hidden"
-                    aria-label="Select avatar image"
+                    aria-label={t('avatar.selectImage')}
                   />
                 </div>
               )}
@@ -244,7 +246,7 @@ export const AvatarUploadDialog = ({
               {state === 'uploading' && (
                 <div className="flex flex-col items-center justify-center py-8">
                   <Loader size={32} className="mb-4 animate-spin text-primary" />
-                  <p className="text-sm font-semibold text-on-surface">Subiendo avatar...</p>
+                  <p className="text-sm font-semibold text-on-surface">{t('avatar.uploadingAvatar')}</p>
                 </div>
               )}
 
@@ -253,7 +255,7 @@ export const AvatarUploadDialog = ({
                   <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-500/20">
                     <Check size={24} className="text-green-400" />
                   </div>
-                  <p className="text-sm font-semibold text-on-surface">Avatar actualizado</p>
+                  <p className="text-sm font-semibold text-on-surface">{t('avatar.updated')}</p>
                 </div>
               )}
 
@@ -267,7 +269,7 @@ export const AvatarUploadDialog = ({
                     onClick={() => setState('idle')}
                     className="w-full rounded-lg bg-primary py-2.5 text-sm font-bold uppercase tracking-wider text-black transition-all hover:shadow-[0_0_24px_rgba(209,252,0,0.24)] active:scale-95"
                   >
-                    Intentar de nuevo
+                    {t('common.retry')}
                   </button>
                 </div>
               )}

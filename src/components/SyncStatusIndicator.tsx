@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useSyncStatus } from '../hooks/useSyncStatus';
 import { formatAppTime } from '../i18n/locale';
+import { useLanguage } from '../i18n/LanguageContext';
 
 interface SyncStatusIndicatorProps {
   showDetails?: boolean;
@@ -11,6 +12,7 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({
   showDetails = false,
   compact = false 
 }) => {
+  const { language, t } = useLanguage();
   const { status, triggerManualSync, isPending, isSyncing, hasError } = useSyncStatus();
   const [currentTime, setCurrentTime] = useState<number>(0);
 
@@ -30,15 +32,15 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({
   };
 
   const getStatusText = () => {
-    if (isSyncing) return 'Sincronizando...';
-    if (hasError) return 'Error de sincronización';
-    if (isPending) return 'Pendiente de sincronizar';
-    return 'Sincronizado';
+    if (isSyncing) return t('common.syncing');
+    if (hasError) return t('sync.error');
+    if (isPending) return t('sync.pending');
+    return t('sync.synced');
   };
 
   const lastSyncText = status.lastSyncAt
-    ? formatAppTime(status.lastSyncAt)
-    : 'Nunca';
+    ? formatAppTime(status.lastSyncAt, undefined, language)
+    : t('common.never');
 
   if (compact) {
     return (
@@ -61,10 +63,10 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({
           {showDetails && (
             <div className="mt-2 space-y-1 text-sm text-on-surface-variant">
               <div>
-                📊 Items pendientes: <span className="font-mono">{status.totalPending}</span>
+                📊 {t('sync.pendingItems')}: <span className="font-mono">{status.totalPending}</span>
               </div>
               <div>
-                ⏰ Último sync: <span className="font-mono">{lastSyncText}</span>
+                ⏰ {t('sync.lastSync')}: <span className="font-mono">{lastSyncText}</span>
               </div>
               
               {status.lastError && (
@@ -72,7 +74,7 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({
                   <div className="font-mono text-xs">{status.lastError}</div>
                   <div className="text-xs">
                     {currentTime ? (
-                      <>Hace {Math.round((currentTime - status.lastErrorAt!) / 1000)}s</>
+                      <>{t('sync.agoPrefix')}{Math.round((currentTime - status.lastErrorAt!) / 1000)}s{t('sync.agoSuffix')}</>
                     ) : (
                       <>—</>
                     )}
@@ -82,7 +84,7 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({
 
               {status.totalPending > 0 && (
                 <div className="mt-2 space-y-1 rounded bg-surface-container-high p-2 text-xs">
-                  <div>Pendiente por tipo:</div>
+                  <div>{t('sync.detailsByType')}:</div>
                   <div className="font-mono ml-2">
                     {Object.entries(status.byType)
                       .filter((entry): entry is [string, number] => typeof entry[1] === 'number' && entry[1] > 0)
@@ -104,7 +106,7 @@ export const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({
             disabled={isSyncing}
             className="control-shell rounded px-3 py-1.5 text-xs font-semibold uppercase tracking-wide hover:bg-surface-container-highest disabled:opacity-50"
           >
-            {isSyncing ? 'Sincronizando...' : 'Resincronizar'}
+            {isSyncing ? t('common.syncing') : t('sync.retry')}
           </button>
         )}
       </div>

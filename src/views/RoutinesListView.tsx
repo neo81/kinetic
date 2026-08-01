@@ -6,8 +6,32 @@ import { RoutineSyncPendingBadge } from '../components/RoutineSyncPendingBadge';
 import { PageShell } from '../components/layout/PageShell';
 import { ConfirmDialog } from '../components/layout/ConfirmDialog';
 import { downloadRoutineAsJson } from '../utils/routineExport';
-import { importRoutineFromJson, RoutineImportError } from '../utils/routineImport';
+import { importRoutineFromJson, RoutineImportError, type RoutineImportWarning } from '../utils/routineImport';
 import type { Routine, View, UserProfile } from '../types';
+import { useLanguage } from '../i18n/LanguageContext';
+import type { TranslationKey } from '../i18n/translations';
+
+const importErrorKeys: Record<RoutineImportError['code'], TranslationKey> = {
+  invalidJson: 'routines.import.invalidJson',
+  invalidFormat: 'routines.import.invalidFormat',
+  unsupportedVersion: 'routines.import.unsupportedVersion',
+  invalidRoutineData: 'routines.import.invalidRoutineData',
+  noConnection: 'routines.import.noConnection',
+  muscleGroupMissing: 'routines.import.muscleGroupMissing',
+  customCreateFailed: 'routines.import.customCreateFailed',
+  noSession: 'routines.import.noSession',
+  routineSaveFailed: 'routines.import.routineSaveFailed',
+  daySaveFailed: 'routines.import.daySaveFailed',
+  exerciseSaveFailed: 'routines.import.exerciseSaveFailed',
+  setsSaveFailed: 'routines.import.setsSaveFailed',
+  authenticationRequired: 'routines.import.authenticationRequired',
+};
+
+const importWarningKeys: Record<RoutineImportWarning['code'], TranslationKey> = {
+  matchedByName: 'routines.import.warning.matchedByName',
+  customReused: 'routines.import.warning.customReused',
+  customCreated: 'routines.import.warning.customCreated',
+};
 
 interface RoutinesListViewProps {
   setView: (view: View) => void;
@@ -28,6 +52,7 @@ export const RoutinesListView = ({
   onImportRoutine,
   profile,
 }: RoutinesListViewProps) => {
+  const { t } = useLanguage();
   const prefersReducedMotion = useReducedMotion();
   const [routineToTrash, setRoutineToTrash] = useState<Routine | null>(null);
 
@@ -37,9 +62,22 @@ export const RoutinesListView = ({
   const [importResult, setImportResult] = useState<{
     success: boolean;
     routineName?: string;
-    warnings?: string[];
+    warnings?: RoutineImportWarning[];
     error?: string;
   } | null>(null);
+
+  const formatImportError = (error: RoutineImportError) => {
+    const base = t(importErrorKeys[error.code]);
+    if (error.context.exerciseName) return `${base} "${error.context.exerciseName}".`;
+    if (error.context.dayTitle) return `${base} "${error.context.dayTitle}".`;
+    if (error.code === 'unsupportedVersion' && error.context.version) {
+      return `${base} (${t('common.version')} ${error.context.version})`;
+    }
+    return base;
+  };
+
+  const formatImportWarning = (warning: RoutineImportWarning) =>
+    `"${warning.exerciseName}": ${t(importWarningKeys[warning.code])}`;
 
   const handleImportClick = () => fileInputRef.current?.click();
 
@@ -64,8 +102,8 @@ export const RoutinesListView = ({
     } catch (err) {
       const message =
         err instanceof RoutineImportError
-          ? err.message
-          : 'Error inesperado al importar la rutina.';
+          ? formatImportError(err)
+          : t('routines.unexpectedImportError');
       setImportResult({ success: false, error: message });
     } finally {
       setIsImporting(false);
@@ -73,6 +111,13 @@ export const RoutinesListView = ({
   };
 
   const totalExercises = routines.reduce((count, routine) => count + (routine.exercises?.length || 0), 0);
+  const getRoutineFrequency = (routine: Routine) => {
+    const entryCount = routine.dayEntries?.filter((day) => day.dayType === 'weekday').length ?? 0;
+    const legacyCount = routine.days?.filter((day) => typeof day === 'number').length ?? 0;
+    const weekdayCount = entryCount > 0 ? entryCount : legacyCount;
+    const count = Math.max(weekdayCount, 1);
+    return `${count} ${t(count === 1 ? 'routines.frequencyOnce' : 'routines.frequencyMany')}`;
+  };
 
   return (
     <PageShell
@@ -92,7 +137,7 @@ export const RoutinesListView = ({
             <div className="theme-muted-surface flex h-8 w-8 items-center justify-center rounded-full transition-all group-hover:bg-primary/20">
               <ArrowLeft size={16} strokeWidth={2.5} />
             </div>
-            <span className="font-headline text-[0.72rem] font-black uppercase italic tracking-[0.22em]">Volver al panel</span>
+            <span className="font-headline text-[0.72rem] font-black uppercase italic tracking-[0.22em]">{t('routines.backDashboard')}</span>
           </button>
         </section>
 
@@ -100,9 +145,9 @@ export const RoutinesListView = ({
         <header className="space-y-3">
           <div className="flex items-center gap-3">
             <div className="h-1.5 w-12 rounded-full bg-primary/80"></div>
-            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-on-surface-variant/40">GESTIÓN DE PLANES</span>
+            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-on-surface-variant/40">{t('routines.planManagement')}</span>
           </div>
-          <h1 className="font-headline text-[3.2rem] font-bold uppercase italic leading-none tracking-tight text-on-surface">MIS RUTINAS</h1>
+          <h1 className="font-headline text-[3.2rem] font-bold uppercase italic leading-none tracking-tight text-on-surface">{t('routines.myRoutines')}</h1>
         </header>
 
         {/* Acciones: Crear + Importar */}
@@ -114,7 +159,7 @@ export const RoutinesListView = ({
             <div className="theme-inverted-surface flex h-10 w-10 items-center justify-center rounded-xl transition-transform group-hover:rotate-90">
               <Plus size={24} strokeWidth={3} />
             </div>
-            <span className="font-headline text-xl font-black uppercase italic tracking-wider">Crear Nueva Rutina</span>
+            <span className="font-headline text-xl font-black uppercase italic tracking-wider">{t('routines.create')}</span>
           </button>
 
           {/* Botón Importar */}
@@ -126,7 +171,7 @@ export const RoutinesListView = ({
           >
             <Upload size={18} strokeWidth={2} />
             <span className="text-sm font-black uppercase tracking-widest">
-              {isImporting ? 'Importando…' : 'Importar rutina (.kinetic.json)'}
+              {isImporting ? t('routines.importing') : t('routines.import')}
             </span>
           </button>
 
@@ -143,13 +188,13 @@ export const RoutinesListView = ({
         <div className="space-y-6">
           <div className="flex items-center gap-3 px-2">
             <div className="theme-primary-indicator-glow h-6 w-1 rounded-full bg-primary/40"></div>
-            <h3 className="text-[10px] font-black uppercase italic tracking-[0.4em] text-on-surface-variant/60">BIBLIOTECA ACTIVA</h3>
+            <h3 className="text-[10px] font-black uppercase italic tracking-[0.4em] text-on-surface-variant/60">{t('routines.activeLibrary')}</h3>
           </div>
 
           {routines.length === 0 ? (
             <div className="rounded-[3rem] border border-dashed theme-hairline-border bg-surface-container-low/35 p-12 text-center backdrop-blur-xl">
-              <p className="font-headline text-2xl font-black uppercase italic text-on-surface opacity-40 leading-tight">Sin rutinas cargadas</p>
-              <p className="mt-3 text-sm text-on-surface-variant/60">Usa el botón superior para crear tu primer plan de entrenamiento.</p>
+              <p className="font-headline text-2xl font-black uppercase italic text-on-surface opacity-40 leading-tight">{t('routines.empty')}</p>
+              <p className="mt-3 text-sm text-on-surface-variant/60">{t('routines.emptyHint')}</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-6">
@@ -176,18 +221,18 @@ export const RoutinesListView = ({
                         </div>
                         <div className="flex items-center gap-3">
                           <div className="h-1.5 w-1.5 rounded-full bg-primary/40"></div>
-                          <span className="text-[10px] font-black uppercase italic tracking-widest text-on-surface-variant/40">{routine.frequency}</span>
+                          <span className="text-[10px] font-black uppercase italic tracking-widest text-on-surface-variant/40">{getRoutineFrequency(routine)}</span>
                         </div>
                       </div>
 
                       <div className="flex items-center gap-10">
                         <div className="flex flex-col">
-                          <span className="mb-1 text-[8px] font-black uppercase italic tracking-[0.3em] text-on-surface-variant/20">ULTIMA</span>
+                          <span className="mb-1 text-[8px] font-black uppercase italic tracking-[0.3em] text-on-surface-variant/20">{t('routines.last')}</span>
                           <span className="text-[11px] font-black uppercase text-on-surface">{routine.lastSession || '-- / --'}</span>
                         </div>
                         <div className="flex flex-col">
-                          <span className="mb-1 text-[8px] font-black uppercase italic tracking-[0.3em] text-on-surface-variant/20">ENFOQUE</span>
-                      <span className="theme-primary-text text-[11px] font-black uppercase italic">{routine.focus || 'GENERAL'}</span>
+                          <span className="mb-1 text-[8px] font-black uppercase italic tracking-[0.3em] text-on-surface-variant/20">{t('routines.focus')}</span>
+                      <span className="theme-primary-text text-[11px] font-black uppercase italic">{routine.focus || t('routines.general')}</span>
                         </div>
                       </div>
                     </div>
@@ -201,7 +246,7 @@ export const RoutinesListView = ({
                     {/* Botón Exportar */}
                     <button
                       id={`export-routine-${routine.id}`}
-                      title="Exportar rutina"
+                      title={t('routines.export')}
                       onClick={(e) => {
                         e.stopPropagation();
                         downloadRoutineAsJson(routine, profile?.username ?? null);
@@ -219,7 +264,7 @@ export const RoutinesListView = ({
                       className="theme-muted-surface flex h-10 items-center justify-center gap-2 rounded-xl px-4 text-[10px] font-black uppercase tracking-widest text-on-surface transition-all hover:bg-primary hover:text-black active:scale-90"
                     >
                       <Edit2 size={14} />
-                      Editar
+                      {t('routines.edit')}
                     </button>
                     <button
                       onClick={(e) => {
@@ -239,17 +284,17 @@ export const RoutinesListView = ({
 
         <div className="px-4 py-8 text-center opacity-30">
           <p className="text-[9px] font-black uppercase tracking-[0.3em] text-on-surface-variant">
-            {totalExercises} ejercicios en total • {routines.length} rutinas activas
+            {totalExercises} {t(totalExercises === 1 ? 'routines.exerciseSingular' : 'routines.exercisePlural')} • {routines.length} {t(routines.length === 1 ? 'routines.routineSingular' : 'routines.routinePlural')}
           </p>
         </div>
       </div>
 
       <ConfirmDialog
         isOpen={!!routineToTrash}
-        title="Eliminar rutina"
-        message={`¿Estás seguro de que quieres eliminar la rutina "${routineToTrash?.name}" permanentemente? Se perderá todo el historial.`}
-        confirmText="Eliminar"
-        cancelText="Cancelar"
+        title={t('routines.deleteRoutine')}
+        message={`${t('routines.deleteRoutinePrefix')} "${routineToTrash?.name}" ${t('routines.deleteRoutineSuffix')}`}
+        confirmText={t('routines.delete')}
+        cancelText={t('common.cancel')}
         variant="danger"
         onConfirm={() => {
           if (routineToTrash) {
@@ -290,7 +335,7 @@ export const RoutinesListView = ({
               </div>
 
               <h3 className="font-headline text-2xl font-black uppercase italic leading-tight text-on-surface">
-                {importResult.success ? '¡Rutina importada!' : 'Error al importar'}
+                {importResult.success ? t('routines.imported') : t('routines.importError')}
               </h3>
 
               {importResult.success && importResult.routineName && (
@@ -304,9 +349,9 @@ export const RoutinesListView = ({
               {/* Advertencias */}
               {importResult.warnings && importResult.warnings.length > 0 && (
                 <div className="mt-4 space-y-2 rounded-2xl bg-amber-500/10 p-4">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-amber-400">Avisos</p>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-amber-400">{t('routines.warnings')}</p>
                   {importResult.warnings.map((w, i) => (
-                    <p key={i} className="text-xs text-amber-300/80 leading-snug">{w}</p>
+                    <p key={i} className="text-xs text-amber-300/80 leading-snug">{formatImportWarning(w)}</p>
                   ))}
                 </div>
               )}
@@ -316,7 +361,7 @@ export const RoutinesListView = ({
                 className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-sm font-black uppercase tracking-widest text-black transition-all hover:opacity-90 active:scale-95"
               >
                 <X size={16} />
-                Cerrar
+                {t('common.close')}
               </button>
             </motion.div>
           </motion.div>

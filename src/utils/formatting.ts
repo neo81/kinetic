@@ -2,8 +2,9 @@
  * Formatting utilities for session history display
  */
 import { formatAppDate, formatAppNumber, formatAppTime } from '../i18n/locale';
+import { DEFAULT_LANGUAGE, translate, type AppLanguage } from '../i18n/translations';
 
-export const formatSessionDate = (timestamp: Date | string): string => {
+export const formatSessionDate = (timestamp: Date | string, language: AppLanguage = DEFAULT_LANGUAGE): string => {
   const date = typeof timestamp === 'string' ? new Date(timestamp) : timestamp;
   const now = new Date();
 
@@ -13,7 +14,7 @@ export const formatSessionDate = (timestamp: Date | string): string => {
     date.getMonth() === now.getMonth() &&
     date.getDate() === now.getDate()
   ) {
-    return `Hoy a las ${formatAppTime(date)}`;
+    return `${translate(language, 'common.today')} ${translate(language, 'common.at')} ${formatAppTime(date, undefined, language)}`;
   }
 
   // Check if it's yesterday
@@ -24,15 +25,12 @@ export const formatSessionDate = (timestamp: Date | string): string => {
     date.getMonth() === yesterday.getMonth() &&
     date.getDate() === yesterday.getDate()
   ) {
-    return `Ayer a las ${formatAppTime(date)}`;
+    return `${translate(language, 'common.yesterday')} ${translate(language, 'common.at')} ${formatAppTime(date, undefined, language)}`;
   }
 
   // Formato latinoamericano: "14 de abril de 2026 a las 14:30".
-  const day = date.getDate();
-  const month = formatAppDate(date, { month: 'long' });
-  const year = date.getFullYear();
-
-  return `${day} de ${month} de ${year} a las ${formatAppTime(date)}`;
+  const fullDate = formatAppDate(date, { day: 'numeric', month: 'long', year: 'numeric' }, language);
+  return `${fullDate} ${translate(language, 'common.at')} ${formatAppTime(date, undefined, language)}`;
 };
 
 export const formatSessionDuration = (startMs: number, endMs: number): string => {
@@ -52,7 +50,7 @@ export const formatSessionDuration = (startMs: number, endMs: number): string =>
   return `${minutes}m`;
 };
 
-export const formatSessionVolume = (totalKg: number, totalMinutes: number = 0): string => {
+export const formatSessionVolume = (totalKg: number, totalMinutes: number = 0, language: AppLanguage = DEFAULT_LANGUAGE): string => {
   const parts: string[] = [];
 
   // Add weight volume if present
@@ -60,7 +58,7 @@ export const formatSessionVolume = (totalKg: number, totalMinutes: number = 0): 
     const formatted = formatAppNumber(Math.round(totalKg), {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    });
+    }, language);
     parts.push(`${formatted} kg`);
   }
 

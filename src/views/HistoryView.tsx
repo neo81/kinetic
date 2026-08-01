@@ -6,12 +6,15 @@ import { PageShell } from '../components/layout/PageShell';
 import { routinesRepository } from '../features/routines/repository';
 import type { View, CompletedSession, CompletedSessionSet, UserProfile } from '../types';
 import { formatSessionDate, formatSessionDuration, formatSessionVolume } from '../utils/formatting';
+import { useLanguage } from '../i18n/LanguageContext';
+import type { TranslationKey } from '../i18n/translations';
+import { getExerciseDisplayName } from '../i18n/exerciseLocalization';
 
-const formatSessionSetValue = (set: CompletedSessionSet) => {
+const formatSessionSetValue = (set: CompletedSessionSet, t: (key: TranslationKey) => string) => {
   const parts: string[] = [];
 
   if (set.targetType === 'failure') {
-    parts.push(`${set.reps ?? '-'} reps al fallo`);
+    parts.push(`${set.reps ?? '-'} ${t('history.toFailure')}`);
   } else if (set.reps !== null) {
     parts.push(`${set.reps} reps`);
   }
@@ -19,21 +22,28 @@ const formatSessionSetValue = (set: CompletedSessionSet) => {
   if (set.durationMinutes || set.durationSeconds) {
     const minutes = set.durationMinutes ?? 0;
     const seconds = set.durationSeconds ?? 0;
-    parts.push(minutes > 0 ? `${minutes} min` : `${seconds} seg`);
+    parts.push(minutes > 0 ? `${minutes} min` : `${seconds} ${t('exerciseEditor.secondsShort')}`);
   } else if (set.loadType === 'bodyweight') {
-    parts.push(set.bodyWeightKgSnapshot ? `${set.bodyWeightKgSnapshot} kg corporal` : 'Peso corporal');
+    parts.push(set.bodyWeightKgSnapshot ? `${set.bodyWeightKgSnapshot} ${t('session.bodyweightKg')}` : t('exerciseEditor.bodyweight'));
   } else if (set.weight !== null) {
     parts.push(`${set.weight} kg`);
   }
 
-  return parts.length > 0 ? parts.join(' · ') : 'Sin valores registrados';
+  return parts.length > 0 ? parts.join(' · ') : t('history.noValues');
 };
 
 export const HistoryView = ({ setView, profile }: { setView: (v: View) => void; profile?: UserProfile | null }) => {
+  const { language, t } = useLanguage();
   const [sessions, setSessions] = useState<CompletedSession[]>([]);
   const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [hasError, setHasError] = useState(false);
+  const getDayLabel = (day: CompletedSession['days'][number]) => day.dayType === 'core'
+    ? 'Core'
+    : `${t('routines.day')} ${day.dayNumber ?? '-'}`;
+  const getSessionDayInfo = (session: CompletedSession) => session.days
+    .map((day) => `${day.dayType === 'core' ? '⚡ ' : ''}${getDayLabel(day)}`)
+    .join(', ');
 
   const loadSessions = async () => {
     if (!supabase) {
@@ -49,12 +59,12 @@ export const HistoryView = ({ setView, profile }: { setView: (v: View) => void; 
       }
 
       setLoading(true);
-      setError(null);
+      setHasError(false);
       const completedSessions = await routinesRepository.getCompletedSessions(session.user.id);
       setSessions(completedSessions);
     } catch (err) {
       console.error('Error loading completed sessions:', err);
-      setError('No se pudo cargar el historial. Intenta de nuevo.');
+      setHasError(true);
       setSessions([]);
     } finally {
       setLoading(false);
@@ -77,10 +87,10 @@ export const HistoryView = ({ setView, profile }: { setView: (v: View) => void; 
       <header className="mb-8 space-y-3">
         <div className="flex items-center gap-3">
           <div className="h-1.5 w-12 rounded-full bg-primary/80"></div>
-          <span className="text-[10px] font-black uppercase tracking-[0.4em] text-on-surface-variant/40">REGISTRO DE ACTIVIDAD</span>
+          <span className="text-[10px] font-black uppercase tracking-[0.4em] text-on-surface-variant/40">{t('history.activityLog')}</span>
         </div>
         <h1 className="font-headline text-[3.2rem] font-bold uppercase italic leading-none tracking-tight text-on-surface">
-          HISTORIAL
+          {t('history.title')}
         </h1>
       </header>
 
@@ -90,46 +100,46 @@ export const HistoryView = ({ setView, profile }: { setView: (v: View) => void; 
             <History size={32} className="text-primary/60" />
           </div>
           <p className="font-headline text-sm font-semibold uppercase tracking-[0.2em] text-on-surface-variant">
-            Cargando historial...
+            {t('history.loading')}
           </p>
         </div>
       )}
 
-      {error && !loading && (
+      {hasError && !loading && (
         <div className="flex flex-col items-center justify-center space-y-6 py-20">
           <div className="flex h-20 w-20 items-center justify-center rounded-full border-2 border-secondary/40 bg-secondary/5">
             <History size={40} className="text-secondary/70" />
           </div>
           <div className="space-y-3 text-center">
             <p className="font-headline text-sm font-semibold uppercase tracking-[0.2em] text-secondary">
-              {error}
+              {t('history.loadError')}
             </p>
             <button
               onClick={loadSessions}
               className="inline-flex items-center gap-2 rounded-[0.8rem] border border-secondary/40 px-4 py-2 text-sm font-bold uppercase tracking-[0.15em] text-secondary transition-colors hover:bg-secondary/10"
             >
               <RotateCcw size={14} />
-              Reintentar
+              {t('history.retry')}
             </button>
           </div>
         </div>
       )}
 
-      {!loading && !error && sessions.length === 0 && (
+      {!loading && !hasError && sessions.length === 0 && (
         <div className="flex flex-col items-center justify-center space-y-6 py-20 opacity-50">
           <div className="flex h-24 w-24 items-center justify-center rounded-full border-2 border-dashed border-on-surface-variant">
             <History size={40} />
           </div>
           <p className="font-headline text-sm font-black uppercase italic tracking-[0.3em]">
-            SIN REGISTROS DISPONIBLES
+            {t('history.empty')}
           </p>
           <p className="max-w-xs text-center text-xs text-on-surface-variant">
-            Completa tu primer entrenamiento para ver tu historial aqui
+            {t('history.emptyHint')}
           </p>
         </div>
       )}
 
-      {!loading && !error && sessions.length > 0 && (
+      {!loading && !hasError && sessions.length > 0 && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -155,10 +165,10 @@ export const HistoryView = ({ setView, profile }: { setView: (v: View) => void; 
                   <div className="mb-3 flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <p className="text-[0.75rem] font-bold uppercase tracking-[0.15em] text-on-surface-variant">
-                        {formatSessionDate(session.endedAt)}
+                        {formatSessionDate(session.endedAt, language)}
                       </p>
                       <h3 className="mt-1 truncate font-headline text-[1.1rem] font-semibold uppercase text-on-surface">
-                        {session.routineName}
+                        {session.routineName || t('history.unnamedRoutine')}
                       </h3>
                     </div>
                     <ChevronDown
@@ -168,13 +178,13 @@ export const HistoryView = ({ setView, profile }: { setView: (v: View) => void; 
                   </div>
 
                   <p className="mb-3 text-[0.8rem] font-bold uppercase tracking-[0.12em] text-primary">
-                    {session.dayInfo}
+                    {getSessionDayInfo(session)}
                   </p>
 
                   <div className="grid grid-cols-3 gap-3">
                     <div className="rounded-[0.7rem] bg-surface-container p-2 text-center">
                       <p className="text-[0.65rem] font-bold uppercase tracking-[0.1em] text-on-surface-variant">
-                        Duracion
+                        {t('history.duration')}
                       </p>
                       <p className="font-headline text-[0.95rem] font-semibold text-on-surface">
                         {formatSessionDuration(session.startedAt.getTime(), session.endedAt.getTime())}
@@ -182,15 +192,15 @@ export const HistoryView = ({ setView, profile }: { setView: (v: View) => void; 
                     </div>
                     <div className="rounded-[0.7rem] bg-surface-container p-2 text-center">
                       <p className="text-[0.65rem] font-bold uppercase tracking-[0.1em] text-on-surface-variant">
-                        Volumen
+                        {t('settings.volume')}
                       </p>
                       <p className="font-headline text-[0.95rem] font-semibold text-secondary">
-                        {formatSessionVolume(session.totalVolumeWeight, session.totalVolumeMinutes)}
+                        {formatSessionVolume(session.totalVolumeWeight, session.totalVolumeMinutes, language)}
                       </p>
                     </div>
                     <div className="rounded-[0.7rem] bg-surface-container p-2 text-center">
                       <p className="text-[0.65rem] font-bold uppercase tracking-[0.1em] text-on-surface-variant">
-                        Ejercicios
+                        {t('routines.exercisePlural')}
                       </p>
                       <p className="font-headline text-[0.95rem] font-semibold text-on-surface">
                         {session.exerciseCount}
@@ -203,23 +213,23 @@ export const HistoryView = ({ setView, profile }: { setView: (v: View) => void; 
                   <div className="space-y-4 border-t theme-hairline-border px-4 pb-4 pt-2">
                     {session.days.length === 0 ? (
                       <p className="rounded-[0.8rem] bg-surface-container p-3 text-sm text-on-surface-variant">
-                        Esta sesión no tiene detalles de ejercicios guardados.
+                        {t('history.noDetails')}
                       </p>
                     ) : (
                       session.days.map((day) => (
                         <section key={day.id} className="rounded-[0.9rem] bg-surface-container p-3">
                           <p className="mb-3 text-[0.72rem] font-black uppercase tracking-[0.18em] text-primary">
-                            {day.label}
+                            {getDayLabel(day)}
                           </p>
                           <div className="space-y-3">
                             {day.exercises.map((exercise) => (
                               <div key={exercise.id} className="rounded-[0.8rem] bg-surface-container-high/70 p-3">
                                 <div className="mb-2 flex items-start justify-between gap-3">
                                   <h4 className="font-headline text-[1rem] font-semibold uppercase leading-tight text-on-surface">
-                                    {exercise.name}
+                                    {getExerciseDisplayName(exercise, language) || t('history.unnamedExercise')}
                                   </h4>
                                   <span className="shrink-0 text-[0.62rem] font-bold uppercase tracking-[0.12em] text-on-surface-variant">
-                                    {exercise.sets.length} series
+                                    {exercise.sets.length} {t(exercise.sets.length === 1 ? 'routines.setSingular' : 'routines.setPlural')}
                                   </span>
                                 </div>
 
@@ -227,10 +237,10 @@ export const HistoryView = ({ setView, profile }: { setView: (v: View) => void; 
                                   {exercise.sets.map((set) => (
                                     <div key={set.id} className="flex items-center justify-between gap-3 rounded-[0.65rem] bg-background/40 px-3 py-2">
                                       <span className="font-headline text-[0.95rem] font-semibold uppercase text-primary">
-                                        Serie {set.setNumber}
+                                        {t('exerciseEditor.set')} {set.setNumber}
                                       </span>
                                       <span className="text-right text-[0.8rem] font-bold text-on-surface">
-                                        {formatSessionSetValue(set)}
+                                        {formatSessionSetValue(set, t)}
                                       </span>
                                     </div>
                                   ))}

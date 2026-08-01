@@ -11,8 +11,10 @@ import { SplashScreen } from './components/layout/SplashScreen';
 import { ReleaseNotesDialog } from './components/ReleaseNotesDialog';
 import { fallbackReleaseHistory, type AppRelease } from './app/releaseNotes';
 import { releaseNotesRepository } from './features/releaseNotes/repository';
+import { useLanguage } from './i18n/LanguageContext';
 
 export default function AppRoot() {
+  const { t } = useLanguage();
   const app = useAppState();
   useSync();
   const syncState = useSyncState();
@@ -164,7 +166,7 @@ export default function AppRoot() {
                   <Play size={12} fill="currentColor" className="ml-0.5" />
                 </div>
                 <div className="text-left">
-                  <p className="mb-0.5 text-[9px] font-black uppercase leading-none tracking-widest text-black/70">Entrenamiento Activo</p>
+                  <p className="mb-0.5 text-[9px] font-black uppercase leading-none tracking-widest text-black/70">{t('session.activeWorkout')}</p>
                   <p className="text-xs font-bold leading-tight">{app.activeSession.routineName}</p>
                 </div>
               </div>
@@ -223,6 +225,7 @@ export default function AppRoot() {
         themePreference={app.themePreference}
         resolvedTheme={app.resolvedTheme}
         onThemeChange={app.handleThemeChange}
+        onLanguageChange={app.handleLanguageChange}
         onOpenReleaseNotes={handleOpenReleaseHistory}
       />
     </div>

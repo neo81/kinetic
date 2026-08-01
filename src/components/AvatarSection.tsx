@@ -2,6 +2,7 @@ import { User, Edit2, Upload } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useEffect, useState } from 'react';
 import type { UserProfile } from '../types';
+import { useLanguage } from '../i18n/LanguageContext';
 
 interface AvatarSectionProps {
   profile: UserProfile | null;
@@ -16,6 +17,7 @@ export const AvatarSection = ({
   onEditClick,
   onUploadClick,
 }: AvatarSectionProps) => {
+  const { t } = useLanguage();
   const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
@@ -49,7 +51,7 @@ export const AvatarSection = ({
             type="button"
             onClick={onUploadClick}
             className="absolute bottom-1 right-1 flex h-9 w-9 items-center justify-center rounded-full bg-primary text-black shadow-xl transition-all hover:scale-110 active:scale-95"
-            title="Cambiar avatar"
+            title={t('avatar.change')}
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             exit={{ scale: 0 }}
@@ -60,7 +62,7 @@ export const AvatarSection = ({
       </div>
 
       <p className="mt-4 text-[0.75rem] font-bold uppercase tracking-[0.22em] text-on-surface-variant">
-        {profile?.avatarUrl ? 'Avatar sincronizado con tu cuenta' : 'Sin avatar personalizado'}
+        {profile?.avatarUrl ? t('avatar.synced') : t('avatar.none')}
       </p>
     </div>
   );

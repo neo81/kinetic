@@ -1,13 +1,15 @@
 import { motion } from 'motion/react';
 import { Dumbbell, History, LayoutDashboard } from 'lucide-react';
 import type { View } from '../../types';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 export const BottomNav = ({ active, setView }: { active: View; setView: (v: View) => void }) => {
+  const { t } = useLanguage();
   const items = [
-    { id: 'dashboard', icon: LayoutDashboard, label: 'PANEL' },
-    { id: 'routines-list', icon: Dumbbell, label: 'RUTINAS' },
-    { id: 'exercise-selector', icon: 'list_alt', label: 'MOTOR', isMaterial: true },
-    { id: 'history', icon: History, label: 'HISTORIAL' },
+    { id: 'dashboard', icon: LayoutDashboard, label: t('nav.dashboard') },
+    { id: 'routines-list', icon: Dumbbell, label: t('nav.routines') },
+    { id: 'exercise-selector', icon: 'list_alt', label: t('nav.engine'), isMaterial: true },
+    { id: 'history', icon: History, label: t('nav.history') },
   ];
 
   const handleNavigate = (targetView: View) => {

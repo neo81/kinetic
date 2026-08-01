@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 type AppErrorBannerProps = {
   level?: 'error' | 'warning';
@@ -8,9 +9,10 @@ type AppErrorBannerProps = {
 };
 
 export const AppErrorBanner = ({ level = 'error', title, message, onDismiss }: AppErrorBannerProps) => {
+  const { t } = useLanguage();
   const titleClassName = level === 'warning' ? 'text-secondary' : 'text-error';
   const borderClassName = level === 'warning' ? 'border-secondary/60' : 'border-error/60';
-  const dismissLabel = level === 'warning' ? 'Cerrar aviso' : 'Cerrar mensaje de error';
+  const dismissLabel = level === 'warning' ? t('error.dismissWarning') : t('error.dismissError');
   const AUTO_DISMISS_MS = 5000;
 
   useEffect(() => {
@@ -37,7 +39,7 @@ export const AppErrorBanner = ({ level = 'error', title, message, onDismiss }: A
             className="rounded-md border border-outline-variant px-2 py-1 text-xs text-on-surface-variant transition hover:border-outline hover:text-on-surface"
             aria-label={dismissLabel}
           >
-            Cerrar
+            {t('common.close')}
           </button>
         </div>
       </div>

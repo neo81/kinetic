@@ -2,8 +2,10 @@ import type React from 'react';
 import { useEffect, useState } from 'react';
 import { User } from 'lucide-react';
 import { SyncStatusIndicator } from '../SyncStatusIndicator';
+import { useLanguage } from '../../i18n/LanguageContext';
 
 const AvatarImage = ({ avatarUrl }: { avatarUrl?: string | null }) => {
+  const { t } = useLanguage();
   const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
@@ -21,7 +23,7 @@ const AvatarImage = ({ avatarUrl }: { avatarUrl?: string | null }) => {
   return (
     <img
       src={avatarUrl}
-      alt="profile photo"
+      alt={t('header.profilePhoto')}
       className="block h-full w-full rounded-full object-cover"
       referrerPolicy="no-referrer"
       onError={() => setHasError(true)}

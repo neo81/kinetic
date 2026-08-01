@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { PageShell } from '../components/layout/PageShell';
+import { useLanguage } from '../i18n/LanguageContext';
 
 export const KineticLoginView = ({
   onLoginWithGoogle,
@@ -10,6 +11,7 @@ export const KineticLoginView = ({
   onLoginWithEmail: (email: string, pass: string) => void;
   onRegisterWithEmail: (email: string, pass: string) => void;
 }) => {
+  const { t } = useLanguage();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -61,18 +63,18 @@ export const KineticLoginView = ({
           <section className="relative min-h-[15rem] overflow-hidden md:min-h-full">
             <img
               src="https://lh3.googleusercontent.com/aida-public/AB6AXuAD9EXvQ6Oh0Ilv_TZqXrRdI0WQCxNgtvZDNX_MsZYFLiHp0_TDuKkVLzFv3JUJfv-Rcmzhgmv7YpzhW4icKHKcczQTHpDkrxEP6CTOcN8vptnZ_xOd4cbR5zUrVagt6256Dg1u4X5sEJOolIrcSiNY5vZ3eIjx7Ui_WFX0Ie-N5FzHjWRTqYS0VhvF5emyeKPZLHjAVFB3NqcNmdERoREr6WLPO2AVIUq4ma7Tv_IesIod1plMsG_rPSFTK7Gxa4FKuTSpwTEa1oFb"
-              alt="Atleta entrenando"
+              alt={t('login.heroAlt')}
               className="theme-hero-image h-full w-full object-cover"
               referrerPolicy="no-referrer"
             />
             <div className="theme-hero-image-overlay absolute inset-0"></div>
             <div className="absolute inset-x-0 bottom-0 p-6 pb-8 sm:p-8 md:inset-0 md:flex md:flex-col md:justify-end md:p-12 lg:p-16">
               <div className="max-w-xl">
-                <span className="tech-pill mb-5">Telemetria de rendimiento</span>
+                <span className="tech-pill mb-5">{t('login.telemetry')}</span>
                 <h1 className="font-headline text-[3.4rem] font-semibold uppercase leading-[0.82] tracking-[0.02em] text-on-background sm:text-[4.8rem] md:text-[6rem] lg:text-[7.5rem]">
-                  Lleva tu
+                  {t('login.pushYour')}
                   <br />
-                  <span className="theme-primary-text">limite</span>
+                  <span className="theme-primary-text">{t('login.limit')}</span>
                 </h1>
               </div>
             </div>
@@ -83,12 +85,12 @@ export const KineticLoginView = ({
               <div className="mb-5">
                 <div className="theme-primary-text mb-1 font-headline text-[1.8rem] font-semibold uppercase tracking-[0.05em] sm:text-[2.2rem]">Kinetic Volt</div>
                 <h2 className="font-sans text-[2.15rem] font-extrabold leading-none tracking-[-0.03em] text-on-surface sm:text-[2.7rem]">
-                  {isRegistering ? 'Únete al motor' : 'Bienvenido de nuevo'}
+                  {isRegistering ? t('login.join') : t('login.welcomeBack')}
                 </h2>
                 <p className="mt-3 max-w-sm text-[0.95rem] leading-relaxed text-on-surface-variant">
                   {isRegistering 
-                    ? 'Crea tu cuenta de atleta para empezar a trackear tu rendimiento.' 
-                    : 'Ingresa tus credenciales para acceder al motor de entrenamiento.'}
+                    ? t('login.registerHint')
+                    : t('login.signInHint')}
                 </p>
               </div>
 
@@ -99,14 +101,14 @@ export const KineticLoginView = ({
               >
                 <img src="https://www.google.com/favicon.ico" alt="Google" className="h-5 w-5" />
                 <span className="font-headline text-[1.2rem] font-semibold uppercase tracking-[0.16em] sm:text-[1.35rem]">
-                  {isLoading ? 'Conectando...' : (isRegistering ? 'Registrarse con Google' : 'Ingresar con Google')}
+                  {isLoading ? t('login.connecting') : (isRegistering ? t('login.googleRegister') : t('login.googleSignIn'))}
                 </span>
               </button>
 
               <div className="mb-4 flex items-center gap-4">
                 <div className="theme-divider h-px flex-1"></div>
                 <span className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-on-surface-variant/80 sm:text-[0.72rem]">
-                  O mediante correo
+                  {t('login.orEmail')}
                 </span>
                 <div className="theme-divider h-px flex-1"></div>
               </div>
@@ -114,7 +116,7 @@ export const KineticLoginView = ({
               <form className="space-y-5" onSubmit={handleSubmit}>
                 <div>
                   <div className="mb-2 text-[0.78rem] font-medium uppercase tracking-[0.22em] text-on-surface-variant">
-                    Correo electrónico
+                    {t('login.email')}
                   </div>
                   <div className="control-shell rounded-[1.15rem]">
                     <input
@@ -131,13 +133,13 @@ export const KineticLoginView = ({
                 <div>
                   <div className="mb-2 flex items-center justify-between gap-3">
                     <div className="text-[0.78rem] font-medium uppercase tracking-[0.22em] text-on-surface-variant">
-                      Contraseña
+                      {t('login.password')}
                     </div>
                   </div>
                   <div className="control-shell rounded-[1.15rem]">
                     <input
                       className="h-15 w-full rounded-[1.15rem] bg-transparent px-5 text-[1rem] text-on-surface outline-none sm:h-16"
-                      placeholder="Mínimo 6 caracteres"
+                      placeholder={t('login.passwordPlaceholder')}
                       type="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
@@ -152,32 +154,32 @@ export const KineticLoginView = ({
                   disabled={isLoading}
                   className="neon-button mt-2 h-15 w-full rounded-[1.15rem] font-headline text-[1.4rem] font-semibold uppercase tracking-[0.16em] transition-all active:scale-[0.985] sm:h-16 sm:text-[1.55rem] disabled:opacity-50"
                 >
-                  {isLoading ? 'Procesando...' : (isRegistering ? 'Crear cuenta' : 'Iniciar sesión')}
+                  {isLoading ? t('login.processing') : (isRegistering ? t('login.createAccount') : t('login.signIn'))}
                 </button>
               </form>
 
               <p className="mt-8 text-center text-[0.98rem] text-on-surface-variant">
-                {isRegistering ? '¿Ya tienes cuenta?' : '¿Primera vez en Kinetic?'}
+                {isRegistering ? t('login.hasAccount') : t('login.firstTime')}
                 {' '}
                 <button 
                   type="button" 
                   onClick={() => setIsRegistering(!isRegistering)}
                   className="theme-primary-text font-semibold transition-colors hover:opacity-80"
                 >
-                  {isRegistering ? 'Inicia sesión' : 'Regístrate aquí'}
+                  {isRegistering ? t('login.signIn') : t('login.registerHere')}
                 </button>
               </p>
 
               <div className="mt-10 grid grid-cols-2 gap-4 border-t theme-hairline-border pt-6 text-center sm:gap-6 sm:pt-8">
                 <div>
-                  <div className="mb-2 text-[0.7rem] font-medium uppercase tracking-[0.2em] text-on-surface-variant">Estado</div>
+                  <div className="mb-2 text-[0.7rem] font-medium uppercase tracking-[0.2em] text-on-surface-variant">{t('login.status')}</div>
                   <div className="flex items-center justify-center gap-2 text-on-surface-variant">
                     <div className="theme-primary-indicator-glow h-2 w-2 rounded-full bg-primary"></div>
-                    <span className="text-[0.92rem]">Sistema nominal</span>
+                    <span className="text-[0.92rem]">{t('login.systemNominal')}</span>
                   </div>
                 </div>
                 <div>
-                  <div className="mb-2 text-[0.7rem] font-medium uppercase tracking-[0.2em] text-on-surface-variant">Versión</div>
+                  <div className="mb-2 text-[0.7rem] font-medium uppercase tracking-[0.2em] text-on-surface-variant">{t('common.version')}</div>
                   <div className="text-[0.92rem] text-on-surface-variant">v2.4.0-kinetic</div>
                 </div>
               </div>

@@ -14,6 +14,9 @@ import { preferencesService } from '../services/preferencesService';
 import { reorderRoutineDayExercises } from '../features/routines/reorderExercises';
 import { useTheme } from '../hooks/useTheme';
 import type { ThemePreference } from '../theme/theme';
+import { useLanguage } from '../i18n/LanguageContext';
+import { normalizeLanguage } from '../i18n/languageStorage';
+import type { AppLanguage } from '../i18n/translations';
 
 type AppBannerState = {
   level: 'error' | 'warning';
@@ -23,27 +26,6 @@ type AppBannerState = {
 
 const ACTIVE_SESSION_STORAGE_KEY = 'kinetic.activeSession';
 const LAST_ROUTINE_STORAGE_KEY = 'kinetic.lastRoutineId';
-
-const getErrorMessage = (error: unknown, fallbackMessage: string) => {
-  if (error instanceof RoutineRepositoryError) {
-    switch (error.code) {
-      case 'SUPABASE_AUTH':
-        return 'Tu sesión no pudo validarse. Inicia sesión nuevamente.';
-      case 'SUPABASE_NETWORK':
-        return 'No hay una conexión estable. Se usarán datos locales cuando sea posible.';
-      case 'SUPABASE_QUERY':
-        return 'Hubo un problema con el servidor. Inténtalo nuevamente en unos minutos.';
-      default:
-        return fallbackMessage;
-    }
-  }
-
-  if (error instanceof Error && error.message) {
-    return error.message;
-  }
-
-  return fallbackMessage;
-};
 
 const getDefaultRoutineDayId = (routine: Routine | null) =>
   routine?.dayEntries?.find((day) => day.dayType === 'core')?.id ||
@@ -159,6 +141,23 @@ export const useAppState = () => {
     resolvedTheme,
     setThemePreference,
   } = useTheme();
+  const { language, setLanguage, t } = useLanguage();
+  const getErrorMessage = useCallback((error: unknown, fallbackMessage: string) => {
+    if (error instanceof RoutineRepositoryError) {
+      switch (error.code) {
+        case 'SUPABASE_AUTH':
+          return t('error.sessionInvalid');
+        case 'SUPABASE_NETWORK':
+          return t('error.unstableConnection');
+        case 'SUPABASE_QUERY':
+          return t('error.serverUnavailable');
+        default:
+          return fallbackMessage;
+      }
+    }
+
+    return fallbackMessage;
+  }, [t]);
   const [view, setView] = useState<View>('login');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState<User | null>(null);
@@ -184,17 +183,26 @@ export const useAppState = () => {
       setRoutines(routines);
       const repositoryNotice = consumeRoutinesRepositoryNotice();
       if (repositoryNotice) {
-        setAppBanner(repositoryNotice);
+        setAppBanner({
+          level: repositoryNotice.level,
+          title: t(repositoryNotice.code === 'partialSync' ? 'routines.partialSyncTitle' : 'routines.localSaveTitle'),
+          message: t(repositoryNotice.code === 'partialSync' ? 'routines.partialSyncMessage' : 'routines.localSaveMessage'),
+        });
       }
     } catch (error) {
       console.error('No se pudieron sincronizar las rutinas:', error);
       setAppBanner({
         level: 'error',
-        title: 'No se pudo sincronizar',
-        message: getErrorMessage(error, 'Revisa tu conexion e intentalo nuevamente.'),
+        title: t('banner.syncFailed'),
+        message: getErrorMessage(error, t('banner.checkConnection')),
       });
     }
-  }, []);
+  }, [getErrorMessage, t]);
+
+  const syncRoutinesRef = useRef(syncRoutines);
+  useEffect(() => {
+    syncRoutinesRef.current = syncRoutines;
+  }, [syncRoutines]);
 
   const ensureProfileExists = useCallback(async (user: User) => {
     if (!supabase) return;
@@ -232,16 +240,21 @@ export const useAppState = () => {
     return mapped;
   }, []);
 
-  const loadThemePreference = useCallback(async (userId: string) => {
+  const loadUserPreferences = useCallback(async (userId: string) => {
     const preferences = await preferencesService.getPreferences(userId);
-    if (!preferences?.theme) {
+    if (preferences?.theme) {
+      setThemePreference(preferences.theme);
+    } else {
       setThemePreference('dark');
-      return 'dark' as ThemePreference;
     }
 
-    setThemePreference(preferences.theme);
-    return preferences.theme;
-  }, [setThemePreference]);
+    const remoteLanguage = normalizeLanguage(preferences?.language);
+    if (remoteLanguage) {
+      setLanguage(remoteLanguage);
+    }
+
+    return preferences;
+  }, [setLanguage, setThemePreference]);
 
   const syncActiveSessionFromStorage = useCallback(async () => {
     if (!supabase) return;
@@ -312,7 +325,7 @@ export const useAppState = () => {
             // Parallelize profile, theme, and backfill operations
             await Promise.all([
               loadProfile(session.user.id),
-              loadThemePreference(session.user.id),
+              loadUserPreferences(session.user.id),
               ensureWeeklyStatsBackfilled(session.user.id),
             ]);
           } catch (error) {
@@ -320,7 +333,7 @@ export const useAppState = () => {
           }
           // Parallelize routine and session sync
           await Promise.all([
-            syncRoutines(),
+            syncRoutinesRef.current(),
             syncActiveSessionFromStorage(),
           ]);
           setView((current) => current === 'login' ? 'dashboard' : current);
@@ -358,7 +371,7 @@ export const useAppState = () => {
       clearTimeout(fallbackTimeout);
       subscription.unsubscribe();
     };
-  }, [ensureProfileExists, loadProfile, loadThemePreference, syncActiveSessionFromStorage, syncRoutines]);
+  }, [ensureProfileExists, loadProfile, loadUserPreferences, syncActiveSessionFromStorage]);
 
   const handleThemeChange = useCallback(async (nextTheme: ThemePreference) => {
     const previousTheme = themePreference;
@@ -382,10 +395,34 @@ export const useAppState = () => {
     }
   }, [setThemePreference, themePreference, user?.id]);
 
+  const handleLanguageChange = useCallback(async (nextLanguage: AppLanguage) => {
+    setLanguage(nextLanguage);
+
+    if (!user?.id) {
+      return;
+    }
+
+    try {
+      const existingPreferences = await preferencesService.getPreferences(user.id);
+      if (!existingPreferences) {
+        await preferencesService.createDefaultPreferences(user.id, {
+          language: nextLanguage,
+          theme: themePreference,
+        });
+        return;
+      }
+
+      await preferencesService.updatePreferences(user.id, { language: nextLanguage });
+    } catch (error) {
+      console.error('No se pudo actualizar el idioma:', error);
+      throw error;
+    }
+  }, [setLanguage, themePreference, user?.id]);
+
   const handleLoginWithGoogle = async (): Promise<{ started: boolean; error?: string }> => {
     if (!supabase) {
-      const message = 'Configura VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY.';
-      setAppBanner({ level: 'error', title: 'Error', message });
+      const message = t('login.configError');
+      setAppBanner({ level: 'error', title: t('common.error'), message });
       return { started: false, error: message };
     }
 
@@ -402,7 +439,7 @@ export const useAppState = () => {
 
     if (error) {
       setIsAppLoading(false);
-      setAppBanner({ level: 'error', title: 'Error Auth', message: error.message });
+      setAppBanner({ level: 'error', title: t('login.authError'), message: t('login.authFailedMessage') });
       return { started: false, error: error.message };
     }
 
@@ -413,7 +450,7 @@ export const useAppState = () => {
     if (!supabase) return;
     const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
     if (error) {
-      setAppBanner({ level: 'error', title: 'Acceso denegado', message: 'Credenciales invalidas.' });
+      setAppBanner({ level: 'error', title: t('login.accessDenied'), message: t('login.invalidCredentials') });
     }
   };
 
@@ -421,9 +458,9 @@ export const useAppState = () => {
     if (!supabase) return;
     const { error, data } = await supabase.auth.signUp({ email, password: pass });
     if (error) {
-      setAppBanner({ level: 'error', title: 'Error registro', message: error.message });
+      setAppBanner({ level: 'error', title: t('login.registrationError'), message: t('login.registrationFailedMessage') });
     } else if (data.session || data.user) {
-      setAppBanner({ level: 'warning', title: 'Confirma tu cuenta', message: 'Revisa tu correo.' });
+      setAppBanner({ level: 'warning', title: t('login.confirmAccount'), message: t('login.checkEmail') });
     }
   };
 
@@ -495,8 +532,8 @@ export const useAppState = () => {
     setProfile(mapped);
     setAppBanner({
       level: 'warning',
-      title: 'Perfil actualizado',
-      message: 'Tus cambios se guardaron correctamente.',
+      title: t('banner.profileUpdated'),
+      message: t('banner.changesSaved'),
     });
     return mapped;
   };
@@ -506,8 +543,8 @@ export const useAppState = () => {
     if (activeSession) {
       setAppBanner({
         level: 'warning',
-        title: 'Sesión en curso',
-        message: 'Finaliza el entrenamiento activo antes de iniciar otro.',
+        title: t('banner.sessionInProgress'),
+        message: t('banner.finishCurrentFirst'),
       });
       return;
     }
@@ -542,15 +579,15 @@ export const useAppState = () => {
       persistLastRoutineId(routineId);
       setAppBanner({
         level: 'warning',
-        title: 'Entrenamiento Iniciado',
-        message: 'Tu sesión está activa en segundo plano.',
+        title: t('banner.workoutStarted'),
+        message: t('banner.sessionBackground'),
       });
     } catch (error) {
       console.error('Error al iniciar sesión', error);
       setAppBanner({
         level: 'error',
-        title: 'No se pudo iniciar',
-        message: 'Verifica tu conexión y prueba nuevamente.',
+        title: t('banner.startFailed'),
+        message: t('banner.tryConnection'),
       });
     }
   };
@@ -573,15 +610,15 @@ export const useAppState = () => {
       persistActiveSession(null);
       setAppBanner({
         level: 'warning',
-        title: 'Entrenamiento cancelado',
-        message: 'La sesión fue cancelada y no se guardó progreso.',
+        title: t('banner.workoutCanceled'),
+        message: t('banner.canceledNoProgress'),
       });
     } catch (error) {
       console.error('Error al cancelar sesión', error);
       setAppBanner({
         level: 'error',
-        title: 'No se pudo cancelar',
-        message: 'Intenta nuevamente en unos segundos.',
+        title: t('banner.cancelFailed'),
+        message: t('banner.tryAgainSoon'),
       });
     }
   };
@@ -896,8 +933,8 @@ export const useAppState = () => {
       if (!didQueueSuccessfully) {
         setAppBanner({
           level: 'error',
-          title: '⚠️ Error al guardar sesión',
-          message: 'No pudimos guardar tu entrenamiento. Intenta nuevamente desde Configuración.',
+          title: t('banner.saveSessionError'),
+          message: t('banner.saveSessionErrorMessage'),
         });
         // IMPROVED: Record error in sync status manager
         syncStatusManager.recordSyncError(
@@ -906,8 +943,8 @@ export const useAppState = () => {
       } else {
         setAppBanner({
           level: 'warning',
-          title: '⏱️ Sesión en cola',
-          message: 'Tu entrenamiento se guardará cuando haya conexión.',
+          title: t('banner.sessionQueued'),
+          message: t('banner.sessionQueuedMessage'),
         });
       }
     } finally {
@@ -921,8 +958,8 @@ export const useAppState = () => {
           if (wasDirectlySaved) {
             setAppBanner({
               level: 'warning',
-              title: '✅ Entrenamiento Finalizado',
-              message: 'Excelente trabajo. Sesión guardada.',
+              title: t('banner.workoutFinished'),
+              message: t('banner.workoutFinishedMessage'),
             });
           }
         } catch (persistError) {
@@ -972,14 +1009,18 @@ export const useAppState = () => {
       }
       
       const repositoryNotice = consumeRoutinesRepositoryNotice();
-      setAppBanner(repositoryNotice);
+      setAppBanner(repositoryNotice ? {
+        level: repositoryNotice.level,
+        title: t(repositoryNotice.code === 'partialSync' ? 'routines.partialSyncTitle' : 'routines.localSaveTitle'),
+        message: t(repositoryNotice.code === 'partialSync' ? 'routines.partialSyncMessage' : 'routines.localSaveMessage'),
+      } : null);
       return savedRoutine;
     } catch (error) {
       console.error('Error guardando rutina:', error);
       setAppBanner({
         level: 'error',
-        title: 'Error',
-        message: getErrorMessage(error, 'Inténtalo de nuevo.'),
+        title: t('common.error'),
+        message: getErrorMessage(error, t('error.tryAgain')),
       });
     }
   };
@@ -1014,8 +1055,8 @@ export const useAppState = () => {
       console.error('Error guardando ejercicio:', error);
       setAppBanner({
         level: 'error',
-        title: 'Error',
-        message: getErrorMessage(error, 'Revisa los datos.'),
+        title: t('common.error'),
+        message: getErrorMessage(error, t('error.checkData')),
       });
     }
   };
@@ -1036,8 +1077,8 @@ export const useAppState = () => {
       console.error('Error eliminando rutina:', error);
       setAppBanner({
         level: 'error',
-        title: 'Error',
-        message: getErrorMessage(error, 'Inténtalo más tarde.'),
+        title: t('common.error'),
+        message: getErrorMessage(error, t('error.tryLater')),
       });
     }
   };
@@ -1054,7 +1095,7 @@ export const useAppState = () => {
       setAppBanner(null);
     } catch (error) {
       console.error('Error eliminando día:', error);
-      setAppBanner({ level: 'error', title: 'Error', message: getErrorMessage(error, 'Inténtalo más tarde.') });
+      setAppBanner({ level: 'error', title: t('common.error'), message: getErrorMessage(error, t('error.tryLater')) });
     }
   };
 
@@ -1071,7 +1112,7 @@ export const useAppState = () => {
       setAppBanner(null);
     } catch (error) {
       console.error('Error eliminando ejercicio:', error);
-      setAppBanner({ level: 'error', title: 'Error', message: getErrorMessage(error, 'Inténtalo más tarde.') });
+      setAppBanner({ level: 'error', title: t('common.error'), message: getErrorMessage(error, t('error.tryLater')) });
     }
   };
 
@@ -1108,8 +1149,8 @@ export const useAppState = () => {
       )));
       setAppBanner({
         level: 'error',
-        title: 'No se pudo reordenar',
-        message: getErrorMessage(error, 'El orden anterior fue restaurado.'),
+        title: t('error.reorderTitle'),
+        message: getErrorMessage(error, t('error.orderRestored')),
       });
       throw error;
     }
@@ -1175,5 +1216,6 @@ export const useAppState = () => {
     themePreference,
     resolvedTheme,
     handleThemeChange,
+    handleLanguageChange,
   };
 };

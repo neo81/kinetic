@@ -4,6 +4,9 @@ import { PageShell } from '../components/layout/PageShell';
 import { supabase, isSupabaseConfigured } from '../lib/supabase/client';
 import { fallbackExerciseLibrary } from '../app/initialData';
 import type { Exercise, UserProfile, View } from '../types';
+import { useLanguage } from '../i18n/LanguageContext';
+import type { TranslationKey } from '../i18n/translations';
+import { getExerciseDisplayName } from '../i18n/exerciseLocalization';
 
 type MuscleSide = 'front' | 'back';
 type MuscleTarget = {
@@ -20,6 +23,12 @@ type GlobalExerciseResult = Exercise & {
 };
 
 const FOCUSED_EXERCISE_STORAGE_KEY = 'kinetic.focusedExerciseId';
+const equipmentKeys: Record<string, TranslationKey> = {
+  'Peso corporal': 'equipment.bodyweight', Barra: 'equipment.barbell', Mancuerna: 'equipment.dumbbell',
+  Mancuernas: 'equipment.dumbbell', Maquina: 'equipment.machine', Máquina: 'equipment.machine',
+  Cable: 'equipment.cable', Polea: 'equipment.cable', Estación: 'equipment.station',
+  Disco: 'equipment.plate', 'Banco Romano': 'equipment.romanBench',
+};
 
 const selectorData: Record<MuscleSide, { image: string; targets: MuscleTarget[] }> = {
   front: {
@@ -66,6 +75,16 @@ export const ExerciseSelectorKineticView = ({
   navigationSource?: View;
   profile?: UserProfile | null;
 }) => {
+  const { language, t } = useLanguage();
+  const getMuscleLabel = (target: MuscleTarget) => t(`muscle.${target.id}` as TranslationKey);
+  const getMuscleGroupLabel = (value: string) => {
+    const normalized = value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const target = (Object.values(selectorData).flatMap((entry) => entry.targets)).find((item) =>
+      item.id === normalized || item.group.toLowerCase() === normalized || item.label.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase() === normalized,
+    );
+    return target ? getMuscleLabel(target) : value;
+  };
+  const getEquipmentLabel = (value?: string) => value && equipmentKeys[value] ? t(equipmentKeys[value]) : value || t('engine.general');
   const getSideForMuscle = (muscle?: string): MuscleSide => {
     const normalized = (muscle ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
     return selectorData.back.targets.some((target) => target.id === normalized || target.group.toLowerCase() === normalized)
@@ -134,8 +153,10 @@ export const ExerciseSelectorKineticView = ({
           .select(`
             id,
             name,
+            name_en,
             equipment,
             description,
+            description_en,
             user_id,
             is_active,
             muscle_groups!inner(code, name)
@@ -148,9 +169,11 @@ export const ExerciseSelectorKineticView = ({
         const mapped: GlobalExerciseResult[] = (data ?? []).map((item: any) => ({
           id: item.id,
           name: item.name,
+          nameEn: item.name_en ?? undefined,
           description: item.description ?? undefined,
+          descriptionEn: item.description_en ?? undefined,
           equipment: item.equipment ?? undefined,
-          muscleGroup: item.muscle_groups?.name || 'Sin grupo',
+          muscleGroup: item.muscle_groups?.name || t('engine.noGroup'),
           muscleGroupCode: item.muscle_groups?.code || '',
           sets: [],
           isCustom: !!item.user_id,
@@ -173,7 +196,7 @@ export const ExerciseSelectorKineticView = ({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [t]);
 
   const filteredTargetsBySide = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
@@ -183,7 +206,8 @@ export const ExerciseSelectorKineticView = ({
       }
 
       return selectorData[targetSide].targets.filter((target) =>
-        target.label.toLowerCase().includes(normalizedQuery),
+        target.label.toLowerCase().includes(normalizedQuery) ||
+        getMuscleLabel(target).toLowerCase().includes(normalizedQuery),
       );
     };
 
@@ -191,7 +215,7 @@ export const ExerciseSelectorKineticView = ({
       front: filterTargets('front'),
       back: filterTargets('back'),
     };
-  }, [searchQuery]);
+  }, [searchQuery, t]);
 
   const filteredGlobalExercises = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
@@ -202,10 +226,12 @@ export const ExerciseSelectorKineticView = ({
     return globalExercises
       .filter((exercise) =>
         exercise.name.toLowerCase().includes(normalizedQuery) ||
-        exercise.muscleGroup.toLowerCase().includes(normalizedQuery),
+        exercise.nameEn?.toLowerCase().includes(normalizedQuery) ||
+        exercise.muscleGroup.toLowerCase().includes(normalizedQuery) ||
+        getMuscleGroupLabel(exercise.muscleGroup).toLowerCase().includes(normalizedQuery),
       )
       .slice(0, 8);
-  }, [globalExercises, searchQuery]);
+  }, [globalExercises, searchQuery, t]);
 
   const handleOpenLibrary = (group: string) => {
     window.sessionStorage.removeItem(FOCUSED_EXERCISE_STORAGE_KEY);
@@ -255,13 +281,13 @@ export const ExerciseSelectorKineticView = ({
           <div className="theme-muted-surface flex h-8 w-8 items-center justify-center rounded-full transition-all group-hover:bg-primary/20">
             <ArrowLeft size={16} strokeWidth={2.5} />
           </div>
-          <span className="font-headline text-[0.72rem] font-black uppercase italic tracking-[0.22em]">Volver</span>
+          <span className="font-headline text-[0.72rem] font-black uppercase italic tracking-[0.22em]">{t('engine.back')}</span>
         </button>
 
         <header className="space-y-3">
           <div className="flex items-center gap-3">
             <div className="h-1.5 w-12 rounded-full bg-primary/80"></div>
-            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-on-surface-variant/40">SELECTOR DE PRECISIÓN</span>
+            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-on-surface-variant/40">{t('engine.precisionSelector')}</span>
           </div>
           <h1 className="font-headline text-[3.2rem] font-bold uppercase italic leading-none tracking-tight text-on-surface">
             Target<br/>
@@ -276,18 +302,18 @@ export const ExerciseSelectorKineticView = ({
           <input
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
-            placeholder="Buscar grupo o ejercicio..."
+            placeholder={t('engine.searchPlaceholder')}
             className="h-12 w-full rounded-full border theme-hairline-border bg-surface-container-high px-11 text-sm text-on-surface outline-none transition-all focus:border-primary/35 focus:ring-2 focus:ring-primary/12"
           />
         </div>
         {searchQuery.trim().length >= 2 && (
           <div className="mt-4 space-y-2">
             <p className="text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-on-surface-variant">
-              Ejercicios encontrados
+              {t('engine.foundExercises')}
             </p>
             {globalSearchLoading ? (
               <div className="rounded-[0.9rem] bg-surface-container-low px-4 py-3 text-sm text-on-surface-variant">
-                Buscando...
+                {t('engine.searching')}
               </div>
             ) : filteredGlobalExercises.length > 0 ? (
               <div className="space-y-2">
@@ -299,21 +325,21 @@ export const ExerciseSelectorKineticView = ({
                     className="flex w-full flex-col items-start gap-3 rounded-[0.9rem] bg-surface-container-low px-4 py-3 text-left transition-colors hover:bg-surface-container-high sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div className="min-w-0 w-full sm:flex-1">
-                      <p className="break-words text-sm font-bold leading-snug text-on-surface">{exercise.name}</p>
+                      <p className="break-words text-sm font-bold leading-snug text-on-surface">{getExerciseDisplayName(exercise, language)}</p>
                       <p className="mt-1.5 text-[10px] font-bold uppercase leading-relaxed tracking-[0.14em] text-primary">
-                        Pertenece a {exercise.muscleGroup}
+                        {t('engine.belongsTo')} {getMuscleGroupLabel(exercise.muscleGroup)}
                       </p>
                     </div>
                     <div className="flex min-w-0 w-full items-start gap-2 text-[10px] font-bold uppercase leading-relaxed tracking-[0.12em] text-on-surface-variant sm:w-auto sm:max-w-[45%] sm:justify-end sm:text-right">
                       <Dumbbell className="mt-0.5 shrink-0" size={14} />
-                      <span className="min-w-0 break-words">{exercise.equipment || 'General'}</span>
+                      <span className="min-w-0 break-words">{getEquipmentLabel(exercise.equipment)}</span>
                     </div>
                   </button>
                 ))}
               </div>
             ) : (
               <div className="rounded-[0.9rem] bg-surface-container-low px-4 py-3 text-sm text-on-surface-variant">
-                No hay ejercicios con ese nombre.
+                {t('engine.noExerciseName')}
               </div>
             )}
           </div>
@@ -325,7 +351,7 @@ export const ExerciseSelectorKineticView = ({
           {(Object.keys(selectorData) as MuscleSide[]).map((imageSide) => (
             <img
               key={imageSide}
-              alt={`Figura anatomica ${imageSide === 'front' ? 'frontal' : 'posterior'}`}
+              alt={t(imageSide === 'front' ? 'engine.anatomyFront' : 'engine.anatomyBack')}
               className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-150 ${side === imageSide ? 'opacity-100' : 'opacity-0'}`}
               decoding="async"
               fetchPriority="high"
@@ -384,7 +410,7 @@ export const ExerciseSelectorKineticView = ({
                   }}
                 >
                   <span className={`px-1 pb-0.5 font-headline text-[0.75rem] font-medium text-on-background drop-shadow-md transition-colors group-hover:text-primary ${target.align === 'left' ? 'text-right' : 'text-left'}`}>
-                    {target.label}
+                    {getMuscleLabel(target)}
                   </span>
                   <div className="h-[1.5px] w-full bg-on-background/60 transition-colors group-hover:bg-primary" />
                 </button>
@@ -396,7 +422,7 @@ export const ExerciseSelectorKineticView = ({
 
       <section className="panel-surface rounded-[1rem] p-4">
         <div className="mb-3 text-[0.62rem] font-semibold uppercase tracking-[0.22em] text-on-surface-variant">
-          Orientacion
+          {t('engine.orientation')}
         </div>
         <div className="grid grid-cols-2 gap-2.5">
           <button
@@ -407,7 +433,7 @@ export const ExerciseSelectorKineticView = ({
               : 'border theme-hairline-border bg-surface-container-low text-on-surface-variant hover:border-primary/25 hover:text-on-surface'
               }`}
           >
-            Frente
+            {t('engine.front')}
             <Accessibility size={16} strokeWidth={2.5} />
           </button>
           <button
@@ -418,7 +444,7 @@ export const ExerciseSelectorKineticView = ({
               : 'border theme-hairline-border bg-surface-container-low text-on-surface-variant hover:border-primary/25 hover:text-on-surface'
               }`}
           >
-            Espalda
+            {t('engine.backSide')}
             <Activity size={16} strokeWidth={2.5} />
           </button>
         </div>

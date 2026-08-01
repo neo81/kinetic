@@ -9,13 +9,7 @@ import { PageShell } from '../components/layout/PageShell';
 import { formatSessionVolume } from '../utils/formatting';
 import { routinesRepository } from '../features/routines/repository';
 import type { Routine, View, DashboardData, UserProfile } from '../types';
-
-const getGreeting = () => {
-  const hour = new Date().getHours();
-  if (hour < 12) return 'BUENOS DÍAS';
-  if (hour < 18) return 'BUENAS TARDES';
-  return 'BUENAS NOCHES';
-};
+import { useLanguage } from '../i18n/LanguageContext';
 
 interface DashboardViewProps {
   setView: (view: View) => void;
@@ -74,10 +68,17 @@ export const DashboardView = ({
   setCurrentRoutine,
   profile,
 }: DashboardViewProps) => {
+  const { language, t } = useLanguage();
   const prefersReducedMotion = useReducedMotion();
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [routineToDelete, setRoutineToDelete] = useState<Routine | null>(null);
+  const currentHour = new Date().getHours();
+  const greeting = currentHour < 12
+    ? t('dashboard.greetingMorning')
+    : currentHour < 18
+      ? t('dashboard.greetingAfternoon')
+      : t('dashboard.greetingEvening');
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -129,22 +130,22 @@ export const DashboardView = ({
           <header className="space-y-3">
              <div className="flex items-center gap-3">
                <div className="h-1.5 w-12 rounded-full bg-primary/80"></div>
-               <span className="text-[10px] font-black uppercase tracking-[0.4em] text-on-surface-variant/40">{getGreeting()}</span>
+               <span className="text-[10px] font-black uppercase tracking-[0.4em] text-on-surface-variant/40">{greeting}</span>
              </div>
-             <h1 className="font-headline text-[3.2rem] font-bold uppercase leading-none tracking-tight text-on-surface">DASHBOARD</h1>
+             <h1 className="font-headline text-[3.2rem] font-bold uppercase leading-none tracking-tight text-on-surface">{t('dashboard.title')}</h1>
           </header>
 
           <div className="space-y-6">
             <div className="flex items-center justify-between px-2">
               <div className="flex items-center gap-3">
                 <div className="theme-primary-indicator-glow h-6 w-1 rounded-full bg-primary"></div>
-                <h3 className="text-[10px] font-black uppercase italic tracking-[0.4em] text-on-surface-variant/60">PRÓXIMO PASO</h3>
+                <h3 className="text-[10px] font-black uppercase italic tracking-[0.4em] text-on-surface-variant/60">{t('dashboard.nextStep')}</h3>
               </div>
               <button
                 onClick={() => setView('routines-list')}
                 className="theme-muted-surface theme-primary-text flex items-center gap-2 rounded-full py-1.5 pl-4 pr-2 text-[9px] font-black uppercase tracking-widest transition-all hover:bg-primary/10 active:scale-95"
               >
-                Ver todas
+                {t('dashboard.viewAll')}
                 <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-black">
                   <ChevronRight size={14} />
                 </div>
@@ -165,7 +166,7 @@ export const DashboardView = ({
 
                 <div className="relative z-10 space-y-8">
                   <div>
-                    <div className="theme-primary-text-soft mb-2 text-[10px] font-black uppercase italic tracking-[0.5em]">CONTINUAR ENTRENAMIENTO</div>
+                    <div className="theme-primary-text-soft mb-2 text-[10px] font-black uppercase italic tracking-[0.5em]">{t('dashboard.continueWorkout')}</div>
                     <div className="flex items-start justify-between gap-3">
                       <h4 className="font-headline text-4xl font-black uppercase italic leading-none tracking-tight text-on-background sm:text-5xl">
                         {lastActiveRoutine.name}
@@ -173,7 +174,7 @@ export const DashboardView = ({
                       <div className="flex items-center gap-1">
                         <button
                           type="button"
-                          aria-label="Editar rutina"
+                          aria-label={t('dashboard.editRoutine')}
                           onClick={(event) => {
                             event.stopPropagation();
                             onEditRoutine(lastActiveRoutine);
@@ -184,7 +185,7 @@ export const DashboardView = ({
                         </button>
                         <button
                           type="button"
-                          aria-label="Eliminar rutina"
+                          aria-label={t('dashboard.deleteRoutine')}
                           onClick={(event) => {
                             event.stopPropagation();
                             setRoutineToDelete(lastActiveRoutine);
@@ -196,7 +197,7 @@ export const DashboardView = ({
                       </div>
                     </div>
                     <p className="mt-4 text-[11px] font-black uppercase italic tracking-widest text-on-surface-variant/40">
-                      Última sesión: {lastActiveRoutine.lastSession || 'Sin registros aún'} • {lastActiveRoutine.focus || 'General'}
+                      {t('dashboard.lastSession')}: {lastActiveRoutine.lastSession || t('dashboard.noRecords')} • {lastActiveRoutine.focus || t('routines.general')}
                     </p>
                   </div>
 
@@ -204,14 +205,14 @@ export const DashboardView = ({
                      className="theme-primary-shadow-strong flex items-center gap-3 rounded-2xl bg-primary px-8 py-4 text-[12px] font-black uppercase tracking-[0.2em] text-black transition-all hover:scale-105 active:scale-95"
                   >
                     <Activity size={18} fill="currentColor" />
-                    Entrenar Ahora
+                    {t('dashboard.trainNow')}
                   </button>
                 </div>
               </motion.div>
             ) : (
               <div className="rounded-[3rem] border border-dashed theme-hairline-border bg-surface-container-low/35 p-12 text-center backdrop-blur-xl">
-                <p className="font-headline text-2xl font-black uppercase italic text-on-surface opacity-40 leading-tight">No tienes rutinas activas</p>
-                <p className="mt-3 text-sm text-on-surface-variant/60">Carga tu primer plan de entrenamiento para empezar.</p>
+                <p className="font-headline text-2xl font-black uppercase italic text-on-surface opacity-40 leading-tight">{t('dashboard.noActiveRoutines')}</p>
+                <p className="mt-3 text-sm text-on-surface-variant/60">{t('dashboard.noActiveRoutinesHint')}</p>
               </div>
             )}
           </div>
@@ -223,9 +224,9 @@ export const DashboardView = ({
 
           <div className="relative z-10 space-y-10">
             <div className="space-y-2">
-              <span className="theme-primary-text-soft block text-[9px] font-black uppercase italic tracking-[0.4em] sm:text-[10px]">ESTA SEMANA - TU RENDIMIENTO</span>
+              <span className="theme-primary-text-soft block text-[9px] font-black uppercase italic tracking-[0.4em] sm:text-[10px]">{t('dashboard.weekPerformance')}</span>
               <h3 className="font-headline text-3xl font-black italic leading-none tracking-tighter text-on-background sm:text-4xl">
-                {dashboardData ? formatSessionVolume(Math.round(dashboardData.thisWeek.volume), dashboardData.thisWeek.volumeMinutes) : 'Cargando...'}
+                {dashboardData ? formatSessionVolume(Math.round(dashboardData.thisWeek.volume), dashboardData.thisWeek.volumeMinutes, language) : t('common.loading')}
               </h3>
             </div>
 
@@ -236,7 +237,7 @@ export const DashboardView = ({
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="h-5 w-1 rounded-full bg-primary/60"></div>
-                      <span className="text-[9px] font-black uppercase tracking-[0.3em] text-on-surface-variant/60">Volumen Levantado</span>
+                      <span className="text-[9px] font-black uppercase tracking-[0.3em] text-on-surface-variant/60">{t('dashboard.volumeLifted')}</span>
                     </div>
                     <TrendIndicator change={dashboardData.thisWeek.changeVsLastWeek.volumeChange} />
                   </div>
@@ -245,19 +246,19 @@ export const DashboardView = ({
                       <p className="text-3xl font-black italic text-on-background tracking-tighter sm:text-4xl">
                         {dashboardData.thisWeek.volume > 0 ? `${Math.round(dashboardData.thisWeek.volume / 1000)}k` : '0'}
                       </p>
-                      <p className="text-[9px] font-bold text-on-surface-variant/40 mt-1 uppercase tracking-widest">kg esta semana</p>
+                      <p className="text-[9px] font-bold text-on-surface-variant/40 mt-1 uppercase tracking-widest">{t('dashboard.kgThisWeek')}</p>
                     </div>
                     <div className="border-l theme-hairline-border pl-4">
                       <p className="theme-primary-text text-2xl font-black italic tracking-tighter">
                         {dashboardData.goals.weeklyVolumeTarget > 0 ? `${Math.round(dashboardData.goals.weeklyVolumeTarget / 1000)}k` : '0'}
                       </p>
-                      <p className="text-[9px] font-bold text-on-surface-variant/40 mt-1 uppercase tracking-widest">meta semanal</p>
+                      <p className="text-[9px] font-bold text-on-surface-variant/40 mt-1 uppercase tracking-widest">{t('dashboard.weeklyGoal')}</p>
                     </div>
                   </div>
                   <ProgressBar
                     current={dashboardData.thisWeek.volume}
                     target={dashboardData.goals.weeklyVolumeTarget}
-                    label="Progreso"
+                    label={t('dashboard.progress')}
                   />
                 </div>
 
@@ -266,7 +267,7 @@ export const DashboardView = ({
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="h-5 w-1 rounded-full bg-secondary/60"></div>
-                      <span className="text-[9px] font-black uppercase tracking-[0.3em] text-on-surface-variant/60">Ejercicios Completados</span>
+                      <span className="text-[9px] font-black uppercase tracking-[0.3em] text-on-surface-variant/60">{t('dashboard.completedExercises')}</span>
                     </div>
                     <TrendIndicator change={dashboardData.thisWeek.changeVsLastWeek.exerciseChange} />
                   </div>
@@ -275,19 +276,19 @@ export const DashboardView = ({
                       <p className="text-3xl font-black italic text-on-background tracking-tighter sm:text-4xl">
                         {dashboardData.thisWeek.exercises}
                       </p>
-                      <p className="text-[9px] font-bold text-on-surface-variant/40 mt-1 uppercase tracking-widest">ejercicios (7d)</p>
+                      <p className="text-[9px] font-bold text-on-surface-variant/40 mt-1 uppercase tracking-widest">{t('dashboard.exercises7d')}</p>
                     </div>
                     <div className="border-l theme-hairline-border pl-4">
                       <p className="text-2xl font-black italic text-secondary tracking-tighter">
                         {dashboardData.goals.weeklyExercisesTarget}
                       </p>
-                      <p className="text-[9px] font-bold text-on-surface-variant/40 mt-1 uppercase tracking-widest">meta semanal</p>
+                      <p className="text-[9px] font-bold text-on-surface-variant/40 mt-1 uppercase tracking-widest">{t('dashboard.weeklyGoal')}</p>
                     </div>
                   </div>
                   <ProgressBar
                     current={dashboardData.thisWeek.exercises}
                     target={dashboardData.goals.weeklyExercisesTarget}
-                    label="Progreso"
+                    label={t('dashboard.progress')}
                   />
                 </div>
 
@@ -296,7 +297,7 @@ export const DashboardView = ({
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="h-5 w-1 rounded-full bg-primary/40"></div>
-                      <span className="text-[9px] font-black uppercase tracking-[0.3em] text-on-surface-variant/60">Tiempo Entrenamiento</span>
+                      <span className="text-[9px] font-black uppercase tracking-[0.3em] text-on-surface-variant/60">{t('dashboard.trainingTime')}</span>
                     </div>
                     <TrendIndicator change={dashboardData.thisWeek.changeVsLastWeek.durationChange} />
                   </div>
@@ -305,32 +306,32 @@ export const DashboardView = ({
                       <p className="text-3xl font-black italic text-on-background tracking-tighter sm:text-4xl">
                         {Math.round(dashboardData.thisWeek.avgDuration)}m
                       </p>
-                      <p className="text-[9px] font-bold text-on-surface-variant/40 mt-1 uppercase tracking-widest">prom. por sesión</p>
+                      <p className="text-[9px] font-bold text-on-surface-variant/40 mt-1 uppercase tracking-widest">{t('dashboard.averagePerSession')}</p>
                     </div>
                     <div className="border-l theme-hairline-border pl-4">
                       <p className="theme-primary-text text-2xl font-black italic tracking-tighter">
                         {dashboardData.goals.weeklyDurationTarget}m
                       </p>
-                      <p className="text-[9px] font-bold text-on-surface-variant/40 mt-1 uppercase tracking-widest">meta semanal</p>
+                      <p className="text-[9px] font-bold text-on-surface-variant/40 mt-1 uppercase tracking-widest">{t('dashboard.weeklyGoal')}</p>
                     </div>
                   </div>
                   <ProgressBar
                     current={dashboardData.thisWeek.avgDuration * dashboardData.thisWeek.sessions}
                     target={dashboardData.goals.weeklyDurationTarget}
-                    label="Progreso"
+                    label={t('dashboard.progress')}
                   />
                 </div>
 
                 {/* Session count */}
                 <div className="border-t theme-hairline-border pt-6 text-center">
                   <p className="text-[10px] font-black uppercase tracking-[0.2em] text-on-surface-variant/40">
-                    {dashboardData.thisWeek.sessions} sesiones completadas esta semana
+                    {dashboardData.thisWeek.sessions} {t('dashboard.completedThisWeek')}
                   </p>
                 </div>
               </div>
             ) : (
               <div className="py-12 text-center">
-                <p className="font-headline text-sm font-semibold uppercase text-on-surface-variant">Cargando datos...</p>
+                <p className="font-headline text-sm font-semibold uppercase text-on-surface-variant">{t('dashboard.loadingData')}</p>
               </div>
             )}
           </div>
@@ -339,10 +340,10 @@ export const DashboardView = ({
         <div className="pb-10" />
         <ConfirmDialog
           isOpen={!!routineToDelete}
-          title="¿Eliminar rutina?"
-          message="Esta acción borrará toda la rutina y sus ejercicios de forma permanente."
-          confirmText="Sí, eliminar"
-          cancelText="Volver"
+          title={t('dashboard.deleteTitle')}
+          message={t('dashboard.deleteMessage')}
+          confirmText={t('dashboard.confirmDelete')}
+          cancelText={t('dashboard.back')}
           variant="danger"
           onConfirm={() => {
             if (routineToDelete) {

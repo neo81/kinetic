@@ -1,7 +1,8 @@
 import { AnimatePresence, motion } from 'motion/react';
 import { CheckCircle2, Sparkles, X } from 'lucide-react';
-import type { AppRelease } from '../app/releaseNotes';
+import { getLocalizedReleaseText, type AppRelease } from '../app/releaseNotes';
 import { formatAppDate } from '../i18n/locale';
+import { useLanguage } from '../i18n/LanguageContext';
 
 type ReleaseNotesDialogProps = {
   isOpen: boolean;
@@ -15,7 +16,10 @@ export const ReleaseNotesDialog = ({
   mode,
   releases,
   onClose,
-}: ReleaseNotesDialogProps) => (
+}: ReleaseNotesDialogProps) => {
+  const { language, t } = useLanguage();
+
+  return (
   <AnimatePresence>
     {isOpen && (
       <div className="fixed inset-0 z-[110] flex items-end justify-center px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-4 sm:items-center sm:pb-4">
@@ -40,7 +44,7 @@ export const ReleaseNotesDialog = ({
             type="button"
             onClick={onClose}
             className="theme-muted-surface absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:text-on-surface"
-            aria-label="Cerrar novedades"
+            aria-label={t('release.close')}
           >
             <X size={16} strokeWidth={2.5} />
           </button>
@@ -51,10 +55,10 @@ export const ReleaseNotesDialog = ({
             </div>
             <div>
               <p className="text-[10px] font-black uppercase tracking-[0.24em] text-primary">
-                {mode === 'unread' ? `${releases.length} sin leer` : `${releases.length} versiones`}
+                {releases.length} {t(mode === 'unread' ? 'release.unread' : 'release.versions')}
               </p>
               <h2 id="release-notes-title" className="mt-2 font-headline text-2xl font-black uppercase italic leading-none text-on-surface">
-                {mode === 'unread' ? 'Novedades' : 'Historial'}
+                {t(mode === 'unread' ? 'release.news' : 'release.history')}
               </h2>
             </div>
           </div>
@@ -65,12 +69,12 @@ export const ReleaseNotesDialog = ({
                 <div className="flex items-end justify-between gap-4 px-1">
                   <div>
                     <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">
-                      Version {release.version}
+                      {t('common.version')} {release.version}
                     </p>
-                    <h3 className="mt-1 text-sm font-bold text-on-surface">{release.title}</h3>
+                    <h3 className="mt-1 text-sm font-bold text-on-surface">{getLocalizedReleaseText(language, release.title, release.titleEn)}</h3>
                   </div>
                   <time className="shrink-0 text-[9px] font-medium text-on-surface-variant/70">
-                    {formatAppDate(release.publishedAt, { year: 'numeric', month: '2-digit', day: '2-digit' })}
+                    {formatAppDate(release.publishedAt, { year: 'numeric', month: '2-digit', day: '2-digit' }, language)}
                   </time>
                 </div>
                 <div className="space-y-3">
@@ -82,8 +86,8 @@ export const ReleaseNotesDialog = ({
                       <div className="flex items-start gap-3">
                         <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" strokeWidth={2.6} />
                         <div>
-                          <h4 className="text-sm font-bold text-on-surface">{note.title}</h4>
-                          <p className="mt-1 text-xs leading-relaxed text-on-surface-variant">{note.description}</p>
+                          <h4 className="text-sm font-bold text-on-surface">{getLocalizedReleaseText(language, note.title, note.titleEn)}</h4>
+                          <p className="mt-1 text-xs leading-relaxed text-on-surface-variant">{getLocalizedReleaseText(language, note.description, note.descriptionEn)}</p>
                         </div>
                       </div>
                     </div>
@@ -98,10 +102,11 @@ export const ReleaseNotesDialog = ({
             onClick={onClose}
             className="mt-6 w-full rounded-xl bg-primary py-3 text-[11px] font-black uppercase tracking-[0.18em] text-black shadow-lg shadow-primary/15 transition-transform active:scale-[0.98]"
           >
-            Entendido
+            {t('release.understood')}
           </button>
         </motion.section>
       </div>
     )}
   </AnimatePresence>
-);
+  );
+};

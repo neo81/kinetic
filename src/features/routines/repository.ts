@@ -46,8 +46,7 @@ type RoutineDayInput = {
 
 type RepositoryNotice = {
   level: 'warning';
-  title: string;
-  message: string;
+  code: 'partialSync' | 'localSave';
 };
 
 let localRoutines: Routine[] = [];
@@ -240,8 +239,10 @@ const mapExercise = (
 ): Exercise => ({
   id: routineExercise.exercises?.id || routineExercise.exercise_id,
   name: routineExercise.exercises?.name || 'Ejercicio sin nombre',
-  description: (routineExercise.exercises as any)?.description || undefined,
-  muscleGroup: routineExercise.exercises?.muscle_groups?.name || 'Sin grupo',
+  nameEn: routineExercise.exercises?.name_en ?? undefined,
+  description: routineExercise.exercises?.description ?? undefined,
+  descriptionEn: routineExercise.exercises?.description_en ?? undefined,
+  muscleGroup: routineExercise.exercises?.muscle_groups?.name || '',
   muscleGroupCode: routineExercise.exercises?.muscle_groups?.code || undefined,
   measureUnit: (routineExercise as any).measure_unit || 'kg',
   loadType: (routineExercise as any).load_type || 'external',
@@ -495,7 +496,9 @@ const listSupabaseRoutines = async (): Promise<Routine[] | null> => {
             exercises (
               id,
               name,
+              name_en,
               description,
+              description_en,
               muscle_group_id,
               equipment,
               is_active,
@@ -680,7 +683,8 @@ const fetchCompletedSessions = async (userId: string): Promise<CompletedSession[
             position,
             notes,
             exercises (
-              name
+              name,
+              name_en
             ),
             session_set_logs (
               id,
@@ -745,7 +749,8 @@ const fetchCompletedSessions = async (userId: string): Promise<CompletedSession[
           .sort((left: any, right: any) => Number(left.position ?? 0) - Number(right.position ?? 0))
           .map((exercise: any) => ({
             id: exercise.id,
-            name: exercise.exercises?.name || 'Ejercicio sin nombre',
+            name: exercise.exercises?.name || '',
+            nameEn: exercise.exercises?.name_en ?? undefined,
             notes: exercise.notes ?? null,
             position: Number(exercise.position ?? 0),
             sets: [...(exercise.session_set_logs || [])]
@@ -766,6 +771,8 @@ const fetchCompletedSessions = async (userId: string): Promise<CompletedSession[
         return {
           id: dayLog.id,
           label: dayLabel,
+          dayType: dayLog.routine_days?.day_type === 'core' ? 'core' : 'weekday',
+          dayNumber: dayLog.routine_days?.day_number ?? null,
           exercises,
         };
       });
@@ -794,7 +801,7 @@ const fetchCompletedSessions = async (userId: string): Promise<CompletedSession[
 
       return {
         id: session.id,
-        routineName: session.routines?.name || 'Rutina sin nombre',
+        routineName: session.routines?.name || '',
         endedAt: endDate,
         startedAt: startDate,
         durationMs,
@@ -934,8 +941,7 @@ export const routinesRepository = {
       console.error('Fallo la sincronizacion remota, usando cache local:', error);
       setRepositoryNotice({
         level: 'warning',
-        title: 'Sincronizacion parcial',
-        message: 'No se pudo conectar al servidor. Se muestran datos locales.',
+        code: 'partialSync',
       });
     }
 
@@ -958,8 +964,7 @@ export const routinesRepository = {
       console.error('Fallo el guardado remoto, usando almacenamiento local:', error);
       setRepositoryNotice({
         level: 'warning',
-        title: 'Guardado local',
-        message: 'Se guardo en este dispositivo. Se sincronizara cuando haya conexion.',
+        code: 'localSave',
       });
     }
 

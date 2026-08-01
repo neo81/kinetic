@@ -278,10 +278,31 @@ Se mejoro la biblioteca de ejercicios y la lectura del progreso sin alterar la c
   - Se centralizaron los formatos de fechas, horas y numeros, eliminando las referencias directas a `es-AR` y `es-ES`.
   - Se normalizaron textos visibles a español neutral, incluyendo el uso de `serie` en lugar de `set`, tildes y mensajes sin voseo.
   - El documento HTML, el manifiesto PWA, las novedades locales y las novedades persistidas en Supabase quedaron alineados con la misma configuracion regional.
-  - Esta etapa no incorpora traducciones ni una interfaz en ingles.
+  - Se incorporo un contexto global de idioma con diccionarios tipados para `es-419` y `en`.
+  - El selector de Configuracion cambia inmediatamente la parte traducida, actualiza el idioma del documento y conserva la preferencia en `localStorage`.
+  - La preferencia se sincroniza con `user_preferences.language`; los valores heredados `es` se normalizaron a `es-419` y los nuevos usuarios reciben ese valor por defecto.
+  - Las RLS existentes mantienen cada preferencia limitada a su propietario.
+  - La primera cobertura incluye navegacion compartida, Configuracion, perfil, avatar, contenedor de novedades, avisos y diagnosticos de sincronizacion, junto con fechas, horas y numeros dependientes del idioma activo.
+  - La validacion de nombre de usuario expone codigos estables y la interfaz traduce el mensaje sin cambiar las reglas ni los datos guardados.
+  - El flujo de gestion de rutinas ya localiza el listado, creacion, edicion, dias, ordenamiento, confirmaciones y configuracion de series; los nombres propios guardados por el usuario permanecen intactos.
+  - La sesion activa ya localiza el detalle, seleccion de dias, temporizadores, agrupaciones, series planificadas y registradas, omisiones, confirmaciones y finalizacion sin alterar la logica de CORE ni los datos de entrenamiento.
+  - Los avisos globales de inicio, cancelacion, cola, error y guardado de una sesion ahora se generan con el idioma activo; Historial tambien localiza titulo, estados, metricas y detalle de series.
+  - Motor ya localiza buscador, mapa muscular, resultados, filtros, favoritos, detalle y administracion de ejercicios personalizados; los valores internos de filtros y Supabase permanecen estables.
+  - El catalogo de Supabase ahora admite `name_en` y `description_en` opcionales sin reemplazar el contenido canonico en espanol. Motor presenta el contenido segun el idioma activo, busca por ambos nombres y usa fallback al original para traducciones pendientes y ejercicios personalizados.
+  - Los 142 ejercicios globales activos cuentan con nombre ingles; Motor, el editor de rutinas, la sesion activa y el Historial usan la presentacion localizada sin reemplazar el nombre canonico.
+  - Las 54 entradas de abdomen, core y oblicuos cuentan con descripciones tecnicas revisadas en espanol e ingles: incluyen posicion inicial, ejecucion, control y errores basicos a evitar.
+  - Se aplico el mismo criterio tecnico y bilingue a 29 ejercicios de pectorales, hombros y triceps, reemplazando tambien las descripciones genericas que solo indicaban el musculo trabajado.
+  - Dorsales, biceps, trapecio y antebrazos suman otras 29 descripciones tecnicas bilingues, incluyendo las variantes de polea, remo con pecho apoyado y pullover que ya existian pero requerian uniformar su nivel de detalle.
+  - El bloque final incorpora 30 registros de cuadriceps, isquiotibiales, gluteos, abductores, aductores, pantorrillas y lumbares. Con esta revision, los 142 ejercicios globales activos disponen de nombre y descripcion tecnica completos en espanol e ingles.
+  - Historial deriva `Dia/Day N` desde `day_type` y `day_number`, por lo que las sesiones ya registradas cambian de idioma visualmente sin reescribir datos historicos.
+  - Las dos versiones publicadas y sus ocho novedades disponen de titulo y descripcion en ingles, tanto en Supabase como en el respaldo local. El dialogo selecciona el idioma activo y conserva fallback al contenido canonico en espanol para publicaciones futuras incompletas.
+  - Login, registro y Dashboard responden ahora al idioma activo. Los avisos de autenticacion, conexion, guardado local y operaciones sobre rutinas usan mensajes bilingues controlados en lugar de textos incrustados o errores tecnicos del servidor.
+  - El catalogo local de respaldo incorpora nombres ingleses para sus 28 ejercicios y localiza grupos musculares y equipamiento. El cambio es solo de presentacion: IDs y nombres canonicos en espanol permanecen estables para no afectar rutinas ni sincronizacion.
+  - La auditoria final localiza la pastilla de entrenamiento activo, estados vacios del Historial, tiempos de error y todo el flujo de importacion. Las advertencias de importacion usan codigos bilingues y conservan literalmente los nombres personalizados de rutinas, dias y ejercicios.
+  - El selector de idioma cambia toda la interfaz en un unico paso visual. La sincronizacion con Supabase ya no muestra una fase intermedia ni revierte la preferencia local si la conexion remota falla; cambiar las traducciones tampoco reinicia la suscripcion de autenticacion ni vuelve a cargar temporalmente la preferencia remota anterior.
 
 - Verificacion:
-  - La linea base queda en 86 pruebas aprobadas, TypeScript sin errores y build de produccion correcto.
+  - La linea base queda en 92 pruebas aprobadas, TypeScript sin errores y build de produccion correcto.
 
 ## Documentos consolidados
 

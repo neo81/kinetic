@@ -18,11 +18,14 @@ export const releaseNotesRepository = {
         .select(`
           version,
           title,
+          title_en,
           published_at,
           app_release_notes (
             position,
             title,
-            description
+            title_en,
+            description,
+            description_en
           )
         `)
         .eq('is_published', true)
@@ -39,12 +42,15 @@ export const releaseNotesRepository = {
     const releases: AppRelease[] = (releasesResult.data ?? []).map((release) => ({
       version: release.version,
       title: release.title,
+      titleEn: release.title_en ?? undefined,
       publishedAt: release.published_at,
       notes: [...(release.app_release_notes ?? [])]
         .sort((a, b) => a.position - b.position)
         .map((note) => ({
           title: note.title,
+          titleEn: note.title_en ?? undefined,
           description: note.description,
+          descriptionEn: note.description_en ?? undefined,
         })),
     }));
 

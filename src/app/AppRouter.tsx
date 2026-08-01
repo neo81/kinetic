@@ -1,5 +1,6 @@
 import type { ActiveSession, Exercise, Routine, UserProfile, View } from '../types';
 import type { ResolvedTheme, ThemePreference } from '../theme/theme';
+import type { AppLanguage } from '../i18n/translations';
 import { DashboardView } from '../views/DashboardView';
 import { ExerciseEditorView } from '../views/ExerciseEditorView';
 import { ExerciseListView } from '../views/ExerciseListView';
@@ -66,6 +67,7 @@ type AppRouterProps = {
   themePreference: ThemePreference;
   resolvedTheme: ResolvedTheme;
   onThemeChange: (theme: ThemePreference) => Promise<void>;
+  onLanguageChange: (language: AppLanguage) => Promise<void>;
   onOpenReleaseNotes: () => void;
 };
 
@@ -115,6 +117,7 @@ export const AppRouter = ({
   themePreference,
   resolvedTheme,
   onThemeChange,
+  onLanguageChange,
   onOpenReleaseNotes,
 }: AppRouterProps) => {
   switch (view) {
@@ -258,6 +261,7 @@ export const AppRouter = ({
           themePreference={themePreference}
           resolvedTheme={resolvedTheme}
           onThemeChange={onThemeChange}
+          onLanguageChange={onLanguageChange}
           onOpenReleaseNotes={onOpenReleaseNotes}
         />
       );

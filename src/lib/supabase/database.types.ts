@@ -18,26 +18,32 @@ export type Database = {
         Row: {
           created_at: string
           description: string
+          description_en: string | null
           id: string
           position: number
           release_version: string
           title: string
+          title_en: string | null
         }
         Insert: {
           created_at?: string
           description: string
+          description_en?: string | null
           id?: string
           position: number
           release_version: string
           title: string
+          title_en?: string | null
         }
         Update: {
           created_at?: string
           description?: string
+          description_en?: string | null
           id?: string
           position?: number
           release_version?: string
           title?: string
+          title_en?: string | null
         }
         Relationships: [
           {
@@ -55,6 +61,7 @@ export type Database = {
           is_published: boolean
           published_at: string
           title: string
+          title_en: string | null
           version: string
         }
         Insert: {
@@ -62,6 +69,7 @@ export type Database = {
           is_published?: boolean
           published_at: string
           title: string
+          title_en?: string | null
           version: string
         }
         Update: {
@@ -69,6 +77,7 @@ export type Database = {
           is_published?: boolean
           published_at?: string
           title?: string
+          title_en?: string | null
           version?: string
         }
         Relationships: []
@@ -176,31 +185,37 @@ export type Database = {
         Row: {
           created_at: string
           description: string | null
+          description_en: string | null
           equipment: string | null
           id: string
           is_active: boolean
           muscle_group_id: number
           name: string
+          name_en: string | null
           user_id: string | null
         }
         Insert: {
           created_at?: string
           description?: string | null
+          description_en?: string | null
           equipment?: string | null
           id?: string
           is_active?: boolean
           muscle_group_id: number
           name: string
+          name_en?: string | null
           user_id?: string | null
         }
         Update: {
           created_at?: string
           description?: string | null
+          description_en?: string | null
           equipment?: string | null
           id?: string
           is_active?: boolean
           muscle_group_id?: number
           name?: string
+          name_en?: string | null
           user_id?: string | null
         }
         Relationships: [

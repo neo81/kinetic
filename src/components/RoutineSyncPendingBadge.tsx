@@ -1,4 +1,5 @@
 import { CloudOff, CloudCheck, AlertCircle, Loader2 } from 'lucide-react';
+import { useLanguage } from '../i18n/LanguageContext';
 
 type RoutineSyncPendingBadgeProps = {
   className?: string;
@@ -13,6 +14,7 @@ export const RoutineSyncPendingBadge = ({
   attemptCount = 0,
   maxAttempts = 5,
 }: RoutineSyncPendingBadgeProps) => {
+  const { t } = useLanguage();
   const bgColorClass = {
     pending: 'bg-secondary/12 border-secondary/50 text-secondary',
     syncing: 'bg-info/12 border-info/50 text-info',
@@ -30,15 +32,15 @@ export const RoutineSyncPendingBadge = ({
   const shouldShowAttempts = status !== 'syncing' && attemptCount > 0;
 
   const statusText = {
-    pending: 'Sin sincronizar',
-    syncing: 'Sincronizando...',
-    error: 'Fallo al sincronizar',
+    pending: t('sync.notSynced'),
+    syncing: t('common.syncing'),
+    error: t('sync.failed'),
   }[status];
 
   return (
     <span
       role="status"
-      title={`Estado: ${statusText}${shouldShowAttempts ? ` (Intento ${attemptCount} de ${maxAttempts})` : ''}`}
+      title={`${t('sync.statusTitle')}: ${statusText}${shouldShowAttempts ? ` (${attemptCount}/${maxAttempts} ${t(attemptCount === 1 ? 'sync.attempt' : 'sync.attempts')})` : ''}`}
       className={`inline-flex max-w-full shrink-0 items-center gap-1.5 rounded-full border ${bgColorClass} px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.16em] sm:text-[9px] sm:tracking-[0.18em] transition-colors`.trim()}
     >
       <Icon

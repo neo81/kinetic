@@ -4,6 +4,8 @@ import { ArrowLeft, ArrowRight, Info, Plus, Trash2 } from 'lucide-react';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 import { PageShell } from '../components/layout/PageShell';
 import type { Exercise, ExerciseLoadType, ExerciseTargetType, UserProfile, View } from '../types';
+import { useLanguage } from '../i18n/LanguageContext';
+import { getExerciseDisplayDescription, getExerciseDisplayName } from '../i18n/exerciseLocalization';
 
 type EditableSet = {
   id: string;
@@ -27,6 +29,7 @@ export const ExerciseEditorView = ({
   onBack: () => void;
   profile?: UserProfile | null;
 }) => {
+  const { language, t } = useLanguage();
   const prefersReducedMotion = useReducedMotion();
   const normalizeInput = (value: string) => value.replace(',', '.');
   const getSetMetricValue = (
@@ -196,14 +199,14 @@ export const ExerciseEditorView = ({
         contentClassName="pb-8"
       >
         <section className="space-y-6 text-center">
-          <h2 className="font-headline text-[2.4rem] font-semibold uppercase text-on-surface">Sin ejercicio seleccionado</h2>
-          <p className="text-sm text-on-surface-variant">Selecciona un ejercicio desde la biblioteca para comenzar a cargar series.</p>
+          <h2 className="font-headline text-[2.4rem] font-semibold uppercase text-on-surface">{t('exerciseEditor.none')}</h2>
+          <p className="text-sm text-on-surface-variant">{t('exerciseEditor.noneHint')}</p>
         </section>
       </PageShell>
     );
   }
 
-  const metricLabel = unit === 'kg' ? 'Peso' : unit === 'min' ? 'Minutos' : 'Segundos';
+  const metricLabel = unit === 'kg' ? t('exerciseEditor.weight') : unit === 'min' ? t('exerciseEditor.minutes') : t('exerciseEditor.seconds');
   const metricHint = unit === 'kg' ? 'kg' : unit === 'min' ? 'min' : 'seg';
 
   return (
@@ -220,16 +223,16 @@ export const ExerciseEditorView = ({
           <div className="theme-muted-surface flex h-8 w-8 items-center justify-center rounded-full transition-all group-hover:bg-primary/20">
             <ArrowLeft size={16} strokeWidth={2.5} />
           </div>
-          <span className="font-headline text-[0.72rem] font-black uppercase italic tracking-[0.22em]">Volver</span>
+          <span className="font-headline text-[0.72rem] font-black uppercase italic tracking-[0.22em]">{t('exerciseEditor.back')}</span>
         </button>
 
         <header className="space-y-3">
           <div className="flex items-center gap-3">
             <div className="h-1.5 w-12 rounded-full bg-secondary/80"></div>
-            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-on-surface-variant/40">SESIÓN ACTIVA</span>
+            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-on-surface-variant/40">{t('exerciseEditor.activeSession')}</span>
           </div>
           <h1 className="font-headline text-[3.2rem] font-bold uppercase italic leading-none tracking-tight text-primary">
-            Editor
+            {t('exerciseEditor.title')}
           </h1>
         </header>
       </section>
@@ -237,8 +240,8 @@ export const ExerciseEditorView = ({
       <section className="mb-6 rounded-[1.2rem] border theme-hairline-border bg-surface-container-low p-5 shadow-xl">
         <div className="mb-4 flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <p className="mb-1 text-[10px] uppercase tracking-[0.16em] text-on-surface-variant">Ejercicio actual</p>
-            <h2 className="line-clamp-2 text-[1.85rem] font-semibold leading-tight text-on-surface">{exercise.name}</h2>
+            <p className="mb-1 text-[10px] uppercase tracking-[0.16em] text-on-surface-variant">{t('exerciseEditor.current')}</p>
+            <h2 className="line-clamp-2 text-[1.85rem] font-semibold leading-tight text-on-surface">{getExerciseDisplayName(exercise, language)}</h2>
           </div>
           <button 
             onClick={() => setShowDescription(!showDescription)} 
@@ -259,7 +262,7 @@ export const ExerciseEditorView = ({
               className="mb-4 overflow-hidden"
             >
               <div className="text-sm text-on-surface-variant border-l-2 border-primary/30 pl-3 py-2 font-medium leading-relaxed bg-primary/5 rounded-r-lg">
-                {exercise.description || 'Este ejercicio no tiene descripción técnica disponible.'}
+                {getExerciseDisplayDescription(exercise, language) || t('exerciseEditor.noDescription')}
               </div>
             </motion.div>
           )}
@@ -279,16 +282,16 @@ export const ExerciseEditorView = ({
                 unit === item ? 'bg-primary text-black' : 'bg-surface-container-highest text-on-surface-variant hover:text-on-surface'
               }`}
             >
-              {item === 'sec' ? 'seg' : item}
+              {item === 'sec' ? t('exerciseEditor.secondsShort') : item}
             </button>
           ))}
         </div>
         {unit === 'kg' && (
           <div className="mt-3 flex items-center justify-between gap-3 rounded-[0.85rem] bg-surface-container-highest px-3 py-2">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-on-surface-variant">Peso corporal</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-on-surface-variant">{t('exerciseEditor.bodyweight')}</p>
               <p className="mt-0.5 text-[9px] text-on-surface-variant/60">
-                {profile?.bodyWeightKg ? `${profile.bodyWeightKg} kg desde perfil` : 'Usa el peso registrado en perfil'}
+                {profile?.bodyWeightKg ? `${profile.bodyWeightKg} ${t('exerciseEditor.bodyweightFromProfile')}` : t('exerciseEditor.bodyweightHint')}
               </p>
             </div>
             <button
@@ -309,7 +312,7 @@ export const ExerciseEditorView = ({
 
       <section className="space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-[11px] font-bold uppercase tracking-[0.3em] text-secondary">Series de trabajo</h3>
+          <h3 className="text-[11px] font-bold uppercase tracking-[0.3em] text-secondary">{t('exerciseEditor.workSets')}</h3>
           <div className="flex gap-1.5">
             {sets.slice(0, 3).map((set, index) => (
               <div key={set.id} className={`h-3 w-1 rounded-full ${index < sets.length ? 'bg-primary' : 'bg-surface-container-highest'}`}></div>
@@ -318,8 +321,8 @@ export const ExerciseEditorView = ({
         </div>
 
         <div className="grid grid-cols-[2rem_minmax(5.25rem,1.05fr)_minmax(4.5rem,0.95fr)_2rem] gap-1.5 px-2 sm:grid-cols-[2.5rem_minmax(0,1fr)_minmax(0,1fr)_2.25rem] sm:gap-2">
-          <span className="text-[9px] uppercase tracking-widest text-on-surface-variant">Serie</span>
-          <span className="text-center text-[9px] uppercase tracking-widest text-on-surface-variant">Reps</span>
+          <span className="text-[9px] uppercase tracking-widest text-on-surface-variant">{t('exerciseEditor.set')}</span>
+          <span className="text-center text-[9px] uppercase tracking-widest text-on-surface-variant">{t('exerciseEditor.reps')}</span>
           <span className="text-center text-[9px] uppercase tracking-widest text-on-surface-variant">{metricLabel}</span>
           <span></span>
         </div>
@@ -344,7 +347,7 @@ export const ExerciseEditorView = ({
                       set.targetType === 'fixed_reps' ? 'bg-primary text-black' : 'text-on-surface-variant'
                     }`}
                   >
-                    Reps
+                    {t('exerciseEditor.reps')}
                   </button>
                   <button
                     type="button"
@@ -353,12 +356,12 @@ export const ExerciseEditorView = ({
                       set.targetType === 'failure' ? 'bg-secondary text-black' : 'text-on-surface-variant'
                     }`}
                   >
-                    Fallo
+                    {t('exerciseEditor.failure')}
                   </button>
                 </div>
                 {set.targetType === 'failure' ? (
                   <div className="flex h-11 w-full items-center justify-center rounded-lg border border-secondary/30 bg-secondary/10 text-center font-headline text-xs font-semibold uppercase tracking-[0.12em] text-secondary">
-                    Al fallo
+                    {t('exerciseEditor.toFailure')}
                   </div>
                 ) : (
                   <input
@@ -375,7 +378,7 @@ export const ExerciseEditorView = ({
               <div className="relative min-w-0">
                 {unit === 'kg' && loadType === 'bodyweight' ? (
                   <div className="flex h-[5rem] w-full items-center justify-center rounded-lg border border-primary/25 bg-primary/10 text-center font-headline text-[10px] font-semibold uppercase tracking-[0.12em] text-primary">
-                    Corporal
+                    {t('exerciseEditor.bodyweightShort')}
                   </div>
                 ) : (
                   <>
@@ -415,18 +418,18 @@ export const ExerciseEditorView = ({
         >
           <span className="flex items-center justify-center gap-2 text-[11px] font-bold uppercase tracking-[0.2em]">
             <Plus size={16} strokeWidth={2.7} />
-            Anadir serie
+            {t('exerciseEditor.addSet')}
           </span>
         </button>
 
         <div className="rounded-xl border theme-hairline-border bg-surface-container-highest/20 p-4">
           <div className="mb-2 flex items-center gap-2">
-            <span className="text-[9px] uppercase tracking-widest text-secondary font-bold">Notas de entrenamiento</span>
+            <span className="text-[9px] uppercase tracking-widest text-secondary font-bold">{t('exerciseEditor.notes')}</span>
           </div>
           <textarea
             value={localNotes}
             onChange={(e) => setLocalNotes(e.target.value)}
-            placeholder="Escribe observaciones de la serie o del ejercicio."
+            placeholder={t('exerciseEditor.notesPlaceholder')}
             className="h-16 w-full resize-none border-none bg-transparent p-0 text-sm text-on-surface-variant placeholder:text-outline-variant/40 focus:ring-0"
           />
         </div>
@@ -437,7 +440,7 @@ export const ExerciseEditorView = ({
           className="neon-button theme-primary-shadow-strong mt-6 flex w-full items-center justify-center gap-3 rounded-2xl py-5 text-black transition-all active:scale-[0.98] disabled:cursor-wait disabled:opacity-65"
         >
           <span className="font-headline text-lg font-bold uppercase tracking-tight">
-            {isSaving ? 'Guardando...' : 'Guardar ejercicio'}
+            {isSaving ? t('exerciseEditor.saving') : t('exerciseEditor.save')}
           </span>
           <ArrowRight size={20} strokeWidth={2.8} />
         </button>

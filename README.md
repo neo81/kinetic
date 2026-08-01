@@ -74,7 +74,11 @@ Mapas anatómicos interactivos (Frontal y Posterior) que proporcionan una interf
 - **Transiciones suavizadas**: Ajustes para evitar pantallazos negros y cortes duros en iOS/Android PWA.
 - **Selector muscular optimizado**: Precarga de imágenes frontal/posterior y regreso respetando la vista activa.
 - **Iconografía PWA renovada**: Iconos de app, favicon y Apple Touch generados desde la imagen base corregida.
-- **Español latinoamericano**: La interfaz, las fechas, los números y los metadatos PWA usan una configuración regional centralizada `es-419`.
+- **Idioma persistente**: La configuración permite alternar entre Español e Inglés sin recargar; la preferencia se guarda localmente y se sincroniza con Supabase. Ya están localizados el acceso y registro, Dashboard, navegación compartida, Configuración, perfil, avatar, novedades históricas, avisos, diagnósticos, rutinas, sesión activa, Historial y la interfaz completa de Motor.
+- **Catálogo bilingüe completo**: Supabase conserva el nombre y la descripción canónicos en español y dispone de sus equivalentes en inglés. Los 142 ejercicios globales activos tienen nombre y descripción técnica en ambos idiomas; Motor, el editor de rutinas, la sesión activa y el Historial presentan el contenido localizado sin modificar los datos canónicos.
+- **Respaldo offline localizado**: Los 28 ejercicios incluidos en el catálogo local de emergencia conservan su identidad canónica en español y muestran nombres, grupos musculares y equipamiento en inglés cuando ese idioma está activo.
+- **Contenido personalizado preservado**: Los nombres escritos por el usuario para rutinas, días y ejercicios no se traducen ni se modifican. Solo se localizan las etiquetas, mensajes y valores de respaldo generados por la aplicación.
+- **Historial localizado por estructura**: Los días registrados se presentan como `Día/Day N` según el idioma activo a partir de su tipo y número; no se depende del título español persistido ni se reescriben sesiones anteriores.
 
 ## 🛠 Tech Stack
 

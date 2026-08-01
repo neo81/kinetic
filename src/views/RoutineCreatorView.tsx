@@ -8,6 +8,8 @@ import { useReducedMotion } from '../hooks/useReducedMotion';
 import { PageShell } from '../components/layout/PageShell';
 import { ConfirmDialog } from '../components/layout/ConfirmDialog';
 import type { Routine, View, Exercise, RoutineDayExercise, UserProfile } from '../types';
+import { useLanguage } from '../i18n/LanguageContext';
+import { getExerciseDisplayName } from '../i18n/exerciseLocalization';
 
 const SortableExerciseCard = ({
   dayId,
@@ -28,6 +30,8 @@ const SortableExerciseCard = ({
   onEdit: () => void;
   onDelete: () => void;
 }) => {
+  const { language, t } = useLanguage();
+  const exerciseName = getExerciseDisplayName(item.exercise, language);
   const { ref, handleRef, isDragging } = useSortable({
     id: item.id,
     index,
@@ -52,17 +56,17 @@ const SortableExerciseCard = ({
         type="button"
         disabled={disabled}
         className="mr-2 flex h-11 w-9 shrink-0 touch-none cursor-grab items-center justify-center rounded-xl text-on-surface-variant transition-colors hover:bg-primary/10 hover:text-primary active:cursor-grabbing disabled:cursor-wait disabled:opacity-35"
-        title="Arrastrar para cambiar el orden"
-        aria-label={`Mover ${item.exercise.name}`}
+        title={t('routines.dragToReorder')}
+        aria-label={`${t('routines.move')} ${exerciseName}`}
       >
         <GripVertical size={20} strokeWidth={2.4} />
       </button>
 
       <div className="min-w-0 flex-1 pr-3">
-        <div className="truncate text-[0.9rem] font-bold tracking-tight text-on-surface">{item.exercise.name}</div>
+        <div className="truncate text-[0.9rem] font-bold tracking-tight text-on-surface">{exerciseName}</div>
         <div className="mt-1 flex items-center gap-2">
           <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[0.62rem] font-black uppercase tracking-[0.15em] text-primary">
-            {item.exercise.sets.length} Series
+            {item.exercise.sets.length} {t(item.exercise.sets.length === 1 ? 'routines.setSingular' : 'routines.setPlural')}
           </span>
           <span className="theme-muted-surface h-1 w-1 rounded-full" />
           <span className="text-[0.65rem] font-medium italic text-on-surface-variant">
@@ -78,8 +82,8 @@ const SortableExerciseCard = ({
             onClick={() => onMove(index, index - 1)}
             disabled={disabled || index === 0}
             className="flex h-5 w-7 items-center justify-center rounded-t-md bg-surface-container-highest text-on-surface-variant transition-colors hover:bg-primary hover:text-black disabled:cursor-not-allowed disabled:opacity-25"
-            title="Subir ejercicio"
-            aria-label={`Subir ${item.exercise.name}`}
+            title={t('routines.moveUp')}
+            aria-label={`${t('routines.moveUp')}: ${exerciseName}`}
           >
             <ChevronUp size={14} strokeWidth={3} />
           </button>
@@ -88,8 +92,8 @@ const SortableExerciseCard = ({
             onClick={() => onMove(index, index + 1)}
             disabled={disabled || index === total - 1}
             className="mt-px flex h-5 w-7 items-center justify-center rounded-b-md bg-surface-container-highest text-on-surface-variant transition-colors hover:bg-primary hover:text-black disabled:cursor-not-allowed disabled:opacity-25"
-            title="Bajar ejercicio"
-            aria-label={`Bajar ${item.exercise.name}`}
+            title={t('routines.moveDown')}
+            aria-label={`${t('routines.moveDown')}: ${exerciseName}`}
           >
             <ChevronDown size={14} strokeWidth={3} />
           </button>
@@ -99,7 +103,7 @@ const SortableExerciseCard = ({
           onClick={onEdit}
           disabled={disabled}
           className="flex h-10 w-10 items-center justify-center rounded-xl bg-surface-container-highest text-on-surface-variant transition-all hover:bg-primary hover:text-black active:scale-90 disabled:opacity-35"
-          title="Editar"
+          title={t('routines.edit')}
         >
           <Edit2 size={15} strokeWidth={2.5} />
         </button>
@@ -108,7 +112,7 @@ const SortableExerciseCard = ({
           onClick={onDelete}
           disabled={disabled}
           className="flex h-10 w-10 items-center justify-center rounded-xl bg-surface-container-highest text-on-surface-variant transition-all hover:bg-red-500 hover:text-white active:scale-90 disabled:opacity-35"
-          title="Eliminar"
+          title={t('routines.delete')}
         >
           <Trash2 size={15} strokeWidth={2.5} />
         </button>
@@ -146,6 +150,7 @@ export const RoutineCreatorView = ({
   setNavigationSource: (view: View) => void;
   profile?: UserProfile | null;
 }) => {
+  const { t } = useLanguage();
   const prefersReducedMotion = useReducedMotion();
   const [name, setName] = useState(currentRoutine?.name || '');
   
@@ -159,7 +164,12 @@ export const RoutineCreatorView = ({
     (selectedRoutineDayId && d.id === selectedRoutineDayId)
   );
 
-  const [errorMsg, setErrorMsg] = useState('');
+  const [errorCode, setErrorCode] = useState<'name' | 'exercise' | null>(null);
+  const errorMsg = errorCode === 'name'
+    ? t('routines.nameRequired')
+    : errorCode === 'exercise'
+      ? t('routines.exerciseRequired')
+      : '';
   const [itemToTrash, setItemToTrash] = useState<{ type: 'day' | 'exercise'; id: string } | null>(null);
   const [isReordering, setIsReordering] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -171,7 +181,7 @@ export const RoutineCreatorView = ({
   useEffect(() => {
     setName(currentRoutine?.name || '');
     setLocalActiveDayNum(null);
-    setErrorMsg('');
+    setErrorCode(null);
     setItemToTrash(null);
   }, [currentRoutine?.id]);
 
@@ -198,8 +208,8 @@ export const RoutineCreatorView = ({
       onSelectRoutineDay(null);
     }
     // Solo limpiar errores de validación de días/ejercicios, no el de nombre si está vacío
-    if (errorMsg.includes('día') || errorMsg.includes('ejercicio') || errorMsg.includes('CORE')) {
-      setErrorMsg('');
+    if (errorCode === 'exercise') {
+      setErrorCode(null);
     }
   };
 
@@ -267,14 +277,14 @@ export const RoutineCreatorView = ({
 
   const handleGlobalSave = async () => {
     if (!name.trim()) {
-      setErrorMsg('Ingresa un nombre para tu rutina');
+      setErrorCode('name');
       window.scrollTo(0, 0);
       return;
     }
     const totalExercises = orderedDayEntries.reduce((acc, day) => acc + (day.exercises ?? []).length, 0);
     
     if (totalExercises === 0) {
-      setErrorMsg('Carga al menos un ejercicio para guardar tu rutina');
+      setErrorCode('exercise');
       const gridSection = document.getElementById('day-grid-section');
       if (gridSection) {
         gridSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -282,7 +292,7 @@ export const RoutineCreatorView = ({
       return;
     }
     
-    setErrorMsg('');
+    setErrorCode(null);
     setIsSaving(true);
 
     try {
@@ -314,21 +324,21 @@ export const RoutineCreatorView = ({
             <div className="theme-muted-surface flex h-8 w-8 items-center justify-center rounded-full transition-all group-hover:bg-primary/20">
               <ArrowLeft size={16} strokeWidth={2.5} />
             </div>
-            <span className="font-headline text-[0.72rem] font-black uppercase italic tracking-[0.22em]">Cancelar</span>
+            <span className="font-headline text-[0.72rem] font-black uppercase italic tracking-[0.22em]">{t('routines.cancel')}</span>
           </button>
 
           <header className="space-y-3">
              <div className="flex items-center gap-3">
                <div className="h-1.5 w-12 rounded-full bg-primary/80"></div>
-               <span className="text-[10px] font-black uppercase tracking-[0.4em] text-on-surface-variant/40">CONFIGURACIÓN DE PLAN</span>
+               <span className="text-[10px] font-black uppercase tracking-[0.4em] text-on-surface-variant/40">{t('routines.planSetup')}</span>
              </div>
              <h1 className="font-headline text-[3.2rem] font-bold uppercase italic leading-none tracking-tight text-on-surface">
-                {currentRoutine ? 'Editar rutina' : 'Nueva rutina'}
+                {currentRoutine ? t('routines.editRoutine') : t('routines.newRoutine')}
              </h1>
           </header>
           <div className="space-y-3">
             <label className="block text-[0.62rem] font-bold uppercase tracking-[0.22em] text-on-surface-variant">
-              Nombre de la rutina
+              {t('routines.name')}
             </label>
             {errorMsg && !name.trim() && (
               <motion.p initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="text-[0.62rem] font-bold uppercase tracking-widest text-secondary">
@@ -340,12 +350,12 @@ export const RoutineCreatorView = ({
                 value={name}
                 onChange={(e) => {
                   setName(e.target.value);
-                  setErrorMsg('');
+                  setErrorCode(null);
                 }}
                 className={`w-full rounded-[0.95rem] border bg-surface-container-highest px-4 py-4 text-base text-on-surface outline-none transition-all placeholder:text-on-surface-variant/45 focus:ring-2 focus:ring-primary/15 ${
                   errorMsg && !name.trim() ? 'border-secondary/50 focus:border-secondary' : 'border-transparent focus:border-primary/30'
                 }`}
-                placeholder="Ej. Hipertrofia A"
+                placeholder={t('routines.namePlaceholder')}
                 type="text"
               />
               <div className={`absolute bottom-0 left-0 h-0.5 w-0 rounded-full transition-all duration-300 group-focus-within:w-full ${errorMsg && !name.trim() ? 'bg-secondary' : 'bg-primary'}`}></div>
@@ -355,11 +365,11 @@ export const RoutineCreatorView = ({
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <label className="block text-[0.62rem] font-bold uppercase tracking-[0.22em] text-on-surface-variant">
-                1. Selecciona el número de día
+                {t('routines.selectDay')}
               </label>
-              {errorMsg.includes('ejercicio') && (
+              {errorCode === 'exercise' && (
                 <motion.span initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="text-[0.62rem] font-bold uppercase tracking-widest text-secondary">
-                  ¡Añade al menos un ejercicio!
+                  {t('routines.addExerciseRequired')}
                 </motion.span>
               )}
             </div>
@@ -377,7 +387,7 @@ export const RoutineCreatorView = ({
                         : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high'
                     }`}
                   >
-                    <span className="block text-[0.58rem] font-bold uppercase tracking-[0.08em] opacity-70">Dia</span>
+                    <span className="block text-[0.58rem] font-bold uppercase tracking-[0.08em] opacity-70">{t('routines.day')}</span>
                     <span className="mt-1 block font-headline text-[1.75rem] font-semibold leading-none">{num}</span>
                   </button>
                 );
@@ -391,7 +401,7 @@ export const RoutineCreatorView = ({
                     : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high'
                 }`}
               >
-                <span className="block text-[0.58rem] font-bold uppercase tracking-[0.08em] opacity-70">Focus</span>
+                <span className="block text-[0.58rem] font-bold uppercase tracking-[0.08em] opacity-70">{t('routines.focus')}</span>
                 <span className="mt-1 block font-headline text-[1.3rem] font-semibold leading-none text-center">CORE</span>
               </button>
             </div>
@@ -400,7 +410,7 @@ export const RoutineCreatorView = ({
           {orderedDayEntries.length > 0 && (
             <div className="space-y-4">
               <label className="block text-[0.62rem] font-bold uppercase tracking-[0.22em] text-on-surface-variant">
-                Días de tu rutina
+                {t('routines.yourDays')}
               </label>
               <div className="grid grid-cols-2 gap-3">
                 {orderedDayEntries.map((day) => {
@@ -419,13 +429,13 @@ export const RoutineCreatorView = ({
                         }`}
                       >
                         <div className="text-[0.55rem] font-bold uppercase tracking-[0.16em] opacity-80">
-                          {day.dayType === 'core' ? 'Core' : `Día ${day.dayNumber}`}
+                          {day.dayType === 'core' ? 'Core' : `${t('routines.day')} ${day.dayNumber}`}
                         </div>
                         <div className="mt-1 font-headline text-[1.2rem] font-semibold uppercase leading-tight truncate">
                           {day.title}
                         </div>
                         <div className="mt-1 text-[0.6rem] uppercase tracking-[0.14em] opacity-80">
-                          {day.exercises.length} ejercicios
+                          {day.exercises.length} {t(day.exercises.length === 1 ? 'routines.exerciseSingular' : 'routines.exercisePlural')}
                         </div>
                       </button>
                       <button 
@@ -434,7 +444,7 @@ export const RoutineCreatorView = ({
                           setItemToTrash({ type: 'day', id: day.id });
                         }}
                         className="absolute -right-1 -top-1 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-red-500 text-white shadow-xl transition-all hover:scale-110 active:scale-95"
-                        title="Eliminar día"
+                        title={t('routines.deleteDay')}
                       >
                         <Trash2 size={13} />
                       </button>
@@ -450,11 +460,11 @@ export const RoutineCreatorView = ({
               <section className="rounded-[1.2rem] border theme-hairline-border bg-surface-container-low/40 p-5 space-y-4">
                 <div className="flex items-center justify-between">
                   <label className="block text-[0.62rem] font-bold uppercase tracking-[0.22em] text-on-surface-variant">
-                    Ejercicios de {localActiveDayNum === 'core' ? 'CORE' : `Día ${localActiveDayNum}`}
+                    {t('routines.exercisesOf')} {localActiveDayNum === 'core' ? 'CORE' : `${t('routines.day')} ${localActiveDayNum}`}
                   </label>
                   {activeDayEntry && (
                     <span className="text-[0.62rem] font-bold text-primary px-2 py-0.5 rounded bg-primary/10 uppercase tracking-widest">
-                      {(activeDayEntry.exercises ?? []).length} ejercicios
+                      {(activeDayEntry.exercises ?? []).length} {t((activeDayEntry.exercises ?? []).length === 1 ? 'routines.exerciseSingular' : 'routines.exercisePlural')}
                     </span>
                   )}
                 </div>
@@ -490,7 +500,7 @@ export const RoutineCreatorView = ({
                           className="rounded-[1rem] border border-dashed theme-hairline-border px-4 py-10 text-center"
                         >
                           <p className="text-[0.65rem] font-bold uppercase tracking-[0.2em] text-on-surface-variant/40">
-                            Todavía no hay ejercicios cargados
+                            {t('routines.noExercises')}
                           </p>
                         </motion.div>
                       )}
@@ -501,17 +511,17 @@ export const RoutineCreatorView = ({
                 <button
                   onClick={handleAddExerciseClick}
                   className={`w-full mt-2 rounded-[0.95rem] border border-dashed px-4 py-4 transition-all active:scale-[0.98] hover:bg-primary/10 group ${
-                    errorMsg.includes('no tiene ejercicios') ? 'border-secondary bg-secondary/5' : 'border-primary/30 bg-primary/5'
+                    errorCode === 'exercise' ? 'border-secondary bg-secondary/5' : 'border-primary/30 bg-primary/5'
                   }`}
                 >
                   <div className="flex items-center justify-center gap-2">
-                    <Plus size={16} className={`${errorMsg.includes('no tiene ejercicios') ? 'text-secondary' : 'text-primary'} transition-transform group-hover:rotate-90`} />
-                    <span className={`text-[0.72rem] font-bold uppercase tracking-[0.16em] ${errorMsg.includes('no tiene ejercicios') ? 'text-secondary' : 'text-primary'}`}>
-                      Añadir ejercicio a {localActiveDayNum === 'core' ? 'CORE' : `Día ${localActiveDayNum}`}
+                    <Plus size={16} className={`${errorCode === 'exercise' ? 'text-secondary' : 'text-primary'} transition-transform group-hover:rotate-90`} />
+                    <span className={`text-[0.72rem] font-bold uppercase tracking-[0.16em] ${errorCode === 'exercise' ? 'text-secondary' : 'text-primary'}`}>
+                      {t('routines.addExerciseTo')} {localActiveDayNum === 'core' ? 'CORE' : `${t('routines.day')} ${localActiveDayNum}`}
                     </span>
                   </div>
                 </button>
-                {errorMsg.includes('no tiene ejercicios') && (
+                {errorCode === 'exercise' && (
                   <motion.p 
                     initial={{ opacity: 0, y: -5 }} 
                     animate={{ opacity: 1, y: 0 }} 
@@ -532,7 +542,7 @@ export const RoutineCreatorView = ({
               className="neon-button flex w-full items-center justify-center gap-3 rounded-[1.2rem] py-5 shadow-[0_20px_50px_rgba(212,255,0,0.25)] transition-all active:scale-[0.97] disabled:cursor-wait disabled:opacity-60"
             >
               <span className="font-headline text-[1.1rem] font-bold uppercase tracking-[0.15em] text-black">
-                {isSaving ? 'Guardando…' : 'Guardar Rutina'}
+                {isSaving ? t('routines.saving') : t('routines.save')}
               </span>
               <ArrowRight size={20} strokeWidth={3} className="text-black" />
             </button>
@@ -541,12 +551,12 @@ export const RoutineCreatorView = ({
 
         <ConfirmDialog
           isOpen={!!itemToTrash}
-          title={itemToTrash?.type === 'day' ? "Eliminar Día" : "Eliminar Ejercicio"}
+          title={itemToTrash?.type === 'day' ? t('routines.deleteDay') : t('routines.deleteExercise')}
           message={itemToTrash?.type === 'day' 
-            ? `¿Confirma que desea borrar este día y todos sus ejercicios?`
-            : `¿Confirma que desea quitar este ejercicio del día?`}
-          confirmText="Eliminar"
-          cancelText="Cancelar"
+            ? t('routines.deleteDayConfirm')
+            : t('routines.deleteExerciseConfirm')}
+          confirmText={t('routines.delete')}
+          cancelText={t('common.cancel')}
           variant="danger"
           onConfirm={() => {
             if (itemToTrash) {

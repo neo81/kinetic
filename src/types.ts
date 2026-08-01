@@ -38,7 +38,9 @@ export interface ExerciseSet {
 export interface Exercise {
   id: string;
   name: string;
+  nameEn?: string;
   description?: string;
+  descriptionEn?: string;
   muscleGroup: string;
   muscleGroupCode?: string;
   muscle?: string;
@@ -185,12 +187,15 @@ export interface CompletedSession {
 export interface CompletedSessionDay {
   id: string;
   label: string;
+  dayType: 'core' | 'weekday';
+  dayNumber: number | null;
   exercises: CompletedSessionExercise[];
 }
 
 export interface CompletedSessionExercise {
   id: string;
   name: string;
+  nameEn?: string;
   notes: string | null;
   position: number;
   sets: CompletedSessionSet[];

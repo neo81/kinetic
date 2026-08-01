@@ -21,12 +21,35 @@ import type { RoutineExportPayload, RoutineExportExercise } from './routineExpor
 
 export interface ImportResult {
   routine: Routine;
-  warnings: string[];
+  warnings: RoutineImportWarning[];
 }
 
+export type RoutineImportWarning = {
+  code: 'matchedByName' | 'customReused' | 'customCreated';
+  exerciseName: string;
+};
+
+export type RoutineImportErrorCode =
+  | 'invalidJson'
+  | 'invalidFormat'
+  | 'unsupportedVersion'
+  | 'invalidRoutineData'
+  | 'noConnection'
+  | 'muscleGroupMissing'
+  | 'customCreateFailed'
+  | 'noSession'
+  | 'routineSaveFailed'
+  | 'daySaveFailed'
+  | 'exerciseSaveFailed'
+  | 'setsSaveFailed'
+  | 'authenticationRequired';
+
 export class RoutineImportError extends Error {
-  constructor(message: string) {
-    super(message);
+  constructor(
+    readonly code: RoutineImportErrorCode,
+    readonly context: { exerciseName?: string; dayTitle?: string; version?: string } = {},
+  ) {
+    super(code);
     this.name = 'RoutineImportError';
   }
 }
@@ -38,23 +61,21 @@ export function parseAndValidatePayload(jsonText: string): RoutineExportPayload 
   try {
     parsed = JSON.parse(jsonText);
   } catch {
-    throw new RoutineImportError('El archivo no es un JSON válido.');
+    throw new RoutineImportError('invalidJson');
   }
 
   if (typeof parsed !== 'object' || parsed === null) {
-    throw new RoutineImportError('Formato de archivo inválido.');
+    throw new RoutineImportError('invalidFormat');
   }
 
   const p = parsed as Record<string, unknown>;
 
   if (p['version'] !== 1) {
-    throw new RoutineImportError(
-      `Versión de archivo no soportada (versión ${p['version']}). Solo se soporta la versión 1.`,
-    );
+    throw new RoutineImportError('unsupportedVersion', { version: String(p['version']) });
   }
 
   if (!p['routine'] || typeof (p['routine'] as any)['name'] !== 'string') {
-    throw new RoutineImportError('El archivo no contiene datos de rutina válidos.');
+    throw new RoutineImportError('invalidRoutineData');
   }
 
   return parsed as RoutineExportPayload;
@@ -69,10 +90,10 @@ export function parseAndValidatePayload(jsonText: string): RoutineExportPayload 
 async function resolveExerciseId(
   exportExercise: RoutineExportExercise,
   userId: string,
-  warnings: string[],
+  warnings: RoutineImportWarning[],
 ): Promise<string> {
   if (!supabase) {
-    throw new RoutineImportError('Sin conexión a la base de datos.');
+    throw new RoutineImportError('noConnection');
   }
 
   const { exerciseRef } = exportExercise;
@@ -99,9 +120,7 @@ async function resolveExerciseId(
       .maybeSingle();
 
     if (byName?.id) {
-      warnings.push(
-        `Ejercicio "${exerciseRef.name}": no se encontró por ID, se usó por nombre.`,
-      );
+      warnings.push({ code: 'matchedByName', exerciseName: exerciseRef.name });
       return byName.id;
     }
   } else {
@@ -114,17 +133,13 @@ async function resolveExerciseId(
       .maybeSingle();
 
     if (ownCustom?.id) {
-      warnings.push(
-        `Ejercicio custom "${exerciseRef.name}": se reutilizó el tuyo existente.`,
-      );
+      warnings.push({ code: 'customReused', exerciseName: exerciseRef.name });
       return ownCustom.id;
     }
   }
 
   // ── Paso 3 (fallback): crear copia como custom del importador ─────────
-  warnings.push(
-    `Ejercicio "${exerciseRef.name}" no encontrado → se creó una copia custom en tu biblioteca.`,
-  );
+  warnings.push({ code: 'customCreated', exerciseName: exerciseRef.name });
 
   // Intentar resolver muscle_group_id por código o nombre
   let muscleGroupId: number | null = null;
@@ -154,9 +169,7 @@ async function resolveExerciseId(
   }
 
   if (!muscleGroupId) {
-    throw new RoutineImportError(
-      `No se pudo determinar el grupo muscular para "${exerciseRef.name}".`,
-    );
+    throw new RoutineImportError('muscleGroupMissing', { exerciseName: exerciseRef.name });
   }
 
   const { data: newExercise, error: insertError } = await supabase
@@ -172,9 +185,7 @@ async function resolveExerciseId(
     .single();
 
   if (insertError || !newExercise) {
-    throw new RoutineImportError(
-      `No se pudo crear el ejercicio custom "${exerciseRef.name}": ${insertError?.message ?? 'error desconocido'}`,
-    );
+    throw new RoutineImportError('customCreateFailed', { exerciseName: exerciseRef.name });
   }
 
   return newExercise.id;
@@ -284,7 +295,7 @@ async function persistImportedRoutine(routine: Routine): Promise<void> {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) throw new RoutineImportError('Sesión de usuario no disponible.');
+  if (!user) throw new RoutineImportError('noSession');
 
   // Insertar rutina
   const { error: routineErr } = await supabase.from('routines').insert({
@@ -296,7 +307,7 @@ async function persistImportedRoutine(routine: Routine): Promise<void> {
   });
 
   if (routineErr) {
-    throw new RoutineImportError(`Error al guardar la rutina: ${routineErr.message}`);
+    throw new RoutineImportError('routineSaveFailed');
   }
 
   // Insertar días y ejercicios
@@ -311,7 +322,7 @@ async function persistImportedRoutine(routine: Routine): Promise<void> {
     });
 
     if (dayErr) {
-      throw new RoutineImportError(`Error al guardar el día "${day.title}": ${dayErr.message}`);
+      throw new RoutineImportError('daySaveFailed', { dayTitle: day.title });
     }
 
     for (const item of day.exercises) {
@@ -331,9 +342,7 @@ async function persistImportedRoutine(routine: Routine): Promise<void> {
         .single();
 
       if (rdeErr || !rdeRow) {
-        throw new RoutineImportError(
-          `Error al guardar el ejercicio "${item.exercise.name}": ${rdeErr?.message ?? 'error desconocido'}`,
-        );
+        throw new RoutineImportError('exerciseSaveFailed', { exerciseName: item.exercise.name });
       }
 
       // Insertar series
@@ -351,9 +360,7 @@ async function persistImportedRoutine(routine: Routine): Promise<void> {
 
         const { error: setsErr } = await supabase.from('exercise_sets').insert(setRows);
         if (setsErr) {
-          throw new RoutineImportError(
-            `Error al guardar series de "${item.exercise.name}": ${setsErr.message}`,
-          );
+          throw new RoutineImportError('setsSaveFailed', { exerciseName: item.exercise.name });
         }
       }
     }
@@ -368,7 +375,7 @@ async function persistImportedRoutine(routine: Routine): Promise<void> {
  */
 export async function importRoutineFromJson(jsonText: string): Promise<ImportResult> {
   if (!supabase) {
-    throw new RoutineImportError('Sin conexión a la base de datos.');
+    throw new RoutineImportError('noConnection');
   }
 
   const {
@@ -376,11 +383,11 @@ export async function importRoutineFromJson(jsonText: string): Promise<ImportRes
   } = await supabase.auth.getUser();
 
   if (!user) {
-    throw new RoutineImportError('Debes estar autenticado para importar una rutina.');
+    throw new RoutineImportError('authenticationRequired');
   }
 
   const payload = parseAndValidatePayload(jsonText);
-  const warnings: string[] = [];
+  const warnings: RoutineImportWarning[] = [];
 
   const routine = await buildRoutineFromPayload(payload, user.id, warnings);
   await persistImportedRoutine(routine);

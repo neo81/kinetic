@@ -11,4 +11,9 @@ describe('configuración regional de la aplicación', () => {
     expect(formatAppDate('2026-07-31T12:00:00.000Z', { month: 'long', timeZone: 'UTC' })).toBe('julio');
     expect(formatAppNumber(1234.5)).toBe(new Intl.NumberFormat(APP_LOCALE).format(1234.5));
   });
+
+  it('permite formatear fechas y números con el idioma inglés activo', () => {
+    expect(formatAppDate('2026-07-31T12:00:00.000Z', { month: 'long', timeZone: 'UTC' }, 'en')).toBe('July');
+    expect(formatAppNumber(1234.5, undefined, 'en')).toBe(new Intl.NumberFormat('en').format(1234.5));
+  });
 });

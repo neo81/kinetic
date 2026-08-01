@@ -19,6 +19,11 @@ import { RoutineSyncPendingBadge } from '../components/RoutineSyncPendingBadge';
 import { PageShell } from '../components/layout/PageShell';
 import { buildSessionDayIds } from '../features/routines/sessionDays';
 import type { ActiveSession, Exercise, Routine, View, RoutineDayExercise, SessionExerciseGroup, UserProfile } from '../types';
+import { useLanguage } from '../i18n/LanguageContext';
+import type { TranslationKey } from '../i18n/translations';
+import { getExerciseDisplayName } from '../i18n/exerciseLocalization';
+
+type Translator = (key: TranslationKey) => string;
 
 const DEFAULT_REST_SECONDS = 0;
 
@@ -57,49 +62,49 @@ const isExerciseDoneForSession = (
   dayExercise: RoutineDayExercise,
 ) => isExerciseSkipped(activeSession, dayExercise.id) || isExerciseFullyCompleted(activeSession, dayExercise);
 
-const getGroupLabel = (exerciseCount: number) => {
-  if (exerciseCount === 2) return 'Superset';
-  if (exerciseCount === 3) return 'Triserie';
-  return 'Circuito';
+const getGroupLabel = (exerciseCount: number, t: Translator) => {
+  if (exerciseCount === 2) return t('session.superset');
+  if (exerciseCount === 3) return t('session.triset');
+  return t('session.circuit');
 };
 
 type CapturedSetPerformance = ActiveSession['performanceData'][string][number];
 
 const joinSetValues = (values: Array<string | null>) => values.filter((value): value is string => !!value).join(' · ');
 
-const getPlannedSetDisplayValue = (exercise: Exercise, setIndex: number) => {
+const getPlannedSetDisplayValue = (exercise: Exercise, setIndex: number, t: Translator) => {
   const set = exercise.sets[setIndex];
   if (!set) return '-';
   if (exercise.measureUnit === 'min') return `${set.durationMinutes ?? 0} min`;
-  if (exercise.measureUnit === 'sec') return `${set.durationSeconds ?? 0} seg`;
-  const reps = set.targetType === 'failure' ? 'Al fallo' : set.reps != null ? `${set.reps} reps` : null;
+  if (exercise.measureUnit === 'sec') return `${set.durationSeconds ?? 0} ${t('exerciseEditor.secondsShort')}`;
+  const reps = set.targetType === 'failure' ? t('exerciseEditor.toFailure') : set.reps != null ? `${set.reps} reps` : null;
   const load = exercise.loadType === 'bodyweight'
-    ? 'Peso corporal'
+    ? t('exerciseEditor.bodyweight')
     : set.weight != null
       ? `${set.weight} kg`
       : null;
   return joinSetValues([reps, load]) || '-';
 };
 
-const getCapturedSetDisplayValue = (exercise: Exercise, performance: CapturedSetPerformance) => {
+const getCapturedSetDisplayValue = (exercise: Exercise, performance: CapturedSetPerformance, t: Translator) => {
   if (exercise.measureUnit === 'min') {
     const minutes = performance.actualDurationMinutes ?? performance.actualWeight;
-    return minutes != null ? `${minutes} min` : 'Sin dato';
+    return minutes != null ? `${minutes} min` : t('session.noData');
   }
   if (exercise.measureUnit === 'sec') {
     const seconds = performance.actualDurationSeconds ?? performance.actualWeight;
-    return seconds != null ? `${seconds} seg` : 'Sin dato';
+    return seconds != null ? `${seconds} ${t('exerciseEditor.secondsShort')}` : t('session.noData');
   }
 
   const reps = performance.actualReps != null ? `${performance.actualReps} reps` : null;
   const load = exercise.loadType === 'bodyweight'
     ? performance.actualWeight != null
-      ? `${performance.actualWeight} kg corporal`
-      : 'Peso corporal'
+      ? `${performance.actualWeight} ${t('session.bodyweightKg')}`
+      : t('exerciseEditor.bodyweight')
     : performance.actualWeight != null
       ? `${performance.actualWeight} kg`
       : null;
-  return joinSetValues([reps, load]) || 'Sin datos';
+  return joinSetValues([reps, load]) || t('session.noDataPlural');
 };
 
 type DayRenderItem =
@@ -185,6 +190,7 @@ const PopupShell = ({
 );
 
 const RestTimerModal = ({ open, onClose }: { open: boolean; onClose: () => void }) => {
+  const { t } = useLanguage();
   const [remainingSeconds, setRemainingSeconds] = useState(DEFAULT_REST_SECONDS);
   const [isRunning, setIsRunning] = useState(false);
   const [isFlashing, setIsFlashing] = useState(false);
@@ -257,13 +263,13 @@ const RestTimerModal = ({ open, onClose }: { open: boolean; onClose: () => void 
       {isFlashing && (
         <div className="fixed inset-0 z-[100] pointer-events-none bg-primary/40 animate-pulse mix-blend-screen" />
       )}
-      <PopupShell title="Reloj de descanso" accent="primary" onClose={closeAndReset}>
+      <PopupShell title={t('session.restTimer')} accent="primary" onClose={closeAndReset}>
       <div className="text-center">
 <div className="theme-primary-text font-headline text-[5rem] font-semibold leading-none tracking-[0.02em]">
           {formatCountdown(remainingSeconds)}
         </div>
 <p className="theme-primary-text-soft mt-2 text-[0.68rem] font-bold uppercase tracking-[0.3em]">
-          {remainingSeconds > 0 ? 'Descanso activo' : 'Descanso finalizado'}
+          {remainingSeconds > 0 ? t('session.activeRest') : t('session.restFinished')}
         </p>
       </div>
 
@@ -290,7 +296,7 @@ const RestTimerModal = ({ open, onClose }: { open: boolean; onClose: () => void 
         onClick={() => setIsRunning((current) => !current)}
         className="neon-button mt-8 flex w-full items-center justify-center rounded-[0.95rem] py-4 font-headline text-[1.6rem] font-semibold uppercase tracking-[0.16em]"
       >
-        {isRunning ? 'Pausar' : remainingSeconds === 0 ? 'Reiniciar' : 'Iniciar'}
+        {isRunning ? t('session.pause') : remainingSeconds === 0 ? t('session.restart') : t('session.start')}
       </button>
 
       <div className="mt-4 grid grid-cols-2 gap-3">
@@ -301,13 +307,13 @@ const RestTimerModal = ({ open, onClose }: { open: boolean; onClose: () => void 
           }}
           className="theme-hairline-border rounded-[0.95rem] border py-4 text-sm font-bold uppercase tracking-[0.18em] text-on-surface-variant transition-colors hover:text-on-surface"
         >
-          Omitir
+          {t('session.skip')}
         </button>
         <button
           onClick={closeAndReset}
           className="rounded-[0.95rem] border border-secondary/40 py-4 text-sm font-bold uppercase tracking-[0.18em] text-secondary transition-colors hover:bg-secondary/10"
         >
-          Cancelar
+          {t('common.cancel')}
         </button>
       </div>
     </PopupShell>
@@ -330,19 +336,20 @@ const SessionStopwatchModal = ({
   onToggleRunning: () => void;
   onReset: () => void;
 }) => {
+  const { t } = useLanguage();
   if (!open) {
     return null;
   }
 
   return (
-    <PopupShell title="Cronómetro de sesión" accent="secondary" onClose={onClose}>
+    <PopupShell title={t('session.stopwatch')} accent="secondary" onClose={onClose}>
       <div className="text-center">
 <div className="theme-primary-text font-headline text-[4.2rem] font-semibold leading-none tracking-[0.02em] sm:text-[4.8rem]">
           {formatStopwatch(elapsedMs)}
         </div>
         <div className="mt-3 grid grid-cols-3 text-[0.62rem] font-bold uppercase tracking-[0.32em] text-on-surface-variant/60">
           <span>MIN</span>
-          <span>SEG</span>
+          <span>{t('exerciseEditor.secondsShort')}</span>
           <span>MS</span>
         </div>
       </div>
@@ -353,14 +360,14 @@ const SessionStopwatchModal = ({
           className="neon-button flex items-center justify-center gap-3 rounded-[0.95rem] py-4 font-headline text-[1.2rem] font-semibold uppercase tracking-[0.16em]"
         >
           <Play size={16} fill="currentColor" />
-          {isRunning ? 'Pausar' : 'Iniciar'}
+          {isRunning ? t('session.pause') : t('session.start')}
         </button>
         <button
           onClick={onReset}
           className="theme-hairline-border flex items-center justify-center gap-2 rounded-[0.95rem] border py-4 text-sm font-bold uppercase tracking-[0.18em] text-on-surface-variant transition-colors hover:text-on-surface"
         >
           <RotateCcw size={15} />
-          Reiniciar
+          {t('session.restart')}
         </button>
       </div>
     </PopupShell>
@@ -383,7 +390,7 @@ const SetCaptureOverlay = ({
 }: {
   open: boolean;
   onClose: () => void;
-  exercise: { name: string; measureUnit?: 'kg' | 'min' | 'sec'; loadType?: 'external' | 'bodyweight' };
+  exercise: Pick<Exercise, 'name' | 'nameEn' | 'measureUnit' | 'loadType'>;
   setNumber: number;
   plannedReps: number | null;
   plannedWeight: number | null;
@@ -394,6 +401,7 @@ const SetCaptureOverlay = ({
   onCapture: (reps: number | null, weight: number | null) => void;
   onClear?: () => void;
 }) => {
+  const { language, t } = useLanguage();
   const [actualReps, setActualReps] = useState<string>(String(plannedReps ?? ''));
   const [actualWeight, setActualWeight] = useState<string>(
     String(exercise.loadType === 'bodyweight' ? (bodyWeightKg ?? '') : (plannedWeight ?? '')),
@@ -423,7 +431,7 @@ const SetCaptureOverlay = ({
 
   return (
     <PopupShell
-      title={`${isEditing ? 'Editar' : 'Registrar'} serie ${setNumber} - ${exercise.name}`}
+      title={`${isEditing ? t('session.editSet') : t('session.captureSet')} ${setNumber} - ${getExerciseDisplayName(exercise, language)}`}
       accent="primary"
       onClose={onClose}
     >
@@ -436,7 +444,7 @@ const SetCaptureOverlay = ({
             />
           </div>
           <p className="mt-2 text-center text-xs font-bold uppercase tracking-widest text-on-surface-variant/70">
-            Serie {setNumber} de {totalSets}
+            {t('exerciseEditor.set')} {setNumber} {t('session.setOf')} {totalSets}
           </p>
         </div>
       </div>
@@ -448,11 +456,11 @@ const SetCaptureOverlay = ({
         <div className="space-y-3">
           <div>
             <label className="block text-[12px] font-bold uppercase tracking-[0.2em] text-on-surface-variant mb-2">
-              {targetType === 'failure' ? 'Reps al fallo realizadas' : 'Reps realizadas'}
+              {targetType === 'failure' ? t('session.failureRepsDone') : t('session.repsDone')}
             </label>
             {targetType === 'failure' && (
               <p className="mb-2 rounded-lg border border-secondary/25 bg-secondary/10 px-3 py-2 text-center text-[10px] font-bold uppercase tracking-[0.16em] text-secondary">
-                Objetivo: al fallo
+                {t('session.failureGoal')}
               </p>
             )}
             <input
@@ -465,7 +473,7 @@ const SetCaptureOverlay = ({
                   setActualReps(normalized);
                 }
               }}
-              placeholder={targetType === 'failure' ? 'reps logradas' : String(plannedReps ?? '0')}
+              placeholder={targetType === 'failure' ? t('session.repsAchieved') : String(plannedReps ?? '0')}
               className="w-full rounded-lg bg-surface-container p-3 text-center font-headline text-xl font-semibold text-on-surface focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </div>
@@ -473,16 +481,16 @@ const SetCaptureOverlay = ({
           <div>
             <label className="block text-[12px] font-bold uppercase tracking-[0.2em] text-on-surface-variant mb-2">
               {exercise.measureUnit === 'min'
-                ? 'Minutos Realizados'
+                ? t('session.minutesDone')
                 : exercise.measureUnit === 'sec'
-                  ? 'Segundos Realizados'
+                  ? t('session.secondsDone')
                   : exercise.loadType === 'bodyweight'
-                    ? 'Peso corporal usado'
-                    : 'Peso / Kg Realizado'}
+                    ? t('session.bodyweightUsed')
+                    : t('session.weightDone')}
             </label>
             {exercise.loadType === 'bodyweight' ? (
               <div className="rounded-lg bg-surface-container p-3 text-center font-headline text-xl font-semibold text-primary">
-                {bodyWeightKg ? `${bodyWeightKg} kg` : 'Sin peso en perfil'}
+                {bodyWeightKg ? `${bodyWeightKg} kg` : t('session.noProfileWeight')}
               </div>
             ) : (
               <input
@@ -507,7 +515,7 @@ const SetCaptureOverlay = ({
           className="neon-button w-full flex items-center justify-center gap-2 rounded-[0.95rem] py-4 font-headline text-[1.2rem] font-semibold uppercase tracking-[0.16em]"
         >
           <Check size={18} strokeWidth={2.5} />
-          {isEditing ? 'Guardar cambios' : 'Confirmar'}
+          {isEditing ? t('settings.saveChanges') : t('common.confirm')}
         </button>
 
         {isEditing && onClear && (
@@ -515,7 +523,7 @@ const SetCaptureOverlay = ({
             onClick={onClear}
             className="w-full rounded-[0.95rem] border border-secondary/35 bg-secondary/10 py-4 text-sm font-bold uppercase tracking-[0.18em] text-secondary transition-colors hover:bg-secondary/15"
           >
-            Borrar registro de la serie
+            {t('session.clearSet')}
           </button>
         )}
 
@@ -523,7 +531,7 @@ const SetCaptureOverlay = ({
           onClick={onClose}
           className="theme-hairline-border w-full rounded-[0.95rem] border py-4 text-sm font-bold uppercase tracking-[0.18em] text-on-surface-variant transition-colors hover:text-on-surface"
         >
-          Cancelar
+          {t('common.cancel')}
         </button>
       </div>
     </PopupShell>
@@ -536,8 +544,8 @@ const ConfirmDialog = ({
   message,
   onConfirm,
   onCancel,
-  confirmLabel = 'Confirmar',
-  cancelLabel = 'Cancelar',
+  confirmLabel,
+  cancelLabel,
   isConfirming = false,
 }: {
   open: boolean;
@@ -549,6 +557,7 @@ const ConfirmDialog = ({
   cancelLabel?: string;
   isConfirming?: boolean;
 }) => {
+  const { t } = useLanguage();
   if (!open) return null;
 
   return (
@@ -570,10 +579,10 @@ const ConfirmDialog = ({
             {isConfirming ? (
               <>
                 <Loader2 size={18} className="mr-2 animate-spin" />
-                Guardando...
+                {t('settings.saving')}
               </>
             ) : (
-              confirmLabel
+              confirmLabel ?? t('common.confirm')
             )}
           </button>
           <button
@@ -581,7 +590,7 @@ const ConfirmDialog = ({
             disabled={isConfirming}
             className={`theme-hairline-border theme-interactive-hover flex w-full items-center justify-center rounded-[1rem] border py-4 font-headline text-[0.9rem] font-bold uppercase tracking-[0.2em] text-on-surface-variant transition-colors active:scale-95 ${isConfirming ? 'cursor-not-allowed opacity-50' : ''}`}
           >
-            {cancelLabel}
+            {cancelLabel ?? t('common.cancel')}
           </button>
         </div>
       </div>
@@ -634,6 +643,7 @@ export const RoutineDetailKineticView = ({
   onCreateExerciseGroup: (dayId: string, exerciseIds: string[]) => void;
   onRemoveExerciseGroup: (dayId: string, groupId: string) => void;
 }) => {
+  const { language, t } = useLanguage();
   const [isRestTimerOpen, setIsRestTimerOpen] = useState(false);
   const [isSessionTimerOpen, setIsSessionTimerOpen] = useState(false);
   const [elapsedSessionMs, setElapsedSessionMs] = useState(0);
@@ -804,15 +814,15 @@ export const RoutineDetailKineticView = ({
               <button
                 onClick={() => setIsRestTimerOpen(true)}
                 className="flex items-center gap-2 rounded-full border border-secondary/25 bg-surface-container-high/90 px-3 py-2 text-secondary shadow-[0_12px_32px_rgba(255,92,0,0.15)] hover:bg-surface-bright transition-colors"
-                title="Reloj de Descanso"
+                title={t('session.restTimer')}
               >
                 <AlarmClock size={15} strokeWidth={2.4} />
-                <span className="font-headline text-[1rem] font-semibold uppercase tracking-[0.08em] text-secondary">Descanso</span>
+                <span className="font-headline text-[1rem] font-semibold uppercase tracking-[0.08em] text-secondary">{t('session.rest')}</span>
               </button>
               <button
                 onClick={() => setIsSessionTimerOpen(true)}
                                   className="theme-hairline-border theme-interactive-hover flex items-center justify-center rounded-full border bg-surface-container-high p-2.5 text-on-surface-variant transition-colors hover:text-on-surface"
-                title="Cronómetro temporal"
+                title={t('session.temporaryStopwatch')}
               >
                 <Timer size={18} />
               </button>
@@ -820,15 +830,15 @@ export const RoutineDetailKineticView = ({
           }
         >
           <section className="space-y-6 text-center">
-            <h2 className="font-headline text-[2.4rem] font-semibold uppercase text-on-surface">Sin rutina activa</h2>
+            <h2 className="font-headline text-[2.4rem] font-semibold uppercase text-on-surface">{t('session.noRoutine')}</h2>
             <p className="text-sm leading-relaxed text-on-surface-variant">
-              No hay una rutina seleccionada para mostrar detalles.
+              {t('session.noRoutineHint')}
             </p>
             <button
               onClick={() => setView('routine-creator')}
               className="neon-button mx-auto rounded-[0.9rem] px-6 py-3 font-headline text-[1.1rem] font-semibold uppercase"
             >
-              Crear rutina
+              {t('routines.create')}
             </button>
           </section>
         </PageShell>
@@ -847,8 +857,8 @@ export const RoutineDetailKineticView = ({
     const firstSet = ex.sets[0];
     if (!firstSet) return '-';
     if (ex.measureUnit === 'min') return `${firstSet.durationMinutes || 0} min`;
-    if (ex.measureUnit === 'sec') return `${firstSet.durationSeconds || 0} seg`;
-    if (ex.loadType === 'bodyweight') return 'Peso corporal';
+    if (ex.measureUnit === 'sec') return `${firstSet.durationSeconds || 0} ${t('exerciseEditor.secondsShort')}`;
+    if (ex.loadType === 'bodyweight') return t('exerciseEditor.bodyweight');
     return `${firstSet.weight || 0} kg`;
   };
 
@@ -916,17 +926,17 @@ export const RoutineDetailKineticView = ({
                     ? 'border-primary bg-primary text-black'
                                 : 'theme-hairline-border theme-input-surface text-on-surface-variant hover:border-primary/45'
                 }`}
-                title={isAlreadyGrouped ? 'Este ejercicio ya está dentro de un bloque' : isSelectedForGroup ? 'Quitar de la selección' : 'Seleccionar para agrupar'}
+                title={isAlreadyGrouped ? t('session.alreadyGrouped') : isSelectedForGroup ? t('session.removeSelection') : t('session.selectToGroup')}
               >
                 {isSelectedForGroup ? <Check size={14} strokeWidth={3} /> : null}
               </button>
             )}
             <div className="min-w-0 flex-1">
-              <h4 className={`font-sans text-[1.15rem] font-semibold leading-tight text-on-surface ${isCompleted ? 'line-through' : ''}`}>{dayEx.exercise.name}</h4>
+              <h4 className={`font-sans text-[1.15rem] font-semibold leading-tight text-on-surface ${isCompleted ? 'line-through' : ''}`}>{getExerciseDisplayName(dayEx.exercise, language)}</h4>
               <p className="mt-0.5 text-[9px] font-bold uppercase tracking-widest text-on-surface-variant/60">{dayEx.exercise.muscleGroup || dayEx.exercise.muscle}</p>
               {activeSession?.routineId === routine.id && (
 <p className={`mt-2 text-[10px] font-bold uppercase tracking-[0.18em] ${isSkipped ? 'text-secondary' : 'theme-primary-text-soft'}`}>
-                  {isSkipped ? 'Salteado' : `${completedSetCount}/${dayEx.exercise.sets.length} series`}
+                  {isSkipped ? t('session.skipped') : `${completedSetCount}/${dayEx.exercise.sets.length} ${t('routines.setPlural')}`}
                 </p>
               )}
             </div>
@@ -940,9 +950,9 @@ export const RoutineDetailKineticView = ({
                     ? 'border-secondary bg-secondary text-black shadow-[0_0_15px_color-mix(in_srgb,var(--color-secondary)_35%,transparent)]'
                     : 'theme-hairline-border bg-surface-container-high text-on-surface-variant hover:border-secondary/50 hover:text-secondary'
                 }`}
-                title={isSkipped ? 'Quitar salteado' : 'Marcar como salteado'}
+                title={isSkipped ? t('session.unskip') : t('session.markSkipped')}
               >
-                {isSkipped ? 'Salteado' : 'Saltear'}
+                {isSkipped ? t('session.skipped') : t('session.skipAction')}
               </button>
             ) : (
               <>
@@ -968,17 +978,17 @@ export const RoutineDetailKineticView = ({
 
         <div className="grid grid-cols-3 gap-4">
           <div>
-            <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-on-surface-variant">Series</p>
+            <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-on-surface-variant">{t('routines.setPlural')}</p>
             <p className="font-headline text-[1.6rem] font-semibold leading-none text-on-surface">{dayEx.exercise.sets.length}</p>
           </div>
           <div>
-            <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-on-surface-variant">Reps</p>
+            <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-on-surface-variant">{t('exerciseEditor.reps')}</p>
             <p className="font-headline text-[1.6rem] font-semibold leading-none text-on-surface">
-              {dayEx.exercise.sets[0]?.targetType === 'failure' ? 'Fallo' : dayEx.exercise.sets[0]?.reps || '-'}
+              {dayEx.exercise.sets[0]?.targetType === 'failure' ? t('exerciseEditor.failure') : dayEx.exercise.sets[0]?.reps || '-'}
             </p>
           </div>
           <div>
-            <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-on-surface-variant">Peso / Tiempo</p>
+            <p className="text-[9px] font-bold uppercase tracking-[0.16em] text-on-surface-variant">{t('session.weightOrTime')}</p>
             <p className="font-headline text-[1.6rem] font-semibold leading-none text-secondary">
               {getSetDisplayValue(dayEx.exercise)}
             </p>
@@ -987,7 +997,7 @@ export const RoutineDetailKineticView = ({
 
         {activeSession?.routineId === routine.id && (
           <div className="mt-4">
-            <p className="mb-2 text-[9px] font-bold uppercase tracking-[0.16em] text-on-surface-variant">Series realizadas</p>
+            <p className="mb-2 text-[9px] font-bold uppercase tracking-[0.16em] text-on-surface-variant">{t('session.completedSetsTitle')}</p>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {dayEx.exercise.sets.map((set, setIndex) => {
                 const setNumber = set.setNumber || setIndex + 1;
@@ -1005,32 +1015,32 @@ export const RoutineDetailKineticView = ({
                           ? 'theme-primary-shadow-soft border-primary/70 bg-primary/10'
                           : 'theme-hairline-border bg-surface-container-high hover:border-primary/45'
                     }`}
-                    title={isSkipped ? 'Ejercicio salteado' : isCaptured ? 'Ver o editar set realizado' : 'Registrar set'}
+                    title={isSkipped ? t('session.skippedExercise') : isCaptured ? t('session.viewEditSet') : t('session.captureSetAction')}
                   >
                     <span className="flex items-center justify-between gap-2 text-[10px] font-black uppercase tracking-[0.16em] text-on-surface-variant">
-                      Serie {setNumber}
+                      {t('exerciseEditor.set')} {setNumber}
                       {isCaptured && <Check size={13} strokeWidth={3} className="shrink-0 text-primary" />}
                     </span>
                     {isCaptured && capturedSet ? (
                       <span className="mt-2.5 grid grid-cols-1 gap-3">
                         <span className="flex min-w-0 items-baseline justify-between gap-3">
-                          <span className="block text-[10px] font-black uppercase tracking-[0.13em] text-primary">Registrado</span>
+                          <span className="block text-[10px] font-black uppercase tracking-[0.13em] text-primary">{t('session.recorded')}</span>
                           <span className="block break-words text-right text-[1.05rem] font-black leading-snug text-on-surface">
-                            {getCapturedSetDisplayValue(dayEx.exercise, capturedSet)}
+                            {getCapturedSetDisplayValue(dayEx.exercise, capturedSet, t)}
                           </span>
                         </span>
                         <span className="flex min-w-0 items-baseline justify-between gap-3 border-t border-on-surface/10 pt-2">
-                          <span className="block text-[10px] font-black uppercase tracking-[0.13em] text-on-surface-variant/70">Planificado</span>
+                          <span className="block text-[10px] font-black uppercase tracking-[0.13em] text-on-surface-variant/70">{t('session.planned')}</span>
                           <span className="block break-words text-right text-sm font-bold leading-snug text-on-surface-variant">
-                            {getPlannedSetDisplayValue(dayEx.exercise, setIndex)}
+                            {getPlannedSetDisplayValue(dayEx.exercise, setIndex, t)}
                           </span>
                         </span>
                       </span>
                     ) : (
                       <span className="mt-2 block">
-                        <span className="text-[11px] font-black uppercase tracking-[0.12em] text-on-surface-variant/70">Planificado</span>
+                        <span className="text-[11px] font-black uppercase tracking-[0.12em] text-on-surface-variant/70">{t('session.planned')}</span>
                         <span className="mt-1 block text-left text-[1.05rem] font-black leading-snug text-on-surface">
-                        {getPlannedSetDisplayValue(dayEx.exercise, setIndex)}
+                        {getPlannedSetDisplayValue(dayEx.exercise, setIndex, t)}
                         </span>
                       </span>
                     )}
@@ -1043,7 +1053,7 @@ export const RoutineDetailKineticView = ({
 
         {dayEx.exercise.sets[0]?.notes && (
                           <div className="theme-hairline-border theme-muted-surface mt-4 rounded-lg border p-3">
-<p className="theme-primary-text-soft mb-1 text-[8px] font-bold uppercase tracking-widest">Notas de entrenamiento</p>
+<p className="theme-primary-text-soft mb-1 text-[8px] font-bold uppercase tracking-widest">{t('exerciseEditor.notes')}</p>
             <p className="text-xs italic leading-relaxed text-on-surface-variant/90">"{dayEx.exercise.sets[0].notes}"</p>
           </div>
         )}
@@ -1067,15 +1077,15 @@ export const RoutineDetailKineticView = ({
               <button
                 onClick={() => setIsRestTimerOpen(true)}
                 className="flex items-center gap-2 rounded-full border border-secondary/25 bg-surface-container-high/90 px-3 py-2 text-secondary shadow-[0_12px_32px_rgba(255,92,0,0.15)] hover:bg-surface-bright transition-colors"
-                title="Reloj de Descanso"
+                title={t('session.restTimer')}
               >
                 <AlarmClock size={15} strokeWidth={2.4} />
-                <span className="font-headline text-[1rem] font-semibold uppercase tracking-[0.08em] text-secondary">Descanso</span>
+                <span className="font-headline text-[1rem] font-semibold uppercase tracking-[0.08em] text-secondary">{t('session.rest')}</span>
               </button>
               <button
                 onClick={() => setIsSessionTimerOpen(true)}
                                   className="theme-hairline-border theme-interactive-hover flex items-center justify-center rounded-full border bg-surface-container-high p-2.5 text-on-surface-variant transition-colors hover:text-on-surface"
-                title="Cronómetro temporal"
+                title={t('session.temporaryStopwatch')}
               >
                 <Timer size={18} />
               </button>
@@ -1087,13 +1097,13 @@ export const RoutineDetailKineticView = ({
             <div className="theme-muted-surface flex h-8 w-8 items-center justify-center rounded-full transition-all group-hover:bg-primary/20">
               <ArrowLeft size={16} strokeWidth={2.5} />
             </div>
-            <span className="font-headline text-[0.72rem] font-black uppercase italic tracking-[0.22em]">Volver al panel</span>
+            <span className="font-headline text-[0.72rem] font-black uppercase italic tracking-[0.22em]">{t('routines.backDashboard')}</span>
           </button>
 
           <header className="space-y-3">
             <div className="flex items-center gap-3">
               <div className="h-1.5 w-12 rounded-full bg-primary/80"></div>
-              <span className="text-[10px] font-black uppercase tracking-[0.4em] text-on-surface-variant/40">DETALLE DE RUTINA</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.4em] text-on-surface-variant/40">{t('session.routineDetail')}</span>
             </div>
             <div className="flex flex-wrap items-center gap-2 sm:gap-3">
               <h1 className="font-headline text-[3.2rem] font-bold uppercase italic leading-none tracking-tight text-on-surface">
@@ -1106,25 +1116,25 @@ export const RoutineDetailKineticView = ({
 
         <section className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <div className="rounded-[1rem] border-l-2 border-primary bg-surface-container-low p-3">
-            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-on-surface-variant">Dias</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-on-surface-variant">{t('session.days')}</p>
             <p className="mt-1 font-headline text-[1.8rem] font-semibold leading-none text-on-surface">{String(routine.dayEntries?.length || 0).padStart(2, '0')}</p>
           </div>
           <div className="rounded-[1rem] bg-surface-container-low p-3">
-            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-on-surface-variant">Ejercicios</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-on-surface-variant">{t('routines.exercisePlural')}</p>
             <p className="mt-1 font-headline text-[1.8rem] font-semibold leading-none text-on-surface">{routine.exercises.length}</p>
           </div>
           <div className="relative col-span-2 overflow-hidden rounded-[1rem] bg-surface-container-low p-3">
-            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-on-surface-variant">Volumen</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-on-surface-variant">{t('settings.volume')}</p>
             <p className="mt-1 font-headline text-[1.8rem] font-semibold leading-none text-on-surface">
-              {volume.toFixed(0)} <span className="text-xs font-medium text-on-surface-variant">kg totales</span>
+              {volume.toFixed(0)} <span className="text-xs font-medium text-on-surface-variant">{t('session.totalKg')}</span>
             </p>
             <Dumbbell className="absolute -bottom-4 right-0 h-14 w-14 text-on-surface-variant/15" />
           </div>
           <div className="col-span-2 flex items-center justify-between gap-3 rounded-[1rem] bg-surface-container-high p-4 sm:col-span-4">
             <div className="min-w-0">
-              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-on-surface-variant">Enfoque principal</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-on-surface-variant">{t('session.mainFocus')}</p>
               <p className="font-headline text-[1.15rem] font-semibold uppercase italic tracking-[0.02em] text-primary sm:text-[1.3rem]">
-                {routine.focus || 'Sin definir'}
+                {routine.focus || t('session.undefined')}
               </p>
             </div>
             <div className="flex -space-x-2">
@@ -1140,7 +1150,7 @@ export const RoutineDetailKineticView = ({
 
         {activeSession?.routineId === routine.id && activeSession.routineDayIds.length > 1 && (
           <section className="mb-6">
-            <p className="mb-3 text-[0.72rem] font-bold uppercase tracking-[0.22em] text-on-surface-variant">Días activos en esta sesión</p>
+            <p className="mb-3 text-[0.72rem] font-bold uppercase tracking-[0.22em] text-on-surface-variant">{t('session.activeDays')}</p>
             <div className="flex gap-2 overflow-x-auto pb-2">
               {activeSession.routineDayIds.map((dayId) => {
                 const day = routine.dayEntries?.find(d => d.id === dayId);
@@ -1159,7 +1169,7 @@ export const RoutineDetailKineticView = ({
                         : 'bg-surface-container-high text-on-surface-variant theme-interactive-hover'
                     }`}
                   >
-                    {day.dayType === 'core' ? '⚡ Core' : `Día ${day.dayNumber}`}
+                    {day.dayType === 'core' ? '⚡ Core' : `${t('routines.day')} ${day.dayNumber}`}
                   </button>
                 );
               })}
@@ -1209,7 +1219,7 @@ export const RoutineDetailKineticView = ({
                       </span>
                       <div className="min-w-0">
                         <h3 className="font-sans text-[0.95rem] font-bold uppercase text-on-surface sm:text-[1rem]">{day.title}</h3>
-                        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-on-surface-variant">{day.exercises.length} ejercicios</p>
+                        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-on-surface-variant">{day.exercises.length} {t(day.exercises.length === 1 ? 'routines.exerciseSingular' : 'routines.exercisePlural')}</p>
                       </div>
                     </div>
                     <ChevronDown size={18} className={`shrink-0 text-on-surface-variant transition-transform ${isOpen ? 'rotate-180' : ''}`} />
@@ -1220,7 +1230,7 @@ export const RoutineDetailKineticView = ({
                     }}
                     disabled={!!activeSession}
                     className={`flex h-10 w-10 items-center justify-center rounded-full text-on-surface-variant/40 transition-colors hover:bg-secondary/10 hover:text-secondary active:scale-95 ${activeSession ? 'opacity-30 cursor-not-allowed' : ''}`}
-                    title={activeSession ? 'No disponible durante entrenamiento' : 'Eliminar este día'}
+                    title={activeSession ? t('session.unavailableTraining') : t('routines.deleteDay')}
                   >
                     <Trash2 size={16} />
                   </button>
@@ -1232,9 +1242,9 @@ export const RoutineDetailKineticView = ({
                       <div className="theme-hairline-border rounded-[1rem] border bg-surface-container-low p-3">
                         <div className="flex flex-wrap items-center justify-between gap-3">
                           <div>
-                            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">Bloques del día</p>
+                            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">{t('session.dayBlocks')}</p>
                             <p className="mt-1 text-sm text-on-surface-variant">
-                              Agrupa ejercicios solo dentro de {day.dayType === 'core' ? 'CORE' : day.title}.
+                              {t('session.groupWithin')} {day.dayType === 'core' ? 'CORE' : day.title}.
                             </p>
                           </div>
                           {!isGroupingMode ? (
@@ -1245,7 +1255,7 @@ export const RoutineDetailKineticView = ({
                               }}
                               className="rounded-full border border-primary/30 bg-primary/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-primary transition-colors hover:bg-primary/15"
                             >
-                              Agrupar ejercicios
+                              {t('session.groupExercises')}
                             </button>
                           ) : (
                             <div className="flex flex-wrap gap-2">
@@ -1253,7 +1263,7 @@ export const RoutineDetailKineticView = ({
                                 onClick={resetGroupingMode}
                                 className="theme-hairline-border rounded-full border px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-on-surface-variant transition-colors hover:text-on-surface"
                               >
-                                Cancelar
+                                {t('common.cancel')}
                               </button>
                               <button
                                 onClick={() => handleCreateGroup(day.id)}
@@ -1264,14 +1274,14 @@ export const RoutineDetailKineticView = ({
                                     : 'bg-surface-container-high text-on-surface-variant'
                                 }`}
                               >
-                                Crear bloque
+                                {t('session.createBlock')}
                               </button>
                             </div>
                           )}
                         </div>
                         {isGroupingMode && (
 <p className="theme-primary-text-soft mt-3 text-[10px] font-bold uppercase tracking-[0.18em]">
-                            Seleccionados: {selectedGroupExerciseIds.length}
+                            {t('session.selected')}: {selectedGroupExerciseIds.length}
                           </p>
                         )}
                       </div>
@@ -1287,17 +1297,17 @@ export const RoutineDetailKineticView = ({
                               <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
                                 <div>
 <p className="theme-primary-text-soft text-[10px] font-bold uppercase tracking-[0.22em]">
-                                    Bloque {index + 1} · {getGroupLabel(item.exercises.length)}
+                                    {t('session.block')} {index + 1} · {getGroupLabel(item.exercises.length, t)}
                                   </p>
                                   <p className="mt-1 text-sm text-on-surface-variant">
-                                    {completedSets}/{totalSets} series completadas
+                                    {completedSets}/{totalSets} {t('session.completedSets')}
                                   </p>
                                 </div>
                                 <button
                                   onClick={() => onRemoveExerciseGroup(day.id, item.group.id)}
                                   className="theme-hairline-border rounded-full border px-3 py-2 text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant transition-colors hover:text-on-surface"
                                 >
-                                  Desagrupar
+                                  {t('session.ungroup')}
                                 </button>
                               </div>
                               <div className="space-y-4">
@@ -1315,7 +1325,7 @@ export const RoutineDetailKineticView = ({
                         return renderExerciseCard(day, item.exercise, index, items.length);
                       })
                     ) : (
-                      <p className="py-2 text-sm text-on-surface-variant">Este día todavía no tiene ejercicios cargados.</p>
+                      <p className="py-2 text-sm text-on-surface-variant">{t('session.emptyDay')}</p>
                     )}
                   </div>
                 )}
@@ -1331,7 +1341,7 @@ export const RoutineDetailKineticView = ({
             className={`neon-button flex w-full items-center justify-center gap-2 rounded-[0.9rem] py-4 font-sans text-sm font-bold uppercase tracking-[0.22em] transition-all active:scale-[0.985] ${activeSession ? 'opacity-40 cursor-not-allowed brightness-50' : ''}`}
           >
             <Edit2 size={16} strokeWidth={2.5} />
-            Editar rutina
+            {t('session.editRoutine')}
           </button>
           <button
             onClick={() => !activeSession && setConfirmRoutineDelete(true)}
@@ -1339,7 +1349,7 @@ export const RoutineDetailKineticView = ({
             className={`flex w-full items-center justify-center gap-2 rounded-[0.9rem] border border-secondary/18 bg-surface-container-low py-4 font-sans text-sm font-bold uppercase tracking-[0.22em] text-secondary transition-all hover:bg-secondary/10 active:scale-[0.985] ${activeSession ? 'opacity-30 cursor-not-allowed' : ''}`}
           >
             <Trash2 size={16} strokeWidth={2.5} />
-            Eliminar Rutina
+            {t('session.deleteRoutine')}
           </button>
         </section>
 
@@ -1351,7 +1361,7 @@ export const RoutineDetailKineticView = ({
                 disabled={isEndingSession}
                 className={`h-[2.7rem] rounded-[0.95rem] border border-outline/30 bg-surface-container-low text-on-surface-variant transition-all font-headline text-[0.78rem] leading-none font-semibold uppercase tracking-[0.12em] ${isEndingSession ? 'cursor-not-allowed opacity-50' : 'hover:border-outline/60 hover:bg-surface-container-high hover:text-on-surface active:scale-[0.99]'}`}
               >
-                Cancelar entrenamiento
+                {t('session.cancelWorkout')}
               </button>
               <button
                 onClick={() => !isEndingSession && setConfirmEndSession(true)}
@@ -1361,12 +1371,12 @@ className={`h-[4.5rem] rounded-[1.2rem] bg-secondary text-black shadow-[0_20px_4
                 {isEndingSession ? (
                   <>
                     <Loader2 size={22} className="mt-0.5 animate-spin" />
-                    Guardando sesión...
+                    {t('session.saving')}
                   </>
                 ) : (
                   <>
                     <X strokeWidth={3} size={22} className="mt-0.5" />
-                    Finalizar Entrenamiento
+                    {t('session.finishWorkout')}
                   </>
                 )}
               </button>
@@ -1386,7 +1396,7 @@ className={`h-[4.5rem] rounded-[1.2rem] bg-secondary text-black shadow-[0_20px_4
 className={`theme-primary-shadow-strong pointer-events-auto w-full max-w-md h-[4.5rem] rounded-[1.2rem] bg-primary text-black transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3 font-headline text-[1.15rem] leading-none font-bold uppercase tracking-[0.15em] border border-primary/20 ${!selectedStartWeekdayId ? 'opacity-50 grayscale' : ''}`}
             >
               <Play fill="currentColor" size={22} className="mt-0.5" />
-              {selectedStartWeekdayId ? 'Iniciar Entrenamiento' : 'Selecciona un día'}
+              {selectedStartWeekdayId ? t('session.startWorkout') : t('session.selectDay')}
             </button>
           )}
         </div>
@@ -1425,8 +1435,8 @@ className={`theme-primary-shadow-strong pointer-events-auto w-full max-w-md h-[4
       {/* Confirmación para Eliminar Rutina */}
       <ConfirmDialog
         open={confirmRoutineDelete}
-        title="¿Eliminar rutina?"
-        message="Esta acción borrará toda la rutina y sus ejercicios de forma permanente."
+        title={t('session.deleteRoutineTitle')}
+        message={t('session.deleteRoutineMessage')}
         onConfirm={() => {
           onDeleteRoutine(routine.id);
           setView('dashboard');
@@ -1437,8 +1447,8 @@ className={`theme-primary-shadow-strong pointer-events-auto w-full max-w-md h-[4
       {/* Confirmación para Eliminar Día */}
       <ConfirmDialog
         open={!!confirmDayDeleteId}
-        title="¿Eliminar este día?"
-        message="Se borrarán todos los ejercicios configurados para este día de entrenamiento."
+        title={t('session.deleteDayTitle')}
+        message={t('session.deleteDayMessage')}
         onConfirm={() => {
           if (confirmDayDeleteId) {
             onDeleteRoutineDay(confirmDayDeleteId);
@@ -1451,8 +1461,8 @@ className={`theme-primary-shadow-strong pointer-events-auto w-full max-w-md h-[4
       {/* Confirmación para Eliminar Ejercicio */}
       <ConfirmDialog
         open={!!confirmExerciseDelete}
-        title="¿Eliminar ejercicio?"
-        message="¿Estás seguro de que quieres quitar este ejercicio de la rutina?"
+        title={t('session.deleteExerciseTitle')}
+        message={t('session.deleteExerciseMessage')}
         onConfirm={() => {
           if (confirmExerciseDelete) {
             onDeleteExercise(confirmExerciseDelete.exId, confirmExerciseDelete.dayId);
@@ -1463,10 +1473,10 @@ className={`theme-primary-shadow-strong pointer-events-auto w-full max-w-md h-[4
       />
       <ConfirmDialog
         open={confirmCancelSession}
-        title="¿Cancelar entrenamiento?"
-        message="Se descartará esta sesión y no se guardará ningún progreso."
-        confirmLabel="Sí, cancelar"
-        cancelLabel="Volver"
+        title={t('session.cancelTitle')}
+        message={t('session.cancelMessage')}
+        confirmLabel={t('session.confirmCancel')}
+        cancelLabel={t('session.back')}
         onConfirm={async () => {
           await onCancelSession();
           setConfirmCancelSession(false);
@@ -1475,10 +1485,10 @@ className={`theme-primary-shadow-strong pointer-events-auto w-full max-w-md h-[4
       />
       <ConfirmDialog
         open={confirmEndSession}
-        title="¿Finalizar entrenamiento?"
-        message="¿Estás seguro de que deseas terminar tu sesión actual? Se guardará el progreso de los ejercicios marcados."
-        confirmLabel="Finalizar ahora"
-        cancelLabel="Volver"
+        title={t('session.finishTitle')}
+        message={t('session.finishMessage')}
+        confirmLabel={t('session.finishNow')}
+        cancelLabel={t('session.back')}
         isConfirming={isEndingSession}
         onConfirm={async () => {
           if (isEndingSession) return;
@@ -1497,10 +1507,10 @@ className={`theme-primary-shadow-strong pointer-events-auto w-full max-w-md h-[4
           <div className="theme-elevated-surface rounded-[1.2rem] px-6 py-5 text-center shadow-xl">
             <Loader2 size={26} className="mx-auto animate-spin text-primary" />
             <p className="mt-3 text-sm font-bold uppercase tracking-[0.16em] text-on-surface">
-              Guardando sesión...
+              {t('session.saving')}
             </p>
             <p className="mt-1 text-xs text-on-surface-variant">
-              No cierres la app hasta completar.
+              {t('session.keepOpen')}
             </p>
           </div>
         </div>

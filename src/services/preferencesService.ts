@@ -1,10 +1,11 @@
 import { supabase } from '../lib/supabase/client';
+import type { AppLanguage } from '../i18n/translations';
 
 export interface UserPreferences {
   id: string;
   user_id: string;
   theme: 'light' | 'dark' | 'auto';
-  language: 'es' | 'en';
+  language: AppLanguage | 'es';
   units_preference: 'kg' | 'lb';
   notifications_enabled: boolean;
   created_at: string;
@@ -85,7 +86,10 @@ export const preferencesService = {
    * @param userId The user ID
    * @returns Created preferences
    */
-  async createDefaultPreferences(userId: string): Promise<UserPreferences> {
+  async createDefaultPreferences(
+    userId: string,
+    overrides: Partial<Pick<UserPreferences, 'theme' | 'language' | 'units_preference' | 'notifications_enabled'>> = {},
+  ): Promise<UserPreferences> {
     if (!supabase) {
       throw new Error('Supabase client not initialized');
     }
@@ -96,9 +100,10 @@ export const preferencesService = {
         .insert({
           user_id: userId,
           theme: 'dark',
-          language: 'es',
+          language: 'es-419',
           units_preference: 'kg',
           notifications_enabled: true,
+          ...overrides,
         })
         .select('*')
         .single();
