@@ -241,7 +241,7 @@ export const ExerciseEditorView = ({
         <div className="mb-4 flex items-start justify-between gap-4">
           <div className="min-w-0">
             <p className="mb-1 text-[10px] uppercase tracking-[0.16em] text-on-surface-variant">{t('exerciseEditor.current')}</p>
-            <h2 className="line-clamp-2 text-[1.85rem] font-semibold leading-tight text-on-surface">{getExerciseDisplayName(exercise, language)}</h2>
+            <h2 className="break-words text-[clamp(1.45rem,7vw,1.85rem)] font-semibold leading-tight text-on-surface">{getExerciseDisplayName(exercise, language)}</h2>
           </div>
           <button 
             onClick={() => setShowDescription(!showDescription)} 

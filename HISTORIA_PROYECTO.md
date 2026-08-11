@@ -300,6 +300,8 @@ Se mejoro la biblioteca de ejercicios y la lectura del progreso sin alterar la c
   - El catalogo local de respaldo incorpora nombres ingleses para sus 28 ejercicios y localiza grupos musculares y equipamiento. El cambio es solo de presentacion: IDs y nombres canonicos en espanol permanecen estables para no afectar rutinas ni sincronizacion.
   - La auditoria final localiza la pastilla de entrenamiento activo, estados vacios del Historial, tiempos de error y todo el flujo de importacion. Las advertencias de importacion usan codigos bilingues y conservan literalmente los nombres personalizados de rutinas, dias y ejercicios.
   - El selector de idioma cambia toda la interfaz en un unico paso visual. La sincronizacion con Supabase ya no muestra una fase intermedia ni revierte la preferencia local si la conexion remota falla; cambiar las traducciones tampoco reinicia la suscripcion de autenticacion ni vuelve a cargar temporalmente la preferencia remota anterior.
+  - La confirmacion de importacion de rutinas ahora se presenta como un dialogo compacto y centrado, siempre por encima de la navegacion inferior, con el nombre importado y una accion visible para continuar.
+  - La edicion de dias conserva el ordenamiento vertical mediante el asa de arrastre y elimina las flechas redundantes. Los nombres de ejercicios pueden ocupar varias lineas tanto en la lista del dia como en el editor, evitando confundir variantes con nombres similares.
 
 - Verificacion:
   - La linea base queda en 92 pruebas aprobadas, TypeScript sin errores y build de produccion correcto.

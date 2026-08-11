@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { DragDropProvider } from '@dnd-kit/react';
 import { useSortable } from '@dnd-kit/react/sortable';
-import { arrayMove, move } from '@dnd-kit/helpers';
-import { ArrowLeft, ArrowRight, ChevronDown, ChevronUp, Edit2, GripVertical, Plus, Trash2 } from 'lucide-react';
+import { move } from '@dnd-kit/helpers';
+import { ArrowLeft, ArrowRight, Edit2, GripVertical, Plus, Trash2 } from 'lucide-react';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 import { PageShell } from '../components/layout/PageShell';
 import { ConfirmDialog } from '../components/layout/ConfirmDialog';
@@ -15,18 +15,14 @@ const SortableExerciseCard = ({
   dayId,
   item,
   index,
-  total,
   disabled,
-  onMove,
   onEdit,
   onDelete,
 }: {
   dayId: string;
   item: RoutineDayExercise;
   index: number;
-  total: number;
   disabled: boolean;
-  onMove: (from: number, to: number) => void;
   onEdit: () => void;
   onDelete: () => void;
 }) => {
@@ -62,9 +58,9 @@ const SortableExerciseCard = ({
         <GripVertical size={20} strokeWidth={2.4} />
       </button>
 
-      <div className="min-w-0 flex-1 pr-3">
-        <div className="truncate text-[0.9rem] font-bold tracking-tight text-on-surface">{exerciseName}</div>
-        <div className="mt-1 flex items-center gap-2">
+      <div className="min-w-0 flex-1 pr-2">
+        <div className="break-words text-[0.9rem] font-bold leading-snug tracking-tight text-on-surface">{exerciseName}</div>
+        <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
           <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[0.62rem] font-black uppercase tracking-[0.15em] text-primary">
             {item.exercise.sets.length} {t(item.exercise.sets.length === 1 ? 'routines.setSingular' : 'routines.setPlural')}
           </span>
@@ -76,28 +72,6 @@ const SortableExerciseCard = ({
       </div>
 
       <div className="flex shrink-0 items-center gap-1">
-        <div className="mr-1 flex flex-col">
-          <button
-            type="button"
-            onClick={() => onMove(index, index - 1)}
-            disabled={disabled || index === 0}
-            className="flex h-5 w-7 items-center justify-center rounded-t-md bg-surface-container-highest text-on-surface-variant transition-colors hover:bg-primary hover:text-black disabled:cursor-not-allowed disabled:opacity-25"
-            title={t('routines.moveUp')}
-            aria-label={`${t('routines.moveUp')}: ${exerciseName}`}
-          >
-            <ChevronUp size={14} strokeWidth={3} />
-          </button>
-          <button
-            type="button"
-            onClick={() => onMove(index, index + 1)}
-            disabled={disabled || index === total - 1}
-            className="mt-px flex h-5 w-7 items-center justify-center rounded-b-md bg-surface-container-highest text-on-surface-variant transition-colors hover:bg-primary hover:text-black disabled:cursor-not-allowed disabled:opacity-25"
-            title={t('routines.moveDown')}
-            aria-label={`${t('routines.moveDown')}: ${exerciseName}`}
-          >
-            <ChevronDown size={14} strokeWidth={3} />
-          </button>
-        </div>
         <button
           type="button"
           onClick={onEdit}
@@ -259,20 +233,6 @@ export const RoutineCreatorView = ({
         // The app-level banner reports the failure and restores the previous order.
       })
       .finally(() => setIsReordering(false));
-  };
-
-  const handleExerciseMove = (fromIndex: number, toIndex: number) => {
-    if (!activeDayEntry || toIndex < 0 || toIndex >= activeDayEntry.exercises.length) {
-      return;
-    }
-
-    persistExerciseOrder(
-      arrayMove(
-        activeDayEntry.exercises.map((exercise) => exercise.id),
-        fromIndex,
-        toIndex,
-      ),
-    );
   };
 
   const handleGlobalSave = async () => {
@@ -486,9 +446,7 @@ export const RoutineCreatorView = ({
                             dayId={activeDayEntry.id}
                             item={item}
                             index={index}
-                            total={activeDayEntry.exercises.length}
                             disabled={isReordering}
-                            onMove={handleExerciseMove}
                             onEdit={() => onEditExercise(item.exercise, item.id)}
                             onDelete={() => setItemToTrash({ type: 'exercise', id: item.id })}
                           />

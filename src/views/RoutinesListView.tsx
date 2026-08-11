@@ -312,19 +312,21 @@ export const RoutinesListView = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-end justify-center p-4 pb-8 bg-black/60 backdrop-blur-sm"
+            className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 px-5 py-[calc(env(safe-area-inset-top)+1.25rem)] backdrop-blur-sm"
             onClick={() => setImportResult(null)}
           >
             <motion.div
-              initial={{ y: 60, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 60, opacity: 0 }}
+              initial={{ y: 16, scale: 0.96, opacity: 0 }}
+              animate={{ y: 0, scale: 1, opacity: 1 }}
+              exit={{ y: 12, scale: 0.97, opacity: 0 }}
               transition={{ type: 'spring', stiffness: 300, damping: 28 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-sm rounded-[2.5rem] border theme-hairline-border bg-surface-container p-8 shadow-2xl"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="routine-import-result-title"
+              className="max-h-[calc(100dvh-2.5rem)] w-full max-w-sm overflow-y-auto rounded-[2rem] border theme-hairline-border bg-surface-container p-6 shadow-2xl"
             >
-              {/* Icono */}
-              <div className={`mb-5 flex h-14 w-14 items-center justify-center rounded-2xl ${
+              <div className={`mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl ${
                 importResult.success
                   ? 'bg-emerald-500/20 text-emerald-400'
                   : 'bg-red-500/20 text-red-400'
@@ -334,12 +336,17 @@ export const RoutinesListView = ({
                   : <AlertTriangle size={28} />}
               </div>
 
-              <h3 className="font-headline text-2xl font-black uppercase italic leading-tight text-on-surface">
+              <h3 id="routine-import-result-title" className="text-center font-headline text-2xl font-black uppercase italic leading-tight text-on-surface">
                 {importResult.success ? t('routines.imported') : t('routines.importError')}
               </h3>
 
               {importResult.success && importResult.routineName && (
-                <p className="mt-2 text-sm font-bold text-primary">{importResult.routineName}</p>
+                <div className="mt-4 rounded-2xl bg-surface-container-high px-4 py-3 text-center">
+                  <p className="text-base font-black text-primary">{importResult.routineName}</p>
+                  <p className="mt-1 text-xs font-semibold leading-relaxed text-on-surface-variant">
+                    {t('routines.importSuccessHint')}
+                  </p>
+                </div>
               )}
 
               {importResult.error && (
@@ -358,10 +365,10 @@ export const RoutinesListView = ({
 
               <button
                 onClick={() => setImportResult(null)}
-                className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-sm font-black uppercase tracking-widest text-black transition-all hover:opacity-90 active:scale-95"
+                className="mt-5 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3 text-sm font-black uppercase tracking-widest text-black transition-all hover:opacity-90 active:scale-95"
               >
-                <X size={16} />
-                {t('common.close')}
+                {importResult.success ? <CheckCircle2 size={18} /> : <X size={18} />}
+                {importResult.success ? t('common.done') : t('common.close')}
               </button>
             </motion.div>
           </motion.div>
