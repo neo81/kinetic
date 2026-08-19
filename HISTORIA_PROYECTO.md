@@ -306,6 +306,7 @@ Se mejoro la biblioteca de ejercicios y la lectura del progreso sin alterar la c
   - El reloj de descanso incorpora una rueda tactil independiente para minutos y segundos y hasta ocho tiempos personalizados sincronizados en `user_preferences`, presentados en una grilla de cuatro columnas y dos filas. No se crean presets por defecto y el conteo se basa en la hora real de finalizacion para recuperarse correctamente al volver a la PWA.
   - Ajustar manualmente la rueda del descanso hasta `00:00` o cancelar ya no activa la alarma; el aviso sonoro y visual queda reservado para una cuenta iniciada que realmente finaliza. Durante la cuenta se ocultan la rueda y los controles de ajuste para evitar cambios accidentales.
   - Pausar y reanudar conserva la fraccion exacta del segundo en curso, evitando que la cuenta agregue hasta un segundo o parezca demorarse al continuar.
+  - El sonido de fin de descanso prepara y conserva el contexto de audio desde la pulsacion de Iniciar o Reanudar para cumplir las restricciones de reproduccion de Safari/iOS. El destello final aumenta su intensidad y duracion para resultar visible durante el entrenamiento.
 
 - Verificacion:
   - La linea base queda en 109 pruebas aprobadas y build de produccion correcto. El chequeo general de TypeScript mantiene tres errores de tipado anteriores en Historial e importacion, ajenos a estos cambios.

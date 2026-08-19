@@ -117,13 +117,57 @@ type DayRenderItem =
   | { type: 'single'; exercise: RoutineDayExercise }
   | { type: 'group'; group: SessionExerciseGroup; exercises: RoutineDayExercise[] };
 
-const playAlertTone = async () => {
+let alertAudioContext: AudioContext | null = null;
+
+const getAlertAudioContext = () => {
   const AudioContextConstructor = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
   if (!AudioContextConstructor) {
-    return;
+    return null;
   }
 
-  const audioContext = new AudioContextConstructor();
+  if (!alertAudioContext || alertAudioContext.state === 'closed') {
+    alertAudioContext = new AudioContextConstructor();
+  }
+
+  return alertAudioContext;
+};
+
+const prepareAlertAudio = () => {
+  const audioContext = getAlertAudioContext();
+  if (!audioContext) return;
+
+  if (audioContext.state !== 'running') {
+    void audioContext.resume().catch(() => undefined);
+  }
+
+  // Reproducir una muestra inaudible dentro del gesto del usuario desbloquea
+  // Web Audio en Safari/iOS para el aviso que se ejecutará más tarde.
+  const oscillator = audioContext.createOscillator();
+  const gain = audioContext.createGain();
+  gain.gain.setValueAtTime(0.0001, audioContext.currentTime);
+  oscillator.connect(gain);
+  gain.connect(audioContext.destination);
+  oscillator.start();
+  oscillator.stop(audioContext.currentTime + 0.02);
+};
+
+const playAlertTone = async () => {
+  const audioContext = getAlertAudioContext();
+  if (!audioContext) return;
+
+  if (audioContext.state !== 'running') {
+    try {
+      await Promise.race([
+        audioContext.resume(),
+        new Promise<void>((resolve) => window.setTimeout(resolve, 500)),
+      ]);
+    } catch {
+      return;
+    }
+  }
+
+  if (audioContext.state !== 'running') return;
+
   const sequence = [880, 1174, 1568];
 
   sequence.forEach((frequency, index) => {
@@ -144,9 +188,6 @@ const playAlertTone = async () => {
     oscillator.stop(endAt);
   });
 
-  window.setTimeout(() => {
-    audioContext.close().catch(() => undefined);
-  }, 900);
 };
 
 const triggerCompletionFeedback = async () => {
@@ -343,7 +384,7 @@ const RestTimerModal = ({
       triggerCompletionFeedback().catch(() => undefined);
       
       setIsFlashing(true);
-      const flashTimer = setTimeout(() => setIsFlashing(false), 2000);
+      const flashTimer = setTimeout(() => setIsFlashing(false), 3000);
       return () => clearTimeout(flashTimer);
     }
 
@@ -385,6 +426,7 @@ const RestTimerModal = ({
       : selectedSeconds * 1000;
     if (durationToRunMs <= 0) return;
 
+    prepareAlertAudio();
     completedRef.current = false;
     previousSecondsRef.current = Math.ceil(durationToRunMs / 1000);
     setRemainingSeconds(Math.ceil(durationToRunMs / 1000));
@@ -424,7 +466,7 @@ const RestTimerModal = ({
   return (
     <>
       {isFlashing && (
-        <div className="fixed inset-0 z-[100] pointer-events-none bg-primary/40 animate-pulse mix-blend-screen" />
+        <div className="pointer-events-none fixed inset-0 z-[100] animate-pulse bg-primary/80 backdrop-brightness-150" />
       )}
       <PopupShell title={t('session.restTimer')} accent="primary" onClose={closeAndReset}>
       <div className="text-center">
