@@ -741,7 +741,7 @@ const fetchCompletedSessions = async (userId: string): Promise<CompletedSession[
       let exerciseCount = 0;
       let totalVolumeWeight = 0;
       let totalVolumeMinutes = 0;
-      const detailedDays = dayLogs.map((dayLog: any) => {
+      const detailedDays: CompletedSession['days'] = dayLogs.map((dayLog: any) => {
         const dayLabel = dayLog.routine_days?.day_type === 'core'
           ? 'Core'
           : dayLog.routine_days?.title || `Día ${dayLog.routine_days?.day_number ?? '-'}`;

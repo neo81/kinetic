@@ -72,6 +72,7 @@ Mapas anatómicos interactivos (Frontal y Posterior) que proporcionan una interf
 
 ### 📱 PWA y rendimiento móvil
 - **Transiciones suavizadas**: Ajustes para evitar pantallazos negros y cortes duros en iOS/Android PWA.
+- **Navegación inferior compacta**: La barra flotante usa una superficie Liquid Glass con cuatro iconos accesibles, una lente animada para señalar la sección activa y una alternativa sólida para navegadores sin desenfoque de fondo.
 - **Selector muscular optimizado**: Precarga de imágenes frontal/posterior y regreso respetando la vista activa.
 - **Iconografía PWA renovada**: Iconos de app, favicon y Apple Touch generados desde la imagen base corregida.
 - **Idioma persistente**: La configuración permite alternar entre Español e Inglés sin recargar; la preferencia se guarda localmente y se sincroniza con Supabase. Ya están localizados el acceso y registro, Dashboard, navegación compartida, Configuración, perfil, avatar, novedades históricas, avisos, diagnósticos, rutinas, sesión activa, Historial y la interfaz completa de Motor.

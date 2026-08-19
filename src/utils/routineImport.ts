@@ -200,7 +200,7 @@ async function resolveExerciseId(
 async function buildRoutineFromPayload(
   payload: RoutineExportPayload,
   userId: string,
-  warnings: string[],
+  warnings: RoutineImportWarning[],
 ): Promise<Routine> {
   const routineId = crypto.randomUUID();
   const dayEntries: RoutineDay[] = [];

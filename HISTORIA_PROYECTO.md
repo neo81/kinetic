@@ -308,9 +308,10 @@ Se mejoro la biblioteca de ejercicios y la lectura del progreso sin alterar la c
   - Pausar y reanudar conserva la fraccion exacta del segundo en curso, evitando que la cuenta agregue hasta un segundo o parezca demorarse al continuar.
   - El sonido de fin de descanso prepara y conserva el contexto de audio desde la pulsacion de Iniciar o Reanudar para cumplir las restricciones de reproduccion de Safari/iOS. El destello final aumenta su intensidad y duracion para resultar visible durante el entrenamiento.
   - La alerta sonora usa un patron de alarma alternado, mas intenso y prolongado que los tres tonos breves originales, con entrada y salida suavizadas para evitar golpes abruptos de volumen.
+  - La navegacion inferior adopta una superficie compacta Liquid Glass comun a navegador y PWA. Los accesos se reducen a iconos de inicio, rutinas, busqueda de ejercicios e historial, conservan etiquetas accesibles y usan una lente con transicion horizontal consistente entre Safari y Edge para indicar la seccion activa.
 
 - Verificacion:
-  - La linea base queda en 109 pruebas aprobadas y build de produccion correcto. El chequeo general de TypeScript mantiene tres errores de tipado anteriores en Historial e importacion, ajenos a estos cambios.
+  - La linea base queda en 109 pruebas aprobadas, TypeScript sin errores y build de produccion correcto. Se tiparon de forma explicita los dias detallados del Historial y las advertencias estructuradas de importacion sin modificar su comportamiento.
 
 ## Documentos consolidados
 
