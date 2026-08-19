@@ -168,18 +168,19 @@ const playAlertTone = async () => {
 
   if (audioContext.state !== 'running') return;
 
-  const sequence = [880, 1174, 1568];
+  const sequence = [880, 1320, 880, 1320, 880, 1320, 880, 1320];
 
   sequence.forEach((frequency, index) => {
     const oscillator = audioContext.createOscillator();
     const gain = audioContext.createGain();
-    const startAt = audioContext.currentTime + index * 0.18;
-    const endAt = startAt + 0.12;
+    const startAt = audioContext.currentTime + index * 0.3;
+    const endAt = startAt + 0.22;
 
-    oscillator.type = 'triangle';
+    oscillator.type = 'square';
     oscillator.frequency.setValueAtTime(frequency, startAt);
     gain.gain.setValueAtTime(0.0001, startAt);
-    gain.gain.exponentialRampToValueAtTime(0.8, startAt + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.72, startAt + 0.025);
+    gain.gain.setValueAtTime(0.72, endAt - 0.035);
     gain.gain.exponentialRampToValueAtTime(0.0001, endAt);
 
     oscillator.connect(gain);
