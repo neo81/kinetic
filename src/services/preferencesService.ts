@@ -8,6 +8,7 @@ export interface UserPreferences {
   language: AppLanguage | 'es';
   units_preference: 'kg' | 'lb';
   notifications_enabled: boolean;
+  rest_timer_presets_seconds: number[];
   created_at: string;
   updated_at: string;
 }

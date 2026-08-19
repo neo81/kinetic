@@ -302,9 +302,13 @@ Se mejoro la biblioteca de ejercicios y la lectura del progreso sin alterar la c
   - El selector de idioma cambia toda la interfaz en un unico paso visual. La sincronizacion con Supabase ya no muestra una fase intermedia ni revierte la preferencia local si la conexion remota falla; cambiar las traducciones tampoco reinicia la suscripcion de autenticacion ni vuelve a cargar temporalmente la preferencia remota anterior.
   - La confirmacion de importacion de rutinas ahora se presenta como un dialogo compacto y centrado, siempre por encima de la navegacion inferior, con el nombre importado y una accion visible para continuar.
   - La edicion de dias conserva el ordenamiento vertical mediante el asa de arrastre y elimina las flechas redundantes. Los nombres de ejercicios pueden ocupar varias lineas tanto en la lista del dia como en el editor, evitando confundir variantes con nombres similares.
+  - Las sesiones activas muestran su tiempo real transcurrido en una pastilla compacta y persistente, tanto dentro de la rutina como al navegar por otras secciones. El cronometro manual permanece independiente. Iniciar y finalizar usan el color primario, mientras que cancelar adopta el color secundario con menor jerarquia visual.
+  - El reloj de descanso incorpora una rueda tactil independiente para minutos y segundos y hasta ocho tiempos personalizados sincronizados en `user_preferences`, presentados en una grilla de cuatro columnas y dos filas. No se crean presets por defecto y el conteo se basa en la hora real de finalizacion para recuperarse correctamente al volver a la PWA.
+  - Ajustar manualmente la rueda del descanso hasta `00:00` o cancelar ya no activa la alarma; el aviso sonoro y visual queda reservado para una cuenta iniciada que realmente finaliza. Durante la cuenta se ocultan la rueda y los controles de ajuste para evitar cambios accidentales.
+  - Pausar y reanudar conserva la fraccion exacta del segundo en curso, evitando que la cuenta agregue hasta un segundo o parezca demorarse al continuar.
 
 - Verificacion:
-  - La linea base queda en 92 pruebas aprobadas, TypeScript sin errores y build de produccion correcto.
+  - La linea base queda en 109 pruebas aprobadas y build de produccion correcto. El chequeo general de TypeScript mantiene tres errores de tipado anteriores en Historial e importacion, ajenos a estos cambios.
 
 ## Documentos consolidados
 

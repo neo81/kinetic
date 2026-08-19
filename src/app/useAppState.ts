@@ -11,6 +11,7 @@ import { exportSessionDataForRPC } from '../services/sessionCompletion/exportSes
 import { invokeEndSession } from '../services/sessionCompletion/invokeEndSession';
 import { ensureWeeklyStatsBackfilled } from '../services/dataBackfill/backfillWeeklyStats';
 import { preferencesService } from '../services/preferencesService';
+import { normalizeRestTimerPresets } from '../features/restTimer/presets';
 import { reorderRoutineDayExercises } from '../features/routines/reorderExercises';
 import { useTheme } from '../hooks/useTheme';
 import type { ThemePreference } from '../theme/theme';
@@ -173,6 +174,7 @@ export const useAppState = () => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isAppLoading, setIsAppLoading] = useState(true);
   const [activeSession, setActiveSession] = useState<ActiveSession | null>(null);
+  const [restTimerPresets, setRestTimerPresets] = useState<number[]>([]);
   
   // Ref para evitar ciclos de renderizado y rastrear inicializacion
   const authInitialized = useRef(false);
@@ -253,8 +255,31 @@ export const useAppState = () => {
       setLanguage(remoteLanguage);
     }
 
+    setRestTimerPresets(normalizeRestTimerPresets(preferences?.rest_timer_presets_seconds));
+
     return preferences;
   }, [setLanguage, setThemePreference]);
+
+  const handleRestTimerPresetsChange = useCallback(async (nextValues: number[]) => {
+    if (!user?.id) return;
+
+    const normalizedValues = normalizeRestTimerPresets(nextValues);
+    const previousValues = restTimerPresets;
+    setRestTimerPresets(normalizedValues);
+
+    try {
+      await preferencesService.updatePreferences(user.id, {
+        rest_timer_presets_seconds: normalizedValues,
+      });
+    } catch (error) {
+      setRestTimerPresets(previousValues);
+      setAppBanner({
+        level: 'error',
+        title: t('session.presetSaveFailed'),
+        message: t('session.presetSaveFailedHint'),
+      });
+    }
+  }, [restTimerPresets, t, user?.id]);
 
   const syncActiveSessionFromStorage = useCallback(async () => {
     if (!supabase) return;
@@ -1203,6 +1228,7 @@ export const useAppState = () => {
     openDayId,
     setOpenDayId,
     activeSession,
+    restTimerPresets,
     startSession,
     endSession,
     cancelSession,
@@ -1217,5 +1243,6 @@ export const useAppState = () => {
     resolvedTheme,
     handleThemeChange,
     handleLanguageChange,
+    handleRestTimerPresetsChange,
   };
 };

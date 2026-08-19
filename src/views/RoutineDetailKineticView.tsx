@@ -13,7 +13,8 @@ import {
   X,
   Timer,
   Check,
-  Loader2
+  Loader2,
+  BookmarkPlus
 } from 'lucide-react';
 import { RoutineSyncPendingBadge } from '../components/RoutineSyncPendingBadge';
 import { PageShell } from '../components/layout/PageShell';
@@ -22,10 +23,15 @@ import type { ActiveSession, Exercise, Routine, View, RoutineDayExercise, Sessio
 import { useLanguage } from '../i18n/LanguageContext';
 import type { TranslationKey } from '../i18n/translations';
 import { getExerciseDisplayName } from '../i18n/exerciseLocalization';
+import { SessionElapsedPill } from '../components/SessionElapsedPill';
+import { formatRestTimerPreset, MAX_REST_TIMER_PRESETS } from '../features/restTimer/presets';
 
 type Translator = (key: TranslationKey) => string;
 
 const DEFAULT_REST_SECONDS = 0;
+const TIMER_WHEEL_ITEM_HEIGHT = 48;
+const TIMER_MINUTE_OPTIONS = Array.from({ length: 60 }, (_, index) => index);
+const TIMER_SECOND_OPTIONS = Array.from({ length: 12 }, (_, index) => index * 5);
 
 const formatClock = (value: number) => String(value).padStart(2, '0');
 
@@ -167,7 +173,7 @@ const PopupShell = ({
   children: ReactNode;
 }) => (
   <div className="theme-overlay fixed inset-0 z-[70] flex items-center justify-center px-4 backdrop-blur-sm">
-    <div className="theme-elevated-surface relative w-full max-w-[22rem] overflow-hidden rounded-[1.6rem]">
+    <div className="theme-elevated-surface relative max-h-[calc(100dvh-2rem)] w-full max-w-[22rem] overflow-y-auto rounded-[1.6rem]">
       <div className={`absolute left-0 top-0 h-1 w-16 ${accent === 'primary' ? 'bg-primary' : 'bg-secondary'}`}></div>
       <div className={`absolute bottom-0 right-0 h-1 w-16 ${accent === 'primary' ? 'bg-primary' : 'bg-secondary'}`}></div>
       <div className="p-6">
@@ -189,38 +195,137 @@ const PopupShell = ({
   </div>
 );
 
-const RestTimerModal = ({ open, onClose }: { open: boolean; onClose: () => void }) => {
+const TimerWheelColumn = ({
+  label,
+  options,
+  value,
+  disabled,
+  onChange,
+}: {
+  label: string;
+  options: number[];
+  value: number;
+  disabled: boolean;
+  onChange: (value: number) => void;
+}) => {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const lastEmittedValueRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (lastEmittedValueRef.current === value) return;
+    const selectedIndex = Math.max(options.indexOf(value), 0);
+    lastEmittedValueRef.current = value;
+    scrollRef.current?.scrollTo({ top: selectedIndex * TIMER_WHEEL_ITEM_HEIGHT });
+  }, [options, value]);
+
+  return (
+    <div className="min-w-0">
+      <p className="mb-2 text-center text-[0.62rem] font-black uppercase tracking-[0.2em] text-on-surface-variant">
+        {label}
+      </p>
+      <div className="relative overflow-hidden rounded-2xl border theme-hairline-border bg-surface-container-low">
+        <div
+          ref={scrollRef}
+          role="listbox"
+          aria-label={label}
+          aria-disabled={disabled}
+          onScroll={(event) => {
+            if (disabled) return;
+            const index = Math.max(0, Math.min(options.length - 1, Math.round(event.currentTarget.scrollTop / TIMER_WHEEL_ITEM_HEIGHT)));
+            const nextValue = options[index];
+            if (lastEmittedValueRef.current !== nextValue) {
+              lastEmittedValueRef.current = nextValue;
+              onChange(nextValue);
+            }
+          }}
+          className="h-36 snap-y snap-mandatory overflow-y-auto overscroll-contain py-12 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
+          {options.map((option) => (
+            <button
+              key={option}
+              type="button"
+              role="option"
+              aria-selected={option === value}
+              disabled={disabled}
+              onClick={() => {
+                const optionIndex = options.indexOf(option);
+                lastEmittedValueRef.current = option;
+                scrollRef.current?.scrollTo({
+                  top: optionIndex * TIMER_WHEEL_ITEM_HEIGHT,
+                  behavior: 'smooth',
+                });
+                onChange(option);
+              }}
+              className={`flex h-12 w-full snap-center items-center justify-center font-mono text-2xl font-black tabular-nums transition-colors ${
+                option === value ? 'text-primary' : 'text-on-surface-variant/45'
+              } disabled:cursor-not-allowed`}
+            >
+              {String(option).padStart(2, '0')}
+            </button>
+          ))}
+        </div>
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-12 bg-gradient-to-b from-surface-container-low to-transparent" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-surface-container-low to-transparent" />
+        <div className="pointer-events-none absolute inset-x-2 top-12 h-12 rounded-xl border-y border-primary/25 bg-primary/5" />
+      </div>
+    </div>
+  );
+};
+
+type RestTimerStatus = 'idle' | 'running' | 'paused' | 'finished';
+
+const RestTimerModal = ({
+  open,
+  onClose,
+  presets,
+  onPresetsChange,
+}: {
+  open: boolean;
+  onClose: () => void;
+  presets: number[];
+  onPresetsChange: (values: number[]) => Promise<void>;
+}) => {
   const { t } = useLanguage();
+  const [selectedSeconds, setSelectedSeconds] = useState(DEFAULT_REST_SECONDS);
   const [remainingSeconds, setRemainingSeconds] = useState(DEFAULT_REST_SECONDS);
-  const [isRunning, setIsRunning] = useState(false);
+  const [status, setStatus] = useState<RestTimerStatus>('idle');
+  const [endsAtMs, setEndsAtMs] = useState<number | null>(null);
   const [isFlashing, setIsFlashing] = useState(false);
+  const [isSavingPresets, setIsSavingPresets] = useState(false);
   const completedRef = useRef(false);
   const previousSecondsRef = useRef(remainingSeconds);
+  const pausedRemainingMsRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!open) {
-      setIsRunning(false);
       completedRef.current = false;
       setIsFlashing(false);
       return;
     }
 
-    if (!isRunning) {
+    if (status !== 'running' || endsAtMs === null) {
       return;
     }
 
-    const timer = window.setInterval(() => {
-      setRemainingSeconds((current) => {
-        if (current <= 1) {
-          window.clearInterval(timer);
-          return 0;
-        }
-        return current - 1;
-      });
-    }, 1000);
+    const updateRemainingTime = () => {
+      const nextRemainingSeconds = Math.max(0, Math.ceil((endsAtMs - Date.now()) / 1000));
+      setRemainingSeconds(nextRemainingSeconds);
+      if (nextRemainingSeconds === 0) {
+        pausedRemainingMsRef.current = null;
+        setStatus('finished');
+        setEndsAtMs(null);
+      }
+    };
 
-    return () => window.clearInterval(timer);
-  }, [isRunning, open]);
+    updateRemainingTime();
+    const timer = window.setInterval(updateRemainingTime, 250);
+    document.addEventListener('visibilitychange', updateRemainingTime);
+
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', updateRemainingTime);
+    };
+  }, [endsAtMs, open, status]);
 
   useEffect(() => {
     if (!open) {
@@ -228,9 +333,13 @@ const RestTimerModal = ({ open, onClose }: { open: boolean; onClose: () => void 
       return;
     }
 
-    if (remainingSeconds === 0 && previousSecondsRef.current > 0 && !completedRef.current) {
+    if (
+      status === 'finished'
+      && remainingSeconds === 0
+      && previousSecondsRef.current > 0
+      && !completedRef.current
+    ) {
       completedRef.current = true;
-      setIsRunning(false);
       triggerCompletionFeedback().catch(() => undefined);
       
       setIsFlashing(true);
@@ -239,19 +348,73 @@ const RestTimerModal = ({ open, onClose }: { open: boolean; onClose: () => void 
     }
 
     previousSecondsRef.current = remainingSeconds;
-  }, [open, remainingSeconds]);
+  }, [open, remainingSeconds, status]);
 
   const closeAndReset = () => {
-    setIsRunning(false);
+    setStatus('idle');
+    setEndsAtMs(null);
+    pausedRemainingMsRef.current = null;
+    setSelectedSeconds(DEFAULT_REST_SECONDS);
     setRemainingSeconds(DEFAULT_REST_SECONDS);
     completedRef.current = false;
     setIsFlashing(false);
     onClose();
   };
 
-  const adjustTimer = (secondsToAdd: number) => {
+  const selectDuration = (totalSeconds: number) => {
     completedRef.current = false;
-    setRemainingSeconds((current) => Math.max(current + secondsToAdd, 0));
+    setSelectedSeconds(totalSeconds);
+    setRemainingSeconds(totalSeconds);
+    setEndsAtMs(null);
+    pausedRemainingMsRef.current = null;
+    setStatus('idle');
+  };
+
+  const toggleTimer = () => {
+    if (status === 'running') {
+      const exactRemainingMs = Math.max(0, (endsAtMs ?? Date.now()) - Date.now());
+      pausedRemainingMsRef.current = exactRemainingMs;
+      setRemainingSeconds(Math.ceil(exactRemainingMs / 1000));
+      setStatus('paused');
+      setEndsAtMs(null);
+      return;
+    }
+
+    const durationToRunMs = status === 'paused'
+      ? pausedRemainingMsRef.current ?? remainingSeconds * 1000
+      : selectedSeconds * 1000;
+    if (durationToRunMs <= 0) return;
+
+    completedRef.current = false;
+    previousSecondsRef.current = Math.ceil(durationToRunMs / 1000);
+    setRemainingSeconds(Math.ceil(durationToRunMs / 1000));
+    pausedRemainingMsRef.current = null;
+    setEndsAtMs(Date.now() + durationToRunMs);
+    setStatus('running');
+  };
+
+  const saveSelectedPreset = async () => {
+    if (
+      selectedSeconds <= 0
+      || presets.includes(selectedSeconds)
+      || presets.length >= MAX_REST_TIMER_PRESETS
+    ) return;
+
+    setIsSavingPresets(true);
+    try {
+      await onPresetsChange([...presets, selectedSeconds]);
+    } finally {
+      setIsSavingPresets(false);
+    }
+  };
+
+  const removePreset = async (preset: number) => {
+    setIsSavingPresets(true);
+    try {
+      await onPresetsChange(presets.filter((value) => value !== preset));
+    } finally {
+      setIsSavingPresets(false);
+    }
   };
 
   if (!open) {
@@ -265,57 +428,117 @@ const RestTimerModal = ({ open, onClose }: { open: boolean; onClose: () => void 
       )}
       <PopupShell title={t('session.restTimer')} accent="primary" onClose={closeAndReset}>
       <div className="text-center">
-<div className="theme-primary-text font-headline text-[5rem] font-semibold leading-none tracking-[0.02em]">
+        <div className="theme-primary-text font-headline text-[4.5rem] font-semibold leading-none tracking-[0.02em]">
           {formatCountdown(remainingSeconds)}
         </div>
-<p className="theme-primary-text-soft mt-2 text-[0.68rem] font-bold uppercase tracking-[0.3em]">
-          {remainingSeconds > 0 ? t('session.activeRest') : t('session.restFinished')}
+        <p className="theme-primary-text-soft mt-2 text-[0.68rem] font-bold uppercase tracking-[0.3em]">
+          {status === 'finished'
+            ? t('session.restFinished')
+            : status === 'running'
+              ? t('session.activeRest')
+              : status === 'paused'
+                ? t('session.restPaused')
+                : t('session.chooseRestTime')}
         </p>
       </div>
 
-      <div className="mt-8 grid grid-cols-3 gap-2 sm:gap-3">
-        {[
-          { label: '-10s', value: -10 },
-          { label: '-30s', value: -30 },
-          { label: '-1m', value: -60 },
-          { label: '+10s', value: 10 },
-          { label: '+30s', value: 30 },
-          { label: '+1m', value: 60 },
-        ].map((item) => (
-          <button
-            key={item.label}
-            onClick={() => adjustTimer(item.value)}
-            className="theme-interactive-hover rounded-[0.85rem] bg-surface-container-high px-2 py-3 text-sm font-bold text-on-surface-variant transition-colors hover:text-on-surface active:scale-95"
-          >
-            {item.label}
-          </button>
-        ))}
+      <div className="mt-6">
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <p className="text-[0.62rem] font-black uppercase tracking-[0.2em] text-on-surface-variant">
+            {t('session.savedTimes')}
+          </p>
+          <span className="text-[0.62rem] font-bold tabular-nums text-on-surface-variant/55">
+            {presets.length}/{MAX_REST_TIMER_PRESETS}
+          </span>
+        </div>
+        {presets.length === 0 ? (
+          <p className="rounded-xl border border-dashed theme-hairline-border px-3 py-2.5 text-center text-xs text-on-surface-variant/65">
+            {t('session.noSavedTimes')}
+          </p>
+        ) : (
+          <div className="grid grid-cols-4 gap-2">
+            {presets.map((preset) => (
+              <div key={preset} className="relative min-w-0">
+                <button
+                  type="button"
+                  disabled={status === 'running' || status === 'paused' || isSavingPresets}
+                  onClick={() => selectDuration(preset)}
+                  className="flex min-h-11 w-full items-center justify-center rounded-xl border border-primary/25 bg-primary/8 px-1.5 pr-4 font-mono text-xs font-black tabular-nums text-primary disabled:opacity-45"
+                >
+                  {formatRestTimerPreset(preset)}
+                </button>
+                <button
+                  type="button"
+                  disabled={isSavingPresets}
+                  onClick={() => void removePreset(preset)}
+                  className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full border border-surface-container bg-surface-container-highest text-on-surface-variant transition-colors hover:bg-secondary hover:text-black disabled:opacity-45"
+                  aria-label={`${t('session.removeSavedTime')} ${formatRestTimerPreset(preset)}`}
+                  title={t('session.removeSavedTime')}
+                >
+                  <X size={11} strokeWidth={3} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
+
+      {(status === 'idle' || status === 'finished') && (
+        <>
+          <div className="mt-5 grid grid-cols-2 gap-3">
+            <TimerWheelColumn
+              label={t('session.minutes')}
+              options={TIMER_MINUTE_OPTIONS}
+              value={Math.floor(selectedSeconds / 60)}
+              disabled={false}
+              onChange={(minutes) => selectDuration(minutes * 60 + selectedSeconds % 60)}
+            />
+            <TimerWheelColumn
+              label={t('session.seconds')}
+              options={TIMER_SECOND_OPTIONS}
+              value={selectedSeconds % 60}
+              disabled={false}
+              onChange={(seconds) => selectDuration(Math.floor(selectedSeconds / 60) * 60 + seconds)}
+            />
+          </div>
+
+          <button
+            type="button"
+            onClick={() => void saveSelectedPreset()}
+            disabled={
+              selectedSeconds <= 0
+              || presets.includes(selectedSeconds)
+              || presets.length >= MAX_REST_TIMER_PRESETS
+              || isSavingPresets
+            }
+            className="mt-4 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary/8 px-4 text-xs font-black uppercase tracking-[0.14em] text-primary transition-colors hover:bg-primary/15 disabled:cursor-not-allowed disabled:opacity-35"
+          >
+            {isSavingPresets ? <Loader2 size={16} className="animate-spin" /> : <BookmarkPlus size={16} />}
+            {presets.includes(selectedSeconds) ? t('session.timeAlreadySaved') : t('session.saveTime')}
+          </button>
+        </>
+      )}
 
       <button
-        onClick={() => setIsRunning((current) => !current)}
-        className="neon-button mt-8 flex w-full items-center justify-center rounded-[0.95rem] py-4 font-headline text-[1.6rem] font-semibold uppercase tracking-[0.16em]"
+        onClick={toggleTimer}
+        disabled={selectedSeconds <= 0 && remainingSeconds <= 0}
+        className="neon-button mt-6 flex w-full items-center justify-center rounded-[0.95rem] py-4 font-headline text-[1.6rem] font-semibold uppercase tracking-[0.16em] disabled:cursor-not-allowed disabled:opacity-35 disabled:grayscale"
       >
-        {isRunning ? t('session.pause') : remainingSeconds === 0 ? t('session.restart') : t('session.start')}
+        {status === 'running'
+          ? t('session.pause')
+          : status === 'paused'
+            ? t('session.resume')
+            : status === 'finished'
+              ? t('session.restart')
+              : t('session.start')}
       </button>
 
-      <div className="mt-4 grid grid-cols-2 gap-3">
-        <button
-          onClick={() => {
-            setIsRunning(false);
-            setRemainingSeconds(0);
-          }}
-          className="theme-hairline-border rounded-[0.95rem] border py-4 text-sm font-bold uppercase tracking-[0.18em] text-on-surface-variant transition-colors hover:text-on-surface"
-        >
-          {t('session.skip')}
-        </button>
-        <button
-          onClick={closeAndReset}
-          className="rounded-[0.95rem] border border-secondary/40 py-4 text-sm font-bold uppercase tracking-[0.18em] text-secondary transition-colors hover:bg-secondary/10"
-        >
-          {t('common.cancel')}
-        </button>
-      </div>
+      <button
+        onClick={closeAndReset}
+        className="mt-4 w-full rounded-[0.95rem] border border-secondary/40 py-4 text-sm font-bold uppercase tracking-[0.18em] text-secondary transition-colors hover:bg-secondary/10"
+      >
+        {t('common.cancel')}
+      </button>
     </PopupShell>
     </>
   );
@@ -611,9 +834,11 @@ export const RoutineDetailKineticView = ({
   openDayId,
   onOpenDayChange,
   activeSession,
+  restTimerPresets,
   onStartSession,
   onEndSession,
   onCancelSession,
+  onRestTimerPresetsChange,
   onToggleExerciseComplete,
   onCaptureSetPerformance,
   onClearCapturedSetPerformance,
@@ -633,9 +858,11 @@ export const RoutineDetailKineticView = ({
   openDayId: string | null;
   onOpenDayChange: (dayId: string | null) => void;
   activeSession: ActiveSession | null;
+  restTimerPresets: number[];
   onStartSession: (routineId: string, routineName: string, routineDayIds: string | string[]) => Promise<void>;
   onEndSession: () => Promise<void>;
   onCancelSession: () => Promise<void>;
+  onRestTimerPresetsChange: (values: number[]) => Promise<void>;
   onToggleExerciseComplete: (exerciseInstanceId: string) => void;
   onCaptureSetPerformance: (exerciseId: string, setNumber: number, reps: number | null, weight: number | null, durationMin: number | null, durationSec: number | null, totalSets?: number) => void;
   onClearCapturedSetPerformance: (exerciseId: string, setNumber: number, totalSets?: number) => void;
@@ -842,7 +1069,12 @@ export const RoutineDetailKineticView = ({
             </button>
           </section>
         </PageShell>
-        <RestTimerModal open={isRestTimerOpen} onClose={() => setIsRestTimerOpen(false)} />
+        <RestTimerModal
+          open={isRestTimerOpen}
+          onClose={() => setIsRestTimerOpen(false)}
+          presets={restTimerPresets}
+          onPresetsChange={onRestTimerPresetsChange}
+        />
       </>
     );
   }
@@ -1074,18 +1306,23 @@ export const RoutineDetailKineticView = ({
         contentClassName=""
         headerChildren={
             <div className="flex items-center gap-2">
+              {activeSession?.routineId === routine.id && (
+                <SessionElapsedPill startTimeMs={activeSession.startTimeMs} />
+              )}
               <button
                 onClick={() => setIsRestTimerOpen(true)}
-                className="flex items-center gap-2 rounded-full border border-secondary/25 bg-surface-container-high/90 px-3 py-2 text-secondary shadow-[0_12px_32px_rgba(255,92,0,0.15)] hover:bg-surface-bright transition-colors"
+                className="flex h-9 items-center gap-2 rounded-full border border-secondary/25 bg-surface-container-high/90 px-2.5 text-secondary shadow-[0_12px_32px_rgba(255,92,0,0.15)] transition-colors hover:bg-surface-bright sm:px-3"
                 title={t('session.restTimer')}
+                aria-label={t('session.restTimer')}
               >
                 <AlarmClock size={15} strokeWidth={2.4} />
-                <span className="font-headline text-[1rem] font-semibold uppercase tracking-[0.08em] text-secondary">{t('session.rest')}</span>
+                <span className="hidden font-headline text-[1rem] font-semibold uppercase tracking-[0.08em] text-secondary sm:inline">{t('session.rest')}</span>
               </button>
               <button
                 onClick={() => setIsSessionTimerOpen(true)}
-                                  className="theme-hairline-border theme-interactive-hover flex items-center justify-center rounded-full border bg-surface-container-high p-2.5 text-on-surface-variant transition-colors hover:text-on-surface"
+                className="theme-hairline-border theme-interactive-hover flex h-9 w-9 items-center justify-center rounded-full border bg-surface-container-high text-on-surface-variant transition-colors hover:text-on-surface"
                 title={t('session.temporaryStopwatch')}
+                aria-label={t('session.temporaryStopwatch')}
               >
                 <Timer size={18} />
               </button>
@@ -1359,14 +1596,14 @@ export const RoutineDetailKineticView = ({
               <button
                 onClick={() => !isEndingSession && setConfirmCancelSession(true)}
                 disabled={isEndingSession}
-                className={`h-[2.7rem] rounded-[0.95rem] border border-outline/30 bg-surface-container-low text-on-surface-variant transition-all font-headline text-[0.78rem] leading-none font-semibold uppercase tracking-[0.12em] ${isEndingSession ? 'cursor-not-allowed opacity-50' : 'hover:border-outline/60 hover:bg-surface-container-high hover:text-on-surface active:scale-[0.99]'}`}
+                className={`h-[3rem] rounded-[0.95rem] border border-secondary/45 bg-secondary/10 text-secondary transition-all font-headline text-[0.82rem] leading-none font-semibold uppercase tracking-[0.12em] ${isEndingSession ? 'cursor-not-allowed opacity-50' : 'hover:border-secondary/70 hover:bg-secondary/18 active:scale-[0.99]'}`}
               >
                 {t('session.cancelWorkout')}
               </button>
               <button
                 onClick={() => !isEndingSession && setConfirmEndSession(true)}
                 disabled={isEndingSession}
-className={`h-[4.5rem] rounded-[1.2rem] bg-secondary text-black shadow-[0_20px_40px_color-mix(in_srgb,var(--color-secondary)_25%,transparent),_0_-10px_30px_rgba(0,0,0,0.6)] transition-all flex items-center justify-center gap-3 font-headline text-[1.15rem] leading-none font-bold uppercase tracking-[0.15em] border border-secondary/50 ${isEndingSession ? 'cursor-not-allowed opacity-70' : 'hover:scale-[1.02] active:scale-[0.98]'}`}
+className={`theme-primary-shadow-strong h-[4.5rem] rounded-[1.2rem] bg-primary text-black transition-all flex items-center justify-center gap-3 font-headline text-[1.15rem] leading-none font-bold uppercase tracking-[0.15em] border border-primary/20 ${isEndingSession ? 'cursor-not-allowed opacity-70' : 'hover:scale-[1.02] active:scale-[0.98]'}`}
               >
                 {isEndingSession ? (
                   <>
@@ -1402,7 +1639,12 @@ className={`theme-primary-shadow-strong pointer-events-auto w-full max-w-md h-[4
         </div>
       </PageShell>
 
-      <RestTimerModal open={isRestTimerOpen} onClose={() => setIsRestTimerOpen(false)} />
+      <RestTimerModal
+        open={isRestTimerOpen}
+        onClose={() => setIsRestTimerOpen(false)}
+        presets={restTimerPresets}
+        onPresetsChange={onRestTimerPresetsChange}
+      />
       <SessionStopwatchModal
         open={isSessionTimerOpen}
         onClose={() => setIsSessionTimerOpen(false)}

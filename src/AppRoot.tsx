@@ -12,6 +12,7 @@ import { ReleaseNotesDialog } from './components/ReleaseNotesDialog';
 import { fallbackReleaseHistory, type AppRelease } from './app/releaseNotes';
 import { releaseNotesRepository } from './features/releaseNotes/repository';
 import { useLanguage } from './i18n/LanguageContext';
+import { SessionElapsedPill } from './components/SessionElapsedPill';
 
 export default function AppRoot() {
   const { t } = useLanguage();
@@ -161,15 +162,19 @@ export default function AppRoot() {
              onClick={handleReturnToSession}
              className="mx-auto flex w-full max-w-sm items-center justify-between gap-3 rounded-full border border-primary/25 bg-primary px-4 py-2 text-black pointer-events-auto shadow-[0_8px_30px_color-mix(in_srgb,var(--color-primary)_30%,transparent)] transition-transform hover:scale-[1.02] active:scale-[0.98]"
            >
-              <div className="flex items-center gap-3">
+              <div className="flex min-w-0 items-center gap-3">
                 <div className="theme-inverted-surface flex h-7 w-7 items-center justify-center rounded-full text-primary animate-pulse">
                   <Play size={12} fill="currentColor" className="ml-0.5" />
                 </div>
-                <div className="text-left">
+                <div className="min-w-0 text-left">
                   <p className="mb-0.5 text-[9px] font-black uppercase leading-none tracking-widest text-black/70">{t('session.activeWorkout')}</p>
-                  <p className="text-xs font-bold leading-tight">{app.activeSession.routineName}</p>
+                  <p className="truncate text-xs font-bold leading-tight">{app.activeSession.routineName}</p>
                 </div>
               </div>
+              <SessionElapsedPill
+                startTimeMs={app.activeSession.startTimeMs}
+                tone="inverted"
+              />
            </button>
         </div>
       )}
@@ -213,6 +218,7 @@ export default function AppRoot() {
         openDayId={app.openDayId}
         setOpenDayId={app.setOpenDayId}
         activeSession={app.activeSession}
+        restTimerPresets={app.restTimerPresets}
         startSession={app.startSession}
         endSession={app.endSession}
         cancelSession={app.cancelSession}
@@ -226,6 +232,7 @@ export default function AppRoot() {
         resolvedTheme={app.resolvedTheme}
         onThemeChange={app.handleThemeChange}
         onLanguageChange={app.handleLanguageChange}
+        onRestTimerPresetsChange={app.handleRestTimerPresetsChange}
         onOpenReleaseNotes={handleOpenReleaseHistory}
       />
     </div>

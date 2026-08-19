@@ -55,6 +55,7 @@ type AppRouterProps = {
   openDayId: string | null;
   setOpenDayId: (dayId: string | null) => void;
   activeSession: ActiveSession | null;
+  restTimerPresets: number[];
   startSession: (routineId: string, routineName: string, routineDayId: string | string[]) => Promise<void>;
   endSession: () => Promise<void>;
   cancelSession: () => Promise<void>;
@@ -68,6 +69,7 @@ type AppRouterProps = {
   resolvedTheme: ResolvedTheme;
   onThemeChange: (theme: ThemePreference) => Promise<void>;
   onLanguageChange: (language: AppLanguage) => Promise<void>;
+  onRestTimerPresetsChange: (values: number[]) => Promise<void>;
   onOpenReleaseNotes: () => void;
 };
 
@@ -105,6 +107,7 @@ export const AppRouter = ({
   openDayId,
   setOpenDayId,
   activeSession,
+  restTimerPresets,
   startSession,
   endSession,
   cancelSession,
@@ -118,6 +121,7 @@ export const AppRouter = ({
   resolvedTheme,
   onThemeChange,
   onLanguageChange,
+  onRestTimerPresetsChange,
   onOpenReleaseNotes,
 }: AppRouterProps) => {
   switch (view) {
@@ -219,9 +223,11 @@ export const AppRouter = ({
           routine={currentRoutine ?? routines[0] ?? null}
           profile={profile}
           activeSession={activeSession}
+          restTimerPresets={restTimerPresets}
           onStartSession={startSession}
           onEndSession={endSession}
           onCancelSession={cancelSession}
+          onRestTimerPresetsChange={onRestTimerPresetsChange}
           onToggleExerciseComplete={onToggleExerciseComplete}
           onCaptureSetPerformance={onCaptureSetPerformance}
           onClearCapturedSetPerformance={onClearCapturedSetPerformance}
