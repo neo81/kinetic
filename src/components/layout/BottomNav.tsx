@@ -48,6 +48,7 @@ export const BottomNav = ({
   const activeItemId = getActiveItemId(active);
   const activeIndex = Math.max(0, items.findIndex((item) => item.id === activeItemId));
   const [animatedIndex, setAnimatedIndex] = useState(() => lastBottomNavIndex ?? activeIndex);
+  const [isLensPressed, setIsLensPressed] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [dragTargetIndex, setDragTargetIndex] = useState<number | null>(null);
   const [isNavigating, startNavigation] = useTransition();
@@ -103,6 +104,7 @@ export const BottomNav = ({
       currentPosition: activeIndex,
       hasStarted: false,
     };
+    setIsLensPressed(true);
     event.currentTarget.setPointerCapture(event.pointerId);
   };
 
@@ -151,6 +153,7 @@ export const BottomNav = ({
     if (!dragState || dragState.pointerId !== event.pointerId) return;
 
     dragStateRef.current = null;
+    setIsLensPressed(false);
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
@@ -181,12 +184,12 @@ export const BottomNav = ({
 
   return (
     <>
-      <nav aria-busy={isNavigating} className="theme-bottom-nav liquid-glass-bottom-nav fixed bottom-0 left-0 z-50 w-full px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-2">
+      <nav aria-busy={isNavigating} className="theme-bottom-nav liquid-glass-bottom-nav fixed bottom-0 left-0 z-50 w-full px-3 pb-[calc(env(safe-area-inset-bottom)+1.25rem)] pt-2">
         <div className="theme-bottom-nav-inner liquid-glass-bottom-nav__surface mx-auto grid h-16 w-full max-w-[24rem] grid-cols-5 items-center rounded-[2rem] px-1.5">
-        <div aria-hidden="true" className="pointer-events-none absolute inset-x-1.5 top-1.5 z-10">
+        <div aria-hidden="true" className="pointer-events-none absolute inset-x-1.5 top-1/2 z-10 -translate-y-1/2">
           <div
             ref={selectionTrackRef}
-            className={`liquid-glass-bottom-nav__selection-track flex justify-center ${isDragging ? 'is-dragging' : ''}`}
+            className={`liquid-glass-bottom-nav__selection-track flex justify-center ${isLensPressed ? 'is-pressed' : ''} ${isDragging ? 'is-dragging' : ''}`}
             style={{ transform: `translate3d(${animatedIndex * 100}%, 0, 0)` }}
           >
             <span className="liquid-glass-bottom-nav__selection block h-[3.25rem] w-[calc(100%-0.25rem)] max-w-[4.25rem] rounded-[1.625rem]" />
@@ -227,12 +230,12 @@ export const BottomNav = ({
                   className={`pointer-events-none relative z-10 select-none transition-transform duration-200 ${
                     shouldMagnify ? 'scale-[1.16]' : activeItemId === item.id && !isDragging ? 'scale-105' : ''
                   }`}
-                  size={26}
+                  size={28}
                   strokeWidth={activeItemId === item.id ? 2.5 : 2}
                 />
               ) : (
                 <span
-                  className={`liquid-glass-bottom-nav__avatar pointer-events-none relative z-10 block h-8 w-8 select-none overflow-hidden rounded-full border transition-transform duration-200 ${
+                  className={`liquid-glass-bottom-nav__avatar pointer-events-none relative z-10 block h-9 w-9 select-none overflow-hidden rounded-full border transition-transform duration-200 ${
                     shouldMagnify ? 'scale-[1.16]' : activeItemId === item.id && !isDragging ? 'scale-105' : ''
                   }`}
                 >

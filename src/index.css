@@ -516,7 +516,7 @@ textarea::placeholder {
 .liquid-glass-bottom-nav__surface {
   position: relative;
   isolation: isolate;
-  overflow: hidden;
+  overflow: visible;
   background:
     radial-gradient(circle at 18% -35%, rgba(255, 255, 255, 0.2), transparent 42%),
     linear-gradient(135deg, rgba(44, 49, 56, 0.8), rgba(18, 21, 26, 0.72) 48%, rgba(35, 40, 47, 0.76));
@@ -592,9 +592,11 @@ textarea::placeholder {
     0 7px 18px color-mix(in srgb, var(--color-primary) 10%, transparent);
   pointer-events: none;
   transform-origin: center;
+  -webkit-backdrop-filter: blur(10px) saturate(1.35) brightness(1.08);
+  backdrop-filter: blur(10px) saturate(1.35) brightness(1.08);
   transition:
-    transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
-    box-shadow 180ms ease;
+    transform 260ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 260ms ease;
 }
 
 .liquid-glass-bottom-nav__selection-track {
@@ -607,8 +609,12 @@ textarea::placeholder {
   transition: none;
 }
 
+.liquid-glass-bottom-nav__selection-track.is-pressed .liquid-glass-bottom-nav__selection {
+  transform: scale(1.14);
+}
+
 .liquid-glass-bottom-nav__selection-track.is-dragging .liquid-glass-bottom-nav__selection {
-  transform: scale(1.12);
+  transform: scale(1.4);
   box-shadow:
     0 0 0 1px color-mix(in srgb, var(--color-primary) 20%, rgba(255, 255, 255, 0.18)),
     inset 0 1px 0 rgba(255, 255, 255, 0.22),
