@@ -293,9 +293,8 @@ export const ExerciseSelectorKineticView = ({
               </button>
             )}
           </div>
-          <h1 className="font-headline text-[3.2rem] font-bold uppercase italic leading-none tracking-tight text-on-surface">
-            Target<br/>
-            Engine
+          <h1 className="whitespace-nowrap font-headline text-[clamp(2.5rem,13vw,3.2rem)] font-bold uppercase italic leading-none tracking-tight text-on-surface">
+            Target Engine
           </h1>
         </header>
       </section>

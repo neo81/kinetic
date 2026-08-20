@@ -309,6 +309,7 @@ Se mejoro la biblioteca de ejercicios y la lectura del progreso sin alterar la c
   - El sonido de fin de descanso prepara y conserva el contexto de audio desde la pulsacion de Iniciar o Reanudar para cumplir las restricciones de reproduccion de Safari/iOS. El destello final aumenta su intensidad y duracion para resultar visible durante el entrenamiento.
   - La alerta sonora usa un patron de alarma alternado, mas intenso y prolongado que los tres tonos breves originales, con entrada y salida suavizadas para evitar golpes abruptos de volumen.
   - La navegacion inferior adopta una superficie compacta Liquid Glass comun a navegador y PWA, separada del gesto inferior del sistema mediante el area segura del dispositivo. Reune cinco accesos mediante iconos de inicio, rutinas, busqueda, historial y el avatar del perfil, todos con etiquetas accesibles. En reposo la lente conserva su forma ovalada dentro del contenedor; al arrastrarla aumenta proporcionalmente y sobresale de la superficie, encaja en el destino mas cercano y amplifica temporalmente el icono bajo su centro.
+  - La identidad tipografica combina Roboto Condensed en titulos, botones y metricas con Inter en textos y formularios. Los pesos utilizados se distribuyen como archivos WOFF2 locales para mantener la misma apariencia al iniciar la PWA con o sin conexion. `Target Engine` se mantiene en una sola linea para conservar su lectura como nombre propio.
   - Los encabezados comunes dejan de duplicar el acceso al perfil. Se eliminan los regresos redundantes hacia Inicio y Rutinas, el regreso a grupos musculares se integra de forma compacta en su cabecera y las salidas de una edicion o seleccion se identifican como `Cancelar` en lugar de reutilizar una flecha.
   - La navegacion inferior detecta ediciones locales pendientes en rutinas, ejercicios, perfil y objetivos. Antes de cambiar de seccion solicita confirmacion y, si el usuario decide continuar editando, devuelve la lente al acceso actual.
   - El bundle de produccion separa React, Supabase, Motion, drag and drop, iconos y dependencias generales en bloques estables. Las vistas secundarias se cargan bajo demanda, reduciendo el bloque principal de aproximadamente 671 kB a unos 242 kB sin reintroducir la advertencia por tamano.
@@ -316,7 +317,7 @@ Se mejoro la biblioteca de ejercicios y la lectura del progreso sin alterar la c
   - El cache en tiempo de uso se limita a las hojas de estilo y archivos de Google Fonts, con cantidad y vigencia acotadas. Las solicitudes a Supabase usan `NetworkOnly`, sin cache ni segunda cola en el service worker, para conservar una unica fuente de reintentos en `syncQueue` y evitar respuestas remotas obsoletas.
 
 - Verificacion:
-  - La linea base queda en 112 pruebas aprobadas, TypeScript sin errores, auditoria de dependencias de produccion sin vulnerabilidades y build correcto. El build PWA genera el service worker y precarga 52 recursos (aproximadamente 3,4 MiB) sin reintroducir advertencias por tamano de chunks.
+  - La linea base queda en 112 pruebas aprobadas, TypeScript sin errores, auditoria de dependencias de produccion sin vulnerabilidades y build correcto. El build PWA genera el service worker y precarga 64 recursos (aproximadamente 3,7 MiB, incluidas las fuentes locales) sin reintroducir advertencias por tamano de chunks.
 
 ## Documentos consolidados
 

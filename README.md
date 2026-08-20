@@ -71,6 +71,7 @@ Mapas anatómicos interactivos (Frontal y Posterior) que proporcionan una interf
 - **Catálogo ampliado**: Incluye variantes de remo con pecho apoyado, curl de bíceps en polea y pullover; los ejercicios internos de pruebas E2E no forman parte del catálogo visible.
 
 ### 📱 PWA y rendimiento móvil
+- **Tipografía local estable**: Inter para la interfaz y Roboto Condensed para títulos, botones y métricas se incluyen dentro de la PWA, evitando cambios de fuente por conexión o caché.
 - **Carga inicial optimizada**: Las vistas secundarias se cargan bajo demanda y las dependencias principales se distribuyen en bloques estables, reduciendo el JavaScript inicial y evitando la advertencia del bundle monolítico.
 - **Service worker controlado**: El build de producción genera y registra un service worker que precarga la estructura de la aplicación, sus vistas y recursos esenciales. Informa cuando la app queda disponible sin conexión y pide confirmación antes de aplicar una versión nueva; si hay una sesión activa, difiere la actualización hasta que finalice.
 - **Caché externo delimitado**: Las fuentes de Google se conservan después de su primera descarga para mantener la presentación sin conexión. Las solicitudes de Supabase permanecen exclusivamente en red y continúan bajo la persistencia y sincronización propias de la aplicación.
