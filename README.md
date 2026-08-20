@@ -71,6 +71,9 @@ Mapas anatómicos interactivos (Frontal y Posterior) que proporcionan una interf
 - **Catálogo ampliado**: Incluye variantes de remo con pecho apoyado, curl de bíceps en polea y pullover; los ejercicios internos de pruebas E2E no forman parte del catálogo visible.
 
 ### 📱 PWA y rendimiento móvil
+- **Carga inicial optimizada**: Las vistas secundarias se cargan bajo demanda y las dependencias principales se distribuyen en bloques estables, reduciendo el JavaScript inicial y evitando la advertencia del bundle monolítico.
+- **Service worker controlado**: El build de producción genera y registra un service worker que precarga la estructura de la aplicación, sus vistas y recursos esenciales. Las actualizaciones quedan en espera y nunca recargan automáticamente una sesión activa.
+- **Caché externo delimitado**: Las fuentes de Google se conservan después de su primera descarga para mantener la presentación sin conexión. Las solicitudes de Supabase permanecen exclusivamente en red y continúan bajo la persistencia y sincronización propias de la aplicación.
 - **Transiciones suavizadas**: Ajustes para evitar pantallazos negros y cortes duros en iOS/Android PWA.
 - **Navegación inferior compacta**: La barra flotante usa una superficie Liquid Glass con cuatro iconos accesibles, una lente animada para señalar la sección activa y una alternativa sólida para navegadores sin desenfoque de fondo.
 - **Selector muscular optimizado**: Precarga de imágenes frontal/posterior y regreso respetando la vista activa.

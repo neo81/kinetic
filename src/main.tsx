@@ -14,3 +14,7 @@ createRoot(document.getElementById('root')!).render(
     </LanguageProvider>
   </StrictMode>,
 );
+
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  void import('./pwa/serviceWorker').then(({ registerServiceWorker }) => registerServiceWorker());
+}

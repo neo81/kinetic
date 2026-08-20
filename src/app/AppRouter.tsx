@@ -1,16 +1,46 @@
+import { lazy, Suspense } from 'react';
 import type { ActiveSession, Exercise, Routine, UserProfile, View } from '../types';
 import type { ResolvedTheme, ThemePreference } from '../theme/theme';
 import type { AppLanguage } from '../i18n/translations';
+import { useLanguage } from '../i18n/LanguageContext';
 import { DashboardView } from '../views/DashboardView';
-import { ExerciseEditorView } from '../views/ExerciseEditorView';
-import { ExerciseListView } from '../views/ExerciseListView';
 import { ExerciseSelectorKineticView } from '../views/ExerciseSelectorKineticView';
-import { HistoryView } from '../views/HistoryView';
 import { KineticLoginView } from '../views/KineticLoginView';
-import { RoutineCreatorView } from '../views/RoutineCreatorView';
-import { RoutineDetailKineticView } from '../views/RoutineDetailKineticView';
-import { SettingsView } from '../views/SettingsView';
 import { RoutinesListView } from '../views/RoutinesListView';
+
+const RoutineCreatorView = lazy(() =>
+  import('../views/RoutineCreatorView').then((module) => ({ default: module.RoutineCreatorView })),
+);
+const ExerciseEditorView = lazy(() =>
+  import('../views/ExerciseEditorView').then((module) => ({ default: module.ExerciseEditorView })),
+);
+const ExerciseListView = lazy(() =>
+  import('../views/ExerciseListView').then((module) => ({ default: module.ExerciseListView })),
+);
+const HistoryView = lazy(() =>
+  import('../views/HistoryView').then((module) => ({ default: module.HistoryView })),
+);
+const SettingsView = lazy(() =>
+  import('../views/SettingsView').then((module) => ({ default: module.SettingsView })),
+);
+const RoutineDetailKineticView = lazy(() =>
+  import('../views/RoutineDetailKineticView').then((module) => ({ default: module.RoutineDetailKineticView })),
+);
+
+const LazyViewFallback = () => {
+  const { t } = useLanguage();
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background px-6 text-on-background" role="status" aria-live="polite">
+      <div className="flex flex-col items-center gap-4">
+        <div className="h-10 w-10 animate-pulse rounded-full border-2 border-primary/30 border-t-primary" aria-hidden="true" />
+        <span className="font-headline text-xs font-semibold uppercase tracking-[0.22em] text-on-surface-variant">
+          {t('common.loading')}
+        </span>
+      </div>
+    </div>
+  );
+};
 
 type AppRouterProps = {
   view: View;
@@ -163,28 +193,30 @@ export const AppRouter = ({
       );
     case 'routine-creator':
       return (
-        <RoutineCreatorView
-          setView={setView}
-          onSave={onSaveRoutine}
-          currentRoutine={currentRoutine}
-          profile={profile}
-          selectedRoutineDayId={selectedRoutineDayId}
-          onSelectRoutineDay={setSelectedRoutineDayId}
-          onDeleteRoutineDay={onDeleteRoutineDay}
-          onDeleteExercise={onDeleteExercise}
-          onReorderExercises={onReorderDayExercises}
-          onEditExercise={(ex, instanceId) => {
-            setNavigationSource('routine-creator');
-            onSelectExercise(ex, instanceId);
-            setView('exercise-editor');
-          }}
-          onSelectMuscle={(muscle) => {
-            setNavigationSource('routine-creator');
-            onSelectMuscle(muscle);
-          }}
-          navigationSource={navigationSource}
-          setNavigationSource={setNavigationSource}
-        />
+        <Suspense fallback={<LazyViewFallback />}>
+          <RoutineCreatorView
+            setView={setView}
+            onSave={onSaveRoutine}
+            currentRoutine={currentRoutine}
+            profile={profile}
+            selectedRoutineDayId={selectedRoutineDayId}
+            onSelectRoutineDay={setSelectedRoutineDayId}
+            onDeleteRoutineDay={onDeleteRoutineDay}
+            onDeleteExercise={onDeleteExercise}
+            onReorderExercises={onReorderDayExercises}
+            onEditExercise={(ex, instanceId) => {
+              setNavigationSource('routine-creator');
+              onSelectExercise(ex, instanceId);
+              setView('exercise-editor');
+            }}
+            onSelectMuscle={(muscle) => {
+              setNavigationSource('routine-creator');
+              onSelectMuscle(muscle);
+            }}
+            navigationSource={navigationSource}
+            setNavigationSource={setNavigationSource}
+          />
+        </Suspense>
       );
     case 'exercise-selector':
       return (
@@ -199,77 +231,89 @@ export const AppRouter = ({
       );
     case 'exercise-list':
       return (
-        <ExerciseListView
-          setView={setView}
-          muscle={selectedMuscle}
-          onSelectExercise={onSelectExercise}
-          profile={profile}
-        />
+        <Suspense fallback={<LazyViewFallback />}>
+          <ExerciseListView
+            setView={setView}
+            muscle={selectedMuscle}
+            onSelectExercise={onSelectExercise}
+            profile={profile}
+          />
+        </Suspense>
       );
     case 'exercise-editor':
       return (
-        <ExerciseEditorView
-          setView={setView}
-          exercise={selectedExercise}
-          onSave={onSaveExercise}
-          onBack={() => setView(navigationSource === 'exercise-selector' ? 'routine-creator' : navigationSource)}
-          profile={profile}
-        />
+        <Suspense fallback={<LazyViewFallback />}>
+          <ExerciseEditorView
+            setView={setView}
+            exercise={selectedExercise}
+            onSave={onSaveExercise}
+            onBack={() => setView(navigationSource === 'exercise-selector' ? 'routine-creator' : navigationSource)}
+            profile={profile}
+          />
+        </Suspense>
       );
     case 'routine-detail':
       return (
-        <RoutineDetailKineticView
-          setView={setView}
-          routine={currentRoutine ?? routines[0] ?? null}
-          profile={profile}
-          activeSession={activeSession}
-          restTimerPresets={restTimerPresets}
-          onStartSession={startSession}
-          onEndSession={endSession}
-          onCancelSession={cancelSession}
-          onRestTimerPresetsChange={onRestTimerPresetsChange}
-          onToggleExerciseComplete={onToggleExerciseComplete}
-          onCaptureSetPerformance={onCaptureSetPerformance}
-          onClearCapturedSetPerformance={onClearCapturedSetPerformance}
-          onSwitchSessionDay={onSwitchSessionDay}
-          onCreateExerciseGroup={onCreateExerciseGroup}
-          onRemoveExerciseGroup={onRemoveExerciseGroup}
-          onDeleteRoutine={onDeleteRoutine}
-          onDeleteRoutineDay={onDeleteRoutineDay}
-          onDeleteExercise={onDeleteExercise}
-          onEditExercise={(ex, instanceId, dayId) => {
-            setNavigationSource('routine-detail');
-            setSelectedRoutineDayId(dayId);
-            onSelectExercise(ex, instanceId);
-            setView('exercise-editor');
-          }}
-          onEditRoutine={(r) => {
-            setNavigationSource('routine-detail');
-            setCurrentRoutine(r);
-            setSelectedRoutineDayId(null);
-            setView('routine-creator');
-          }}
-          onSelectRoutineDay={setSelectedRoutineDayId}
-          openDayId={openDayId}
-          onOpenDayChange={setOpenDayId}
-        />
+        <Suspense fallback={<LazyViewFallback />}>
+          <RoutineDetailKineticView
+            setView={setView}
+            routine={currentRoutine ?? routines[0] ?? null}
+            profile={profile}
+            activeSession={activeSession}
+            restTimerPresets={restTimerPresets}
+            onStartSession={startSession}
+            onEndSession={endSession}
+            onCancelSession={cancelSession}
+            onRestTimerPresetsChange={onRestTimerPresetsChange}
+            onToggleExerciseComplete={onToggleExerciseComplete}
+            onCaptureSetPerformance={onCaptureSetPerformance}
+            onClearCapturedSetPerformance={onClearCapturedSetPerformance}
+            onSwitchSessionDay={onSwitchSessionDay}
+            onCreateExerciseGroup={onCreateExerciseGroup}
+            onRemoveExerciseGroup={onRemoveExerciseGroup}
+            onDeleteRoutine={onDeleteRoutine}
+            onDeleteRoutineDay={onDeleteRoutineDay}
+            onDeleteExercise={onDeleteExercise}
+            onEditExercise={(ex, instanceId, dayId) => {
+              setNavigationSource('routine-detail');
+              setSelectedRoutineDayId(dayId);
+              onSelectExercise(ex, instanceId);
+              setView('exercise-editor');
+            }}
+            onEditRoutine={(r) => {
+              setNavigationSource('routine-detail');
+              setCurrentRoutine(r);
+              setSelectedRoutineDayId(null);
+              setView('routine-creator');
+            }}
+            onSelectRoutineDay={setSelectedRoutineDayId}
+            openDayId={openDayId}
+            onOpenDayChange={setOpenDayId}
+          />
+        </Suspense>
       );
     case 'history':
-      return <HistoryView setView={setView} profile={profile} />;
+      return (
+        <Suspense fallback={<LazyViewFallback />}>
+          <HistoryView setView={setView} profile={profile} />
+        </Suspense>
+      );
     case 'settings':
       return (
-        <SettingsView
-          setView={setView}
-          profile={profile}
-          userEmail={userEmail}
-          onLogout={onLogout}
-          onSaveProfile={onSaveProfile}
-          themePreference={themePreference}
-          resolvedTheme={resolvedTheme}
-          onThemeChange={onThemeChange}
-          onLanguageChange={onLanguageChange}
-          onOpenReleaseNotes={onOpenReleaseNotes}
-        />
+        <Suspense fallback={<LazyViewFallback />}>
+          <SettingsView
+            setView={setView}
+            profile={profile}
+            userEmail={userEmail}
+            onLogout={onLogout}
+            onSaveProfile={onSaveProfile}
+            themePreference={themePreference}
+            resolvedTheme={resolvedTheme}
+            onThemeChange={onThemeChange}
+            onLanguageChange={onLanguageChange}
+            onOpenReleaseNotes={onOpenReleaseNotes}
+          />
+        </Suspense>
       );
     default:
       return null;

@@ -309,9 +309,12 @@ Se mejoro la biblioteca de ejercicios y la lectura del progreso sin alterar la c
   - El sonido de fin de descanso prepara y conserva el contexto de audio desde la pulsacion de Iniciar o Reanudar para cumplir las restricciones de reproduccion de Safari/iOS. El destello final aumenta su intensidad y duracion para resultar visible durante el entrenamiento.
   - La alerta sonora usa un patron de alarma alternado, mas intenso y prolongado que los tres tonos breves originales, con entrada y salida suavizadas para evitar golpes abruptos de volumen.
   - La navegacion inferior adopta una superficie compacta Liquid Glass comun a navegador y PWA. Los accesos se reducen a iconos de inicio, rutinas, busqueda de ejercicios e historial, conservan etiquetas accesibles y usan una lente con transicion horizontal consistente entre Safari y Edge para indicar la seccion activa.
+  - El bundle de produccion separa React, Supabase, Motion, drag and drop, iconos y dependencias generales en bloques estables. Las vistas secundarias se cargan bajo demanda, reduciendo el bloque principal de aproximadamente 671 kB a 196 kB y el JavaScript inicial comprimido a unos 219 kB.
+  - La PWA incorpora un service worker de produccion con estrategia de actualizacion controlada: precarga la estructura, vistas diferidas y recursos esenciales, elimina caches obsoletas y revisa versiones periodicamente. Una version nueva queda en espera sin recargar automaticamente una sesion o edicion, y la infraestructura expone su estado para incorporar luego la confirmacion visual del usuario.
+  - El cache en tiempo de uso se limita a las hojas de estilo y archivos de Google Fonts, con cantidad y vigencia acotadas. Las solicitudes a Supabase usan `NetworkOnly`, sin cache ni segunda cola en el service worker, para conservar una unica fuente de reintentos en `syncQueue` y evitar respuestas remotas obsoletas.
 
 - Verificacion:
-  - La linea base queda en 109 pruebas aprobadas, TypeScript sin errores y build de produccion correcto. Se tiparon de forma explicita los dias detallados del Historial y las advertencias estructuradas de importacion sin modificar su comportamiento.
+  - La linea base queda en 109 pruebas aprobadas, TypeScript sin errores, auditoria de dependencias de produccion sin vulnerabilidades y build correcto. El build PWA genera el service worker y precarga 53 recursos (aproximadamente 3,4 MiB) sin reintroducir advertencias por tamano de chunks.
 
 ## Documentos consolidados
 
