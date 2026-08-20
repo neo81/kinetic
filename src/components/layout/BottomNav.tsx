@@ -1,20 +1,57 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState, useTransition, type PointerEvent as ReactPointerEvent } from 'react';
 import { Dumbbell, History, Home, Search } from 'lucide-react';
 import type { View } from '../../types';
 import { useLanguage } from '../../i18n/LanguageContext';
+import { ProfileAvatar } from './ProfileAvatar';
 
 let lastBottomNavIndex: number | null = null;
+const DRAG_THRESHOLD_PX = 8;
 
-export const BottomNav = ({ active, setView }: { active: View; setView: (v: View) => void }) => {
+type LensDragState = {
+  pointerId: number;
+  startX: number;
+  startY: number;
+  startIndex: number;
+  currentPosition: number;
+  hasStarted: boolean;
+};
+
+const clampLensPosition = (position: number, lastIndex: number) =>
+  Math.min(lastIndex, Math.max(0, position));
+
+const getActiveItemId = (active: View): View => {
+  if (active === 'routine-creator' || active === 'routine-detail') return 'routines-list';
+  if (active === 'exercise-list' || active === 'exercise-editor') return 'exercise-selector';
+  return active;
+};
+
+export const BottomNav = ({
+  active,
+  setView,
+  avatarUrl,
+}: {
+  active: View;
+  setView: (v: View) => void;
+  avatarUrl?: string | null;
+}) => {
   const { t } = useLanguage();
   const items = [
     { id: 'dashboard', icon: Home, label: t('nav.dashboard') },
     { id: 'routines-list', icon: Dumbbell, label: t('nav.routines') },
     { id: 'exercise-selector', icon: Search, label: t('nav.engine') },
     { id: 'history', icon: History, label: t('nav.history') },
+    { id: 'settings', icon: null, label: t('settings.profile') },
   ];
-  const activeIndex = Math.max(0, items.findIndex((item) => item.id === active));
+  const activeItemId = getActiveItemId(active);
+  const activeIndex = Math.max(0, items.findIndex((item) => item.id === activeItemId));
   const [animatedIndex, setAnimatedIndex] = useState(() => lastBottomNavIndex ?? activeIndex);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragTargetIndex, setDragTargetIndex] = useState<number | null>(null);
+  const [isNavigating, startNavigation] = useTransition();
+  const selectionTrackRef = useRef<HTMLDivElement>(null);
+  const dragStateRef = useRef<LensDragState | null>(null);
+  const dragTargetIndexRef = useRef<number | null>(null);
+  const suppressNextClickRef = useRef(false);
 
   useEffect(() => {
     lastBottomNavIndex = activeIndex;
@@ -27,40 +64,158 @@ export const BottomNav = ({ active, setView }: { active: View; setView: (v: View
       window.sessionStorage.setItem('kinetic.selectorSource', 'global');
     }
 
-    setView(targetView);
+    startNavigation(() => setView(targetView));
+  };
+
+  const handlePointerDown = (event: ReactPointerEvent<HTMLButtonElement>, itemId: string) => {
+    if (itemId !== activeItemId || (event.pointerType === 'mouse' && event.button !== 0)) return;
+
+    dragStateRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      startIndex: activeIndex,
+      currentPosition: activeIndex,
+      hasStarted: false,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const handlePointerMove = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    const dragState = dragStateRef.current;
+    if (!dragState || dragState.pointerId !== event.pointerId) return;
+
+    const deltaX = event.clientX - dragState.startX;
+    const deltaY = event.clientY - dragState.startY;
+
+    if (!dragState.hasStarted) {
+      if (Math.abs(deltaX) < DRAG_THRESHOLD_PX) return;
+      if (Math.abs(deltaY) >= Math.abs(deltaX)) return;
+
+      dragState.hasStarted = true;
+      suppressNextClickRef.current = true;
+      setIsDragging(true);
+      dragTargetIndexRef.current = activeIndex;
+      setDragTargetIndex(activeIndex);
+      if (selectionTrackRef.current) selectionTrackRef.current.style.transition = 'none';
+    }
+
+    event.preventDefault();
+    const slotWidth = selectionTrackRef.current?.getBoundingClientRect().width ?? 1;
+    const nextPosition = clampLensPosition(
+      dragState.startIndex + deltaX / slotWidth,
+      items.length - 1,
+    );
+    dragState.currentPosition = nextPosition;
+    const nextTargetIndex = Math.round(nextPosition);
+    if (dragTargetIndexRef.current !== nextTargetIndex) {
+      dragTargetIndexRef.current = nextTargetIndex;
+      setDragTargetIndex(nextTargetIndex);
+    }
+
+    if (selectionTrackRef.current) {
+      selectionTrackRef.current.style.transform = `translate3d(${nextPosition * 100}%, 0, 0)`;
+    }
+  };
+
+  const finishPointerGesture = (
+    event: ReactPointerEvent<HTMLButtonElement>,
+    cancelled = false,
+  ) => {
+    const dragState = dragStateRef.current;
+    if (!dragState || dragState.pointerId !== event.pointerId) return;
+
+    dragStateRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    if (!dragState.hasStarted) return;
+
+    const targetIndex = cancelled
+      ? activeIndex
+      : clampLensPosition(Math.round(dragState.currentPosition), items.length - 1);
+
+    if (selectionTrackRef.current) {
+      selectionTrackRef.current.style.transition = '';
+      selectionTrackRef.current.style.transform = `translate3d(${targetIndex * 100}%, 0, 0)`;
+    }
+    setIsDragging(false);
+    setDragTargetIndex(null);
+    dragTargetIndexRef.current = null;
+    setAnimatedIndex(targetIndex);
+    lastBottomNavIndex = targetIndex;
+
+    window.setTimeout(() => {
+      suppressNextClickRef.current = false;
+    }, 0);
+
+    if (!cancelled && targetIndex !== activeIndex) {
+      handleNavigate(items[targetIndex].id as View);
+    }
   };
 
   return (
-    <nav className="theme-bottom-nav liquid-glass-bottom-nav fixed bottom-0 left-0 z-50 w-full px-3 pb-[calc(env(safe-area-inset-bottom)+1.35rem)] pt-3">
-      <div className="theme-bottom-nav-inner liquid-glass-bottom-nav__surface mx-auto grid w-full max-w-[20rem] grid-cols-4 items-center rounded-[2rem] px-2 py-2">
-        <div aria-hidden="true" className="pointer-events-none absolute inset-x-2 top-2 z-10">
+    <nav aria-busy={isNavigating} className="theme-bottom-nav liquid-glass-bottom-nav fixed bottom-0 left-0 z-50 w-full px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-2">
+      <div className="theme-bottom-nav-inner liquid-glass-bottom-nav__surface mx-auto grid h-16 w-full max-w-[24rem] grid-cols-5 items-center rounded-[2rem] px-1.5">
+        <div aria-hidden="true" className="pointer-events-none absolute inset-x-1.5 top-1.5 z-10">
           <div
-            className="liquid-glass-bottom-nav__selection-track flex justify-center"
+            ref={selectionTrackRef}
+            className={`liquid-glass-bottom-nav__selection-track flex justify-center ${isDragging ? 'is-dragging' : ''}`}
             style={{ transform: `translate3d(${animatedIndex * 100}%, 0, 0)` }}
           >
-            <span className="liquid-glass-bottom-nav__selection block h-[3.125rem] w-[3.125rem] rounded-[1.2rem]" />
+            <span className="liquid-glass-bottom-nav__selection block h-[3.25rem] w-[calc(100%-0.25rem)] max-w-[4.25rem] rounded-[1.625rem]" />
           </div>
         </div>
-        {items.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            aria-label={item.label}
-            title={item.label}
-            onClick={() => handleNavigate(item.id as View)}
-            className={`group relative z-20 flex min-w-0 flex-col items-center justify-center transition-all duration-500 ${
-              active === item.id ? 'text-primary' : 'text-on-surface-variant/40 hover:text-on-surface'
-            }`}
-          >
-            <div
-              className={`relative isolate overflow-hidden rounded-[1.2rem] p-3 transition-transform duration-500 ${
-                active === item.id ? 'scale-105' : 'theme-bottom-nav-item-hover'
-              }`}
+        {items.map((item, itemIndex) => {
+          const shouldMagnify = isDragging && dragTargetIndex === itemIndex;
+
+          return (
+            <button
+              key={item.id}
+              type="button"
+              aria-label={item.label}
+              aria-current={activeItemId === item.id ? 'page' : undefined}
+              title={item.label}
+              onClick={(event) => {
+                if (suppressNextClickRef.current) {
+                  event.preventDefault();
+                  suppressNextClickRef.current = false;
+                  return;
+                }
+                handleNavigate(item.id as View);
+              }}
+              onPointerDown={(event) => handlePointerDown(event, item.id)}
+              onPointerMove={handlePointerMove}
+              onPointerUp={(event) => finishPointerGesture(event)}
+              onPointerCancel={(event) => finishPointerGesture(event, true)}
+              onDragStart={(event) => event.preventDefault()}
+              className={`group relative z-20 flex h-14 min-w-0 items-center justify-center rounded-[1.625rem] transition-all duration-500 focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-primary/70 ${
+                activeItemId === item.id
+                  ? `touch-pan-y text-primary ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`
+                  : 'touch-manipulation text-on-surface-variant/40 hover:text-on-surface'
+                }`}
             >
-              <item.icon className="relative z-10" size={27} strokeWidth={active === item.id ? 2.5 : 2} />
-            </div>
-          </button>
-        ))}
+              {item.icon ? (
+                <item.icon
+                  aria-hidden="true"
+                  className={`pointer-events-none relative z-10 select-none transition-transform duration-200 ${
+                    shouldMagnify ? 'scale-[1.16]' : activeItemId === item.id && !isDragging ? 'scale-105' : ''
+                  }`}
+                  size={26}
+                  strokeWidth={activeItemId === item.id ? 2.5 : 2}
+                />
+              ) : (
+                <span
+                  className={`pointer-events-none relative z-10 block h-8 w-8 select-none overflow-hidden rounded-full border border-on-surface-variant/25 transition-transform duration-200 ${
+                    shouldMagnify ? 'scale-[1.16]' : activeItemId === item.id && !isDragging ? 'scale-105' : ''
+                  }`}
+                >
+                  <ProfileAvatar avatarUrl={avatarUrl} />
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
     </nav>
   );

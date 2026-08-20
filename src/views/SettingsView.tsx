@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, ChevronRight, Edit2, LogOut, Ruler, User, Target, Check, AlertCircle, Loader, Sparkles } from 'lucide-react';
+import { ChevronRight, Edit2, LogOut, Ruler, User, Target, Check, AlertCircle, Loader, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 import { supabase } from '../lib/supabase/client';
@@ -354,66 +354,32 @@ export const SettingsView = ({
   const displayLevel = levelLabels[storedLevel as keyof typeof levelLabels] || storedLevel || t('settings.noLevel');
   const displayUnits = units.toUpperCase();
   const shouldShowProfileImage = Boolean(profile?.avatarUrl && !profileImageError);
-
-  const isInAnyEditMode = isEditingProfile || isEditingGoals;
+  const cancelEditing = () => {
+    if (isEditingProfile) setIsEditingProfile(false);
+    if (isEditingGoals) {
+      setIsEditingGoals(false);
+      setEditingGoals(null);
+    }
+  };
 
   return (
     <PageShell
       activeView="settings"
       setView={setView}
-      showHeader={false}
-      contentClassName="pt-24 pb-24"
+      profile={profile}
+      contentClassName="pb-24"
     >
-      <div className="fixed top-0 left-0 z-[60] w-full border-b theme-hairline-border bg-background/80 backdrop-blur-xl">
-        <div className="mx-auto flex h-[4.5rem] w-full max-w-2xl items-center justify-between px-5 sm:px-6">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => {
-                if (isEditingProfile) {
-                  setIsEditingProfile(false);
-                } else if (isEditingGoals) {
-                  setIsEditingGoals(false);
-                  setEditingGoals(null);
-                } else {
-                  setView('dashboard');
-                }
-              }}
-              className="flex h-10 w-10 items-center justify-center rounded-full text-on-surface-variant transition-all theme-interactive-hover hover:text-primary active:scale-95"
-            >
-              <ArrowLeft size={20} strokeWidth={2.5} />
-            </button>
-            <h1 className={`font-headline text-lg font-semibold uppercase italic tracking-[0.16em] ${isInAnyEditMode ? 'text-on-surface' : 'text-primary'}`}>
-              {isEditingProfile ? t('settings.editProfile') : isEditingGoals ? t('settings.editGoals') : t('settings.title')}
-            </h1>
-          </div>
-
-          {isEditingProfile ? (
-            <button
-              onClick={handleProfileSave}
-              disabled={isSavingProfile}
-              className="font-headline text-sm font-bold uppercase italic tracking-[0.18em] text-primary transition-colors hover:text-primary/80 disabled:opacity-50"
-            >
-              {isSavingProfile ? t('settings.saving') : t('settings.save')}
-            </button>
-          ) : isEditingGoals ? (
-            <button
-              onClick={handleGoalsSave}
-              disabled={isSavingGoals}
-              className="font-headline text-sm font-bold uppercase italic tracking-[0.18em] text-primary transition-colors hover:text-primary/80 disabled:opacity-50"
-            >
-              {isSavingGoals ? t('settings.saving') : t('settings.save')}
-            </button>
-          ) : (
-            <div className="flex items-center gap-3">
-                <div className="theme-primary-indicator-glow h-2 w-2 rounded-full bg-primary"></div>
-              <div className="leading-none text-right">
-                <span className="block font-headline text-[1.6rem] font-semibold uppercase tracking-[0.16em] text-primary">KINETIC</span>
-                <span className="block text-[0.55rem] font-semibold uppercase tracking-[0.34em] text-on-surface-variant/70">Performance Engine</span>
-              </div>
-            </div>
-          )}
+      {(isEditingProfile || isEditingGoals) && (
+        <div className="mb-4 flex justify-end">
+          <button
+            type="button"
+            onClick={cancelEditing}
+            className="text-[0.68rem] font-black uppercase tracking-[0.16em] text-on-surface-variant transition-colors hover:text-secondary"
+          >
+            {t('common.cancel')}
+          </button>
         </div>
-      </div>
+      )}
 
       {isEditingProfile && (
         <section className="space-y-8 pb-8">
@@ -729,12 +695,13 @@ export const SettingsView = ({
         <section className="space-y-8 pb-8">
           <div className="flex items-center gap-5">
             <div className="relative">
-              <div className="h-24 w-24 rounded-full border-2 border-primary bg-surface-container-low p-1">
+              <div className="h-24 w-24 overflow-hidden rounded-full border border-on-surface-variant/20 bg-surface-container-low p-1">
                 {shouldShowProfileImage ? (
                   <img
                     src={profile?.avatarUrl}
                     alt={t('header.profilePhoto')}
                     className="h-full w-full rounded-full object-cover"
+                    referrerPolicy="no-referrer"
                     onError={() => setProfileImageError(true)}
                   />
                 ) : (

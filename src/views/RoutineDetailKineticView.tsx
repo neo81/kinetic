@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import {
   AlarmClock,
-  ArrowLeft,
   ArrowRight,
   ChevronDown,
   Dumbbell,
@@ -1075,8 +1074,6 @@ export const RoutineDetailKineticView = ({
         <PageShell
           activeView="routine-detail"
           setView={setView}
-          onProfileClick={() => setView('settings')}
-          onSettingsClick={() => setView('settings')}
           profile={profile}
           contentClassName=""
           headerChildren={
@@ -1343,8 +1340,6 @@ export const RoutineDetailKineticView = ({
       <PageShell
         activeView="routine-detail"
         setView={setView}
-        onProfileClick={() => setView('settings')}
-        onSettingsClick={() => setView('settings')}
         profile={profile}
         contentClassName=""
         headerChildren={
@@ -1372,14 +1367,7 @@ export const RoutineDetailKineticView = ({
             </div>
         }
       >
-        <section className="mb-6 space-y-5">
-          <button onClick={() => setView('dashboard')} className="flex items-center gap-3 text-on-surface-variant transition-colors hover:text-primary">
-            <div className="theme-muted-surface flex h-8 w-8 items-center justify-center rounded-full transition-all group-hover:bg-primary/20">
-              <ArrowLeft size={16} strokeWidth={2.5} />
-            </div>
-            <span className="font-headline text-[0.72rem] font-black uppercase italic tracking-[0.22em]">{t('routines.backDashboard')}</span>
-          </button>
-
+        <section className="mb-6">
           <header className="space-y-3">
             <div className="flex items-center gap-3">
               <div className="h-1.5 w-12 rounded-full bg-primary/80"></div>

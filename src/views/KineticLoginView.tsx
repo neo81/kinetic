@@ -49,8 +49,6 @@ export const KineticLoginView = ({
       activeView="login"
       setView={() => undefined}
       showFooter={false}
-      showSettings={false}
-      showProfile={false}
       contentClassName="max-w-6xl px-0 pb-0 pt-4 md:pt-20 sm:px-0"
     >
       <div className="relative overflow-hidden rounded-b-[2rem] border-b theme-hairline-border md:rounded-[2rem] md:border md:theme-hairline-border md:bg-surface-container-low/35 md:shadow-[0_30px_90px_color-mix(in_srgb,var(--strong-foreground)_16%,transparent)]">

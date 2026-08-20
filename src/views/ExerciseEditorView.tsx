@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, ArrowRight, Info, Plus, Trash2 } from 'lucide-react';
+import { ArrowRight, Info, Plus, Trash2 } from 'lucide-react';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 import { PageShell } from '../components/layout/PageShell';
 import type { Exercise, ExerciseLoadType, ExerciseTargetType, UserProfile, View } from '../types';
@@ -193,8 +193,6 @@ export const ExerciseEditorView = ({
       <PageShell
         activeView="exercise-selector"
         setView={setView}
-        onProfileClick={() => setView('settings')}
-        onSettingsClick={() => setView('settings')}
         profile={profile}
         contentClassName="pb-8"
       >
@@ -213,23 +211,23 @@ export const ExerciseEditorView = ({
     <PageShell
       activeView="exercise-selector"
       setView={setView}
-      onProfileClick={() => setView('settings')}
-      onSettingsClick={() => setView('settings')}
       profile={profile}
       contentClassName="pb-8"
     >
       <section className="mb-6 space-y-5">
-        <button onClick={onBack} className="flex items-center gap-3 text-on-surface-variant transition-colors hover:text-primary">
-          <div className="theme-muted-surface flex h-8 w-8 items-center justify-center rounded-full transition-all group-hover:bg-primary/20">
-            <ArrowLeft size={16} strokeWidth={2.5} />
-          </div>
-          <span className="font-headline text-[0.72rem] font-black uppercase italic tracking-[0.22em]">{t('exerciseEditor.back')}</span>
-        </button>
-
         <header className="space-y-3">
-          <div className="flex items-center gap-3">
-            <div className="h-1.5 w-12 rounded-full bg-secondary/80"></div>
-            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-on-surface-variant/40">{t('exerciseEditor.activeSession')}</span>
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="h-1.5 w-12 rounded-full bg-secondary/80"></div>
+              <span className="text-[10px] font-black uppercase tracking-[0.4em] text-on-surface-variant/40">{t('exerciseEditor.activeSession')}</span>
+            </div>
+            <button
+              type="button"
+              onClick={onBack}
+              className="shrink-0 text-[0.68rem] font-black uppercase tracking-[0.16em] text-on-surface-variant transition-colors hover:text-secondary"
+            >
+              {t('common.cancel')}
+            </button>
           </div>
           <h1 className="font-headline text-[3.2rem] font-bold uppercase italic leading-none tracking-tight text-primary">
             {t('exerciseEditor.title')}

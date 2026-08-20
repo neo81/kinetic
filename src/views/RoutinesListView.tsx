@@ -1,6 +1,6 @@
 import { useRef, useState, type ChangeEvent } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { AlertTriangle, ArrowLeft, CheckCircle2, Download, Edit2, Play, Plus, Trash2, Upload, X } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Download, Edit2, Play, Plus, Trash2, Upload, X } from 'lucide-react';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 import { RoutineSyncPendingBadge } from '../components/RoutineSyncPendingBadge';
 import { PageShell } from '../components/layout/PageShell';
@@ -123,24 +123,9 @@ export const RoutinesListView = ({
     <PageShell
       activeView="routines-list"
       setView={setView}
-      onProfileClick={() => setView('settings')}
-      onSettingsClick={() => setView('settings')}
       profile={profile}
     >
       <div className="space-y-10 pb-32">
-        {/* Botón Volver Estándar */}
-        <section>
-          <button 
-            onClick={() => setView('dashboard')} 
-            className="flex items-center gap-3 text-on-surface-variant transition-colors hover:text-primary group"
-          >
-            <div className="theme-muted-surface flex h-8 w-8 items-center justify-center rounded-full transition-all group-hover:bg-primary/20">
-              <ArrowLeft size={16} strokeWidth={2.5} />
-            </div>
-            <span className="font-headline text-[0.72rem] font-black uppercase italic tracking-[0.22em]">{t('routines.backDashboard')}</span>
-          </button>
-        </section>
-
         {/* Título y Cabecera de Contenido */}
         <header className="space-y-3">
           <div className="flex items-center gap-3">

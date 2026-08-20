@@ -27,7 +27,7 @@ export const AvatarSection = ({
   return (
     <div className="flex flex-col items-center">
       <div className="relative group">
-        <div className="h-32 w-32 rounded-full bg-[conic-gradient(from_210deg,#ff7439,#d1fc00,#ff7439)] p-1 shadow-[0_0_30px_rgba(209,252,0,0.16)]">
+        <div className="h-32 w-32 rounded-full border border-on-surface-variant/20 bg-surface-container-low p-1">
           <div className="flex h-full w-full items-center justify-center rounded-full bg-surface-container text-on-surface overflow-hidden">
             {profile?.avatarUrl && !imageError ? (
               <motion.img

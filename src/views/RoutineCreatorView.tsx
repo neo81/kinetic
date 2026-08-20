@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { DragDropProvider } from '@dnd-kit/react';
 import { useSortable } from '@dnd-kit/react/sortable';
 import { move } from '@dnd-kit/helpers';
-import { ArrowLeft, ArrowRight, Edit2, GripVertical, Plus, Trash2 } from 'lucide-react';
+import { ArrowRight, Edit2, GripVertical, Plus, Trash2 } from 'lucide-react';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 import { PageShell } from '../components/layout/PageShell';
 import { ConfirmDialog } from '../components/layout/ConfirmDialog';
@@ -274,23 +274,23 @@ export const RoutineCreatorView = ({
       <PageShell
         activeView="routine-creator"
         setView={setView}
-        onProfileClick={() => setView('settings')}
-        onSettingsClick={() => setView('settings')}
         profile={profile}
         contentClassName="pb-32"
       >
         <section className="space-y-8">
-          <button onClick={() => setView(navigationSource === 'routine-detail' ? 'routine-detail' : 'dashboard')} className="flex items-center gap-3 text-on-surface-variant transition-colors hover:text-primary">
-            <div className="theme-muted-surface flex h-8 w-8 items-center justify-center rounded-full transition-all group-hover:bg-primary/20">
-              <ArrowLeft size={16} strokeWidth={2.5} />
-            </div>
-            <span className="font-headline text-[0.72rem] font-black uppercase italic tracking-[0.22em]">{t('routines.cancel')}</span>
-          </button>
-
           <header className="space-y-3">
-             <div className="flex items-center gap-3">
-               <div className="h-1.5 w-12 rounded-full bg-primary/80"></div>
-               <span className="text-[10px] font-black uppercase tracking-[0.4em] text-on-surface-variant/40">{t('routines.planSetup')}</span>
+             <div className="flex items-center justify-between gap-4">
+               <div className="flex items-center gap-3">
+                 <div className="h-1.5 w-12 rounded-full bg-primary/80"></div>
+                 <span className="text-[10px] font-black uppercase tracking-[0.4em] text-on-surface-variant/40">{t('routines.planSetup')}</span>
+               </div>
+               <button
+                 type="button"
+                 onClick={() => setView(navigationSource === 'routine-detail' ? 'routine-detail' : 'dashboard')}
+                 className="shrink-0 text-[0.68rem] font-black uppercase tracking-[0.16em] text-on-surface-variant transition-colors hover:text-secondary"
+               >
+                 {t('common.cancel')}
+               </button>
              </div>
              <h1 className="font-headline text-[3.2rem] font-bold uppercase italic leading-none tracking-tight text-on-surface">
                 {currentRoutine ? t('routines.editRoutine') : t('routines.newRoutine')}

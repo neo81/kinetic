@@ -79,8 +79,6 @@ export const HistoryView = ({ setView, profile }: { setView: (v: View) => void; 
     <PageShell
       activeView="history"
       setView={setView}
-      onProfileClick={() => setView('settings')}
-      onSettingsClick={() => setView('settings')}
       profile={profile}
       contentClassName=""
     >

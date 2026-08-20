@@ -123,7 +123,6 @@ export const DashboardView = ({
     <PageShell
       activeView="dashboard"
       setView={setView}
-      onProfileClick={() => setView('settings')}
       profile={profile}
     >
         <section className="space-y-10">

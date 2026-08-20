@@ -893,23 +893,23 @@ export const ExerciseListView = ({
       <PageShell
         activeView="exercise-selector"
         setView={setView}
-        onProfileClick={() => setView('settings')}
-        onSettingsClick={() => setView('settings')}
         profile={profile}
         contentClassName="space-y-6 sm:space-y-10"
       >
         {/* Header */}
-        <section className="space-y-5">
-          <button onClick={() => setView('exercise-selector')} className="flex items-center gap-3 text-on-surface-variant transition-colors hover:text-primary">
-            <div className="theme-muted-surface flex h-8 w-8 items-center justify-center rounded-full transition-all group-hover:bg-primary/20">
-              <ArrowLeft size={16} strokeWidth={2.5} />
-            </div>
-            <span className="font-headline text-[0.72rem] font-black uppercase italic tracking-[0.22em]">{t('engine.backToGroups')}</span>
-          </button>
-
+        <section>
           <header className="space-y-3">
              <div className="flex items-center justify-between pr-2">
                <div className="flex items-center gap-3">
+                 <button
+                   type="button"
+                   onClick={() => setView('exercise-selector')}
+                   aria-label={t('engine.backToGroups')}
+                   title={t('engine.backToGroups')}
+                   className="theme-muted-surface flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:text-primary"
+                 >
+                   <ArrowLeft aria-hidden="true" size={16} strokeWidth={2.5} />
+                 </button>
                  <div className="h-1.5 w-12 rounded-full bg-primary/80"></div>
                  <span className="text-[10px] font-black uppercase tracking-[0.4em] text-on-surface-variant/40">{t('engine.movementLibrary')}</span>
                </div>

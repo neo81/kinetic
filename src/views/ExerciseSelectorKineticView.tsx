@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Accessibility, Activity, ArrowLeft, Dumbbell, Search } from 'lucide-react';
+import { Accessibility, Activity, Dumbbell, Search } from 'lucide-react';
 import { PageShell } from '../components/layout/PageShell';
 import { supabase, isSupabaseConfigured } from '../lib/supabase/client';
 import { fallbackExerciseLibrary } from '../app/initialData';
@@ -266,28 +266,32 @@ export const ExerciseSelectorKineticView = ({
 
     setView('dashboard');
   };
+  const selectorSource = window.sessionStorage.getItem('kinetic.selectorSource');
+  const isRoutineSelection = navigationSource === 'routine-creator' && selectorSource !== 'global';
 
   return (
     <PageShell
       activeView="exercise-selector"
       setView={setView}
-      onProfileClick={() => setView('settings')}
-      onSettingsClick={() => setView('settings')}
       profile={profile}
       contentClassName="space-y-5"
     >
       <section className="space-y-5">
-        <button onClick={handleBack} className="flex items-center gap-3 text-on-surface-variant transition-colors hover:text-primary">
-          <div className="theme-muted-surface flex h-8 w-8 items-center justify-center rounded-full transition-all group-hover:bg-primary/20">
-            <ArrowLeft size={16} strokeWidth={2.5} />
-          </div>
-          <span className="font-headline text-[0.72rem] font-black uppercase italic tracking-[0.22em]">{t('engine.back')}</span>
-        </button>
-
         <header className="space-y-3">
-          <div className="flex items-center gap-3">
-            <div className="h-1.5 w-12 rounded-full bg-primary/80"></div>
-            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-on-surface-variant/40">{t('engine.precisionSelector')}</span>
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="h-1.5 w-12 rounded-full bg-primary/80"></div>
+              <span className="text-[10px] font-black uppercase tracking-[0.4em] text-on-surface-variant/40">{t('engine.precisionSelector')}</span>
+            </div>
+            {isRoutineSelection && (
+              <button
+                type="button"
+                onClick={handleBack}
+                className="shrink-0 text-[0.68rem] font-black uppercase tracking-[0.16em] text-on-surface-variant transition-colors hover:text-secondary"
+              >
+                {t('common.cancel')}
+              </button>
+            )}
           </div>
           <h1 className="font-headline text-[3.2rem] font-bold uppercase italic leading-none tracking-tight text-on-surface">
             Target<br/>

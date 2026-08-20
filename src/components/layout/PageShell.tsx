@@ -10,12 +10,8 @@ type PageShellProps = {
   headerChildren?: React.ReactNode;
   showHeader?: boolean;
   showFooter?: boolean;
-  showProfile?: boolean;
-  showSettings?: boolean;
   containerClassName?: string;
   contentClassName?: string;
-  onProfileClick?: () => void;
-  onSettingsClick?: () => void;
   profile?: UserProfile | null;
 };
 
@@ -26,12 +22,8 @@ export const PageShell = ({
   headerChildren,
   showHeader = true,
   showFooter = true,
-  showProfile = true,
-  showSettings = true,
   containerClassName = '',
   contentClassName = '',
-  onProfileClick,
-  onSettingsClick,
   profile,
 }: PageShellProps) => (
   <div className={`relative min-h-screen overflow-hidden bg-background text-on-background ${showFooter ? 'pb-32' : ''} ${containerClassName}`.trim()}>
@@ -41,11 +33,7 @@ export const PageShell = ({
     </div>
 
     {showHeader && (
-      <Header
-        showProfile={showProfile}
-        onProfileClick={onProfileClick}
-        avatarUrl={profile?.avatarUrl}
-      >
+      <Header>
         {headerChildren}
       </Header>
     )}
@@ -56,6 +44,6 @@ export const PageShell = ({
       {children}
     </main>
 
-    {showFooter && <BottomNav active={activeView} setView={setView} />}
+    {showFooter && <BottomNav active={activeView} setView={setView} avatarUrl={profile?.avatarUrl} />}
   </div>
 );
