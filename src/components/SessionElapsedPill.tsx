@@ -14,10 +14,12 @@ const formatElapsedTime = (startTimeMs: number, nowMs: number) => {
 export const SessionElapsedPill = ({
   startTimeMs,
   tone = 'default',
+  compact = false,
   className = '',
 }: {
   startTimeMs: number;
-  tone?: 'default' | 'inverted';
+  tone?: 'default' | 'inverted' | 'embedded';
+  compact?: boolean;
   className?: string;
 }) => {
   const { t } = useLanguage();
@@ -39,7 +41,9 @@ export const SessionElapsedPill = ({
   const elapsedSeconds = Math.max(0, Math.floor((nowMs - startTimeMs) / 1000));
   const toneClassName = tone === 'inverted'
     ? 'border-black/15 bg-black/10 text-black shadow-none'
-    : 'border-primary/25 bg-surface-container-high/95 text-primary shadow-[0_8px_24px_color-mix(in_srgb,var(--color-primary)_12%,transparent)]';
+    : tone === 'embedded'
+      ? 'border-transparent bg-transparent text-primary shadow-none'
+      : 'border-primary/25 bg-surface-container-high/95 text-primary shadow-[0_8px_24px_color-mix(in_srgb,var(--color-primary)_12%,transparent)]';
 
   return (
     <div
@@ -47,7 +51,12 @@ export const SessionElapsedPill = ({
       title={t('session.elapsedTime')}
       aria-label={`${t('session.elapsedTime')}: ${formatElapsedTime(startTimeMs, nowMs)}`}
     >
-      <Clock3 size={14} strokeWidth={2.5} aria-hidden="true" />
+      <Clock3
+        size={14}
+        strokeWidth={2.5}
+        aria-hidden="true"
+        className={compact ? 'hidden min-[390px]:block' : ''}
+      />
       <time
         dateTime={`PT${elapsedSeconds}S`}
         className="font-mono text-[0.72rem] font-black tabular-nums tracking-[0.04em]"

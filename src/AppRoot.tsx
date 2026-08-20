@@ -13,6 +13,7 @@ import { fallbackReleaseHistory, type AppRelease } from './app/releaseNotes';
 import { releaseNotesRepository } from './features/releaseNotes/repository';
 import { useLanguage } from './i18n/LanguageContext';
 import { SessionElapsedPill } from './components/SessionElapsedPill';
+import { PwaStatusPrompt } from './components/layout/PwaStatusPrompt';
 
 export default function AppRoot() {
   const { t } = useLanguage();
@@ -146,6 +147,11 @@ export default function AppRoot() {
       )}
 
       <SyncStatusBanner syncState={syncState} />
+
+      <PwaStatusPrompt
+        hasActiveSession={Boolean(app.activeSession)}
+        suppressed={app.isAppLoading || showReleaseNotes}
+      />
 
       <ReleaseNotesDialog
         isOpen={showReleaseNotes}

@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { ChevronRight, Edit2, LogOut, Ruler, User, Target, Check, AlertCircle, Loader, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useReducedMotion } from '../hooks/useReducedMotion';
-import { supabase } from '../lib/supabase/client';
 import { PageShell } from '../components/layout/PageShell';
 import { AvatarSection } from '../components/AvatarSection';
 import { AvatarUploadDialog } from '../components/AvatarUploadDialog';
@@ -40,6 +39,7 @@ type SettingsViewProps = {
 type FeedbackState = 'idle' | 'saving' | 'success' | 'error';
 
 const fitnessLevels = ['Principiante', 'Intermedio', 'Avanzado', 'Competidor'];
+const goalsCache = new Map<string, UserGoals>();
 const usernameValidationKeys: Record<NonNullable<UsernameValidationResult['reason']>, TranslationKey> = {
   empty: 'settings.username.empty',
   'too-short': 'settings.username.tooShort',
@@ -90,7 +90,12 @@ export const SettingsView = ({
   const [goalsFeedback, setGoalsFeedback] = useState<{ state: FeedbackState; message: string }>({ state: 'idle', message: '' });
 
   // Weekly goals state
-  const [goals, setGoals] = useState<UserGoals | null>(null);
+  const [goals, setGoals] = useState<UserGoals | null>(() => (
+    profile?.id ? goalsCache.get(profile.id) ?? null : null
+  ));
+  const [isLoadingGoals, setIsLoadingGoals] = useState(() => Boolean(
+    profile?.id && !goalsCache.has(profile.id)
+  ));
   const [editingGoals, setEditingGoals] = useState<UserGoals | null>(null);
 
   useEffect(() => {
@@ -105,19 +110,41 @@ export const SettingsView = ({
   }, [profile]);
 
   useEffect(() => {
+    const userId = profile?.id;
+    if (!userId) {
+      setGoals(null);
+      setIsLoadingGoals(false);
+      return;
+    }
+
+    const cachedGoals = goalsCache.get(userId);
+    if (cachedGoals) {
+      setGoals(cachedGoals);
+    }
+    setIsLoadingGoals(!cachedGoals);
+
+    let cancelled = false;
     const loadGoals = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.user.id) return;
+        const loadedGoals = await routinesRepository.getUserGoals(userId);
+        if (cancelled) return;
 
-        const loadedGoals = await routinesRepository.getUserGoals(session.user.id);
+        goalsCache.set(userId, loadedGoals);
         setGoals(loadedGoals);
       } catch (error) {
         console.error('Error loading goals:', error);
+      } finally {
+        if (!cancelled) {
+          setIsLoadingGoals(false);
+        }
       }
     };
-    loadGoals();
-  }, []);
+    void loadGoals();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [profile?.id]);
 
   // Auto-clear profile feedback after 3 seconds
   useEffect(() => {
@@ -236,6 +263,7 @@ export const SettingsView = ({
       }
 
       const updated = await routinesRepository.saveUserGoals(userId, editingGoals);
+      goalsCache.set(userId, updated);
       setGoals(updated);
       setEditingGoals(null);
       setIsEditingGoals(false);
@@ -354,6 +382,19 @@ export const SettingsView = ({
   const displayLevel = levelLabels[storedLevel as keyof typeof levelLabels] || storedLevel || t('settings.noLevel');
   const displayUnits = units.toUpperCase();
   const shouldShowProfileImage = Boolean(profile?.avatarUrl && !profileImageError);
+  const initialHeightCm = profile?.heightCm ? String(profile.heightCm) : '';
+  const initialBodyWeightKg = profile?.bodyWeightKg ? String(profile.bodyWeightKg) : '';
+  const hasUnsavedProfileChanges = isEditingProfile && (
+    fullName !== (profile?.fullName ?? '')
+    || username !== (profile?.username ?? '')
+    || bio !== (profile?.bio ?? '')
+    || fitnessLevel !== (profile?.fitnessLevel ?? '')
+    || heightCm !== initialHeightCm
+    || bodyWeightKg !== initialBodyWeightKg
+  );
+  const hasUnsavedGoalChanges = isEditingGoals
+    && editingGoals !== null
+    && JSON.stringify(editingGoals) !== JSON.stringify(goals);
   const cancelEditing = () => {
     if (isEditingProfile) setIsEditingProfile(false);
     if (isEditingGoals) {
@@ -367,6 +408,7 @@ export const SettingsView = ({
       activeView="settings"
       setView={setView}
       profile={profile}
+      hasUnsavedChanges={hasUnsavedProfileChanges || hasUnsavedGoalChanges}
       contentClassName="pb-24"
     >
       {(isEditingProfile || isEditingGoals) && (
@@ -741,44 +783,42 @@ export const SettingsView = ({
 
           <div className="space-y-3">
             <h3 className="px-1 text-[10px] font-black uppercase italic tracking-[0.4em] text-on-surface-variant/60">{t('settings.trainingGoals')}</h3>
-            {goals ? (
-              <div className="space-y-3">
-                <div className="rounded-[0.95rem] bg-surface-container-low px-4 py-4 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-on-surface-variant">{t('settings.volume')}</p>
-                      <p className="mt-1 text-2xl font-black text-primary">{Math.round(goals.weeklyVolumeTarget / 1000)}k kg</p>
-                    </div>
-                  </div>
-                  <div className="border-t theme-hairline-border pt-4 flex items-center justify-between">
-                    <div>
-                      <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-on-surface-variant">{t('settings.exercises')}</p>
-                      <p className="mt-1 text-2xl font-black text-secondary">{goals.weeklyExercisesTarget}</p>
-                    </div>
-                  </div>
-                  <div className="border-t theme-hairline-border pt-4 flex items-center justify-between">
-                    <div>
-                      <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-on-surface-variant">{t('settings.time')}</p>
-                      <p className="mt-1 text-2xl font-black text-primary">{goals.weeklyDurationTarget}m</p>
-                    </div>
+            <div className="space-y-3" aria-busy={isLoadingGoals}>
+              <div className="rounded-[0.95rem] bg-surface-container-low px-4 py-4 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-on-surface-variant">{t('settings.volume')}</p>
+                    <p className="mt-1 text-2xl font-black text-primary">{goals ? `${Math.round(goals.weeklyVolumeTarget / 1000)}k kg` : '--'}</p>
                   </div>
                 </div>
-                <button
-                  onClick={handleGoalsEdit}
-                  className="flex w-full items-center justify-between rounded-[0.95rem] bg-surface-container-low px-4 py-4 text-left transition-colors hover:bg-surface-container-high"
-                >
-                  <div className="flex items-center gap-4">
-                    <Target size={18} className="text-on-surface-variant" />
-                    <span className="font-medium text-on-surface">{t('settings.editGoals')}</span>
+                <div className="border-t theme-hairline-border pt-4 flex items-center justify-between">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-on-surface-variant">{t('settings.exercises')}</p>
+                    <p className="mt-1 text-2xl font-black text-secondary">{goals?.weeklyExercisesTarget ?? '--'}</p>
                   </div>
-                  <ChevronRight size={18} className="text-outline" />
-                </button>
+                </div>
+                <div className="border-t theme-hairline-border pt-4 flex items-center justify-between">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-on-surface-variant">{t('settings.time')}</p>
+                    <p className="mt-1 text-2xl font-black text-primary">{goals ? `${goals.weeklyDurationTarget}m` : '--'}</p>
+                  </div>
+                </div>
               </div>
-            ) : (
-              <div className="rounded-[0.95rem] bg-surface-container-low px-4 py-4 text-center">
-                <p className="text-[9px] font-medium uppercase tracking-[0.15em] text-on-surface-variant">{t('settings.loadingGoals')}</p>
-              </div>
-            )}
+              <button
+                onClick={handleGoalsEdit}
+                disabled={!goals}
+                className="flex w-full items-center justify-between rounded-[0.95rem] bg-surface-container-low px-4 py-4 text-left transition-colors hover:bg-surface-container-high disabled:cursor-default"
+              >
+                <div className="flex items-center gap-4">
+                  <Target size={18} className="text-on-surface-variant" />
+                  <span className="font-medium text-on-surface">{t('settings.editGoals')}</span>
+                </div>
+                <ChevronRight size={18} className="text-outline" />
+              </button>
+              {isLoadingGoals ? (
+                <span className="sr-only" role="status" aria-live="polite">{t('settings.loadingGoals')}</span>
+              ) : null}
+            </div>
           </div>
 
           <div className="space-y-3">

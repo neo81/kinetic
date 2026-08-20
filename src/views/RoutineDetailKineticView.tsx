@@ -2,9 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import {
   AlarmClock,
-  ArrowRight,
   ChevronDown,
-  Dumbbell,
   Edit2,
   Play,
   RotateCcw,
@@ -13,7 +11,8 @@ import {
   Timer,
   Check,
   Loader2,
-  BookmarkPlus
+  BookmarkPlus,
+  MoreHorizontal,
 } from 'lucide-react';
 import { RoutineSyncPendingBadge } from '../components/RoutineSyncPendingBadge';
 import { PageShell } from '../components/layout/PageShell';
@@ -26,6 +25,47 @@ import { SessionElapsedPill } from '../components/SessionElapsedPill';
 import { formatRestTimerPreset, MAX_REST_TIMER_PRESETS } from '../features/restTimer/presets';
 
 type Translator = (key: TranslationKey) => string;
+
+const SessionTimerControls = ({
+  sessionStartTimeMs,
+  onOpenRestTimer,
+  onOpenStopwatch,
+  t,
+}: {
+  sessionStartTimeMs?: number;
+  onOpenRestTimer: () => void;
+  onOpenStopwatch: () => void;
+  t: Translator;
+}) => (
+  <div className="theme-hairline-border flex h-11 shrink-0 items-center gap-1 rounded-full border bg-surface-container-high/95 p-1 shadow-[0_8px_24px_color-mix(in_srgb,var(--strong-foreground)_10%,transparent)] backdrop-blur-xl">
+    {sessionStartTimeMs !== undefined ? (
+      <SessionElapsedPill
+        startTimeMs={sessionStartTimeMs}
+        tone="embedded"
+        compact
+        className="px-1.5 min-[390px]:px-2"
+      />
+    ) : null}
+    <button
+      type="button"
+      onClick={onOpenRestTimer}
+      className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary/10 text-secondary transition-colors hover:bg-secondary/20 active:scale-95"
+      title={t('session.restTimer')}
+      aria-label={t('session.restTimer')}
+    >
+      <AlarmClock size={17} strokeWidth={2.4} />
+    </button>
+    <button
+      type="button"
+      onClick={onOpenStopwatch}
+      className="theme-interactive-hover flex h-9 w-9 items-center justify-center rounded-full bg-surface-container-highest text-on-surface-variant transition-colors hover:text-on-surface active:scale-95"
+      title={t('session.temporaryStopwatch')}
+      aria-label={t('session.temporaryStopwatch')}
+    >
+      <Timer size={18} />
+    </button>
+  </div>
+);
 
 const DEFAULT_REST_SECONDS = 0;
 const TIMER_WHEEL_ITEM_HEIGHT = 48;
@@ -924,6 +964,7 @@ export const RoutineDetailKineticView = ({
   const [confirmExerciseDelete, setConfirmExerciseDelete] = useState<{ exId: string; dayId: string } | null>(null);
   const [confirmEndSession, setConfirmEndSession] = useState(false);
   const [confirmCancelSession, setConfirmCancelSession] = useState(false);
+  const [isRoutineActionsOpen, setIsRoutineActionsOpen] = useState(false);
   const [isEndingSession, setIsEndingSession] = useState(false);
   const [isGroupingMode, setIsGroupingMode] = useState(false);
   const [selectedGroupExerciseIds, setSelectedGroupExerciseIds] = useState<string[]>([]);
@@ -1077,23 +1118,11 @@ export const RoutineDetailKineticView = ({
           profile={profile}
           contentClassName=""
           headerChildren={
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setIsRestTimerOpen(true)}
-                className="flex items-center gap-2 rounded-full border border-secondary/25 bg-surface-container-high/90 px-3 py-2 text-secondary shadow-[0_12px_32px_rgba(255,92,0,0.15)] hover:bg-surface-bright transition-colors"
-                title={t('session.restTimer')}
-              >
-                <AlarmClock size={15} strokeWidth={2.4} />
-                <span className="font-headline text-[1rem] font-semibold uppercase tracking-[0.08em] text-secondary">{t('session.rest')}</span>
-              </button>
-              <button
-                onClick={() => setIsSessionTimerOpen(true)}
-                                  className="theme-hairline-border theme-interactive-hover flex items-center justify-center rounded-full border bg-surface-container-high p-2.5 text-on-surface-variant transition-colors hover:text-on-surface"
-                title={t('session.temporaryStopwatch')}
-              >
-                <Timer size={18} />
-              </button>
-            </div>
+            <SessionTimerControls
+              onOpenRestTimer={() => setIsRestTimerOpen(true)}
+              onOpenStopwatch={() => setIsSessionTimerOpen(true)}
+              t={t}
+            />
           }
         >
           <section className="space-y-6 text-center">
@@ -1343,28 +1372,12 @@ export const RoutineDetailKineticView = ({
         profile={profile}
         contentClassName=""
         headerChildren={
-            <div className="flex items-center gap-2">
-              {activeSession?.routineId === routine.id && (
-                <SessionElapsedPill startTimeMs={activeSession.startTimeMs} />
-              )}
-              <button
-                onClick={() => setIsRestTimerOpen(true)}
-                className="flex h-9 items-center gap-2 rounded-full border border-secondary/25 bg-surface-container-high/90 px-2.5 text-secondary shadow-[0_12px_32px_rgba(255,92,0,0.15)] transition-colors hover:bg-surface-bright sm:px-3"
-                title={t('session.restTimer')}
-                aria-label={t('session.restTimer')}
-              >
-                <AlarmClock size={15} strokeWidth={2.4} />
-                <span className="hidden font-headline text-[1rem] font-semibold uppercase tracking-[0.08em] text-secondary sm:inline">{t('session.rest')}</span>
-              </button>
-              <button
-                onClick={() => setIsSessionTimerOpen(true)}
-                className="theme-hairline-border theme-interactive-hover flex h-9 w-9 items-center justify-center rounded-full border bg-surface-container-high text-on-surface-variant transition-colors hover:text-on-surface"
-                title={t('session.temporaryStopwatch')}
-                aria-label={t('session.temporaryStopwatch')}
-              >
-                <Timer size={18} />
-              </button>
-            </div>
+          <SessionTimerControls
+            sessionStartTimeMs={activeSession?.routineId === routine.id ? activeSession.startTimeMs : undefined}
+            onOpenRestTimer={() => setIsRestTimerOpen(true)}
+            onOpenStopwatch={() => setIsSessionTimerOpen(true)}
+            t={t}
+          />
         }
       >
         <section className="mb-6">
@@ -1379,40 +1392,75 @@ export const RoutineDetailKineticView = ({
               </h1>
               {routine.syncPending ? <RoutineSyncPendingBadge className="self-start sm:self-center" /> : null}
             </div>
+            {!activeSession ? (
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => onEditRoutine(routine)}
+                  className="theme-hairline-border theme-interactive-hover flex h-11 items-center gap-2 rounded-full border bg-surface-container-high px-4 text-[0.68rem] font-black uppercase tracking-[0.14em] text-on-surface-variant transition-colors hover:text-primary active:scale-95"
+                >
+                  <Edit2 size={15} strokeWidth={2.5} />
+                  {t('session.editRoutine')}
+                </button>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setIsRoutineActionsOpen((current) => !current)}
+                    aria-label={t('session.routineActions')}
+                    aria-expanded={isRoutineActionsOpen}
+                    aria-haspopup="menu"
+                    className="theme-hairline-border theme-interactive-hover flex h-11 w-11 items-center justify-center rounded-full border bg-surface-container-high text-on-surface-variant transition-colors hover:text-on-surface active:scale-95"
+                  >
+                    <MoreHorizontal size={19} strokeWidth={2.5} />
+                  </button>
+                  {isRoutineActionsOpen ? (
+                    <>
+                      <button
+                        type="button"
+                        tabIndex={-1}
+                        aria-hidden="true"
+                        onClick={() => setIsRoutineActionsOpen(false)}
+                        className="fixed inset-0 z-20 cursor-default"
+                      />
+                      <div
+                        role="menu"
+                        className="theme-elevated-surface absolute right-0 top-[3.25rem] z-30 w-52 rounded-2xl border theme-hairline-border p-2 shadow-2xl"
+                      >
+                        <button
+                          type="button"
+                          role="menuitem"
+                          onClick={() => {
+                            setIsRoutineActionsOpen(false);
+                            setConfirmRoutineDelete(true);
+                          }}
+                          className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-[0.7rem] font-black uppercase tracking-[0.12em] text-secondary transition-colors hover:bg-secondary/10"
+                        >
+                          <Trash2 size={16} strokeWidth={2.4} />
+                          {t('session.deleteRoutine')}
+                        </button>
+                      </div>
+                    </>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
           </header>
         </section>
 
-        <section className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <div className="rounded-[1rem] border-l-2 border-primary bg-surface-container-low p-3">
-            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-on-surface-variant">{t('session.days')}</p>
-            <p className="mt-1 font-headline text-[1.8rem] font-semibold leading-none text-on-surface">{String(routine.dayEntries?.length || 0).padStart(2, '0')}</p>
+        <section className="mb-6 grid grid-cols-3 gap-2">
+          <div className="min-w-0 rounded-[0.9rem] border-l-2 border-primary bg-surface-container-low px-3 py-3">
+            <p className="truncate text-[0.52rem] font-bold uppercase tracking-[0.12em] text-on-surface-variant">{t('session.days')}</p>
+            <p className="mt-1 font-headline text-[1.4rem] font-semibold leading-none text-on-surface">{String(routine.dayEntries?.length || 0).padStart(2, '0')}</p>
           </div>
-          <div className="rounded-[1rem] bg-surface-container-low p-3">
-            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-on-surface-variant">{t('routines.exercisePlural')}</p>
-            <p className="mt-1 font-headline text-[1.8rem] font-semibold leading-none text-on-surface">{routine.exercises.length}</p>
+          <div className="min-w-0 rounded-[0.9rem] bg-surface-container-low px-3 py-3">
+            <p className="truncate text-[0.52rem] font-bold uppercase tracking-[0.12em] text-on-surface-variant">{t('routines.exercisePlural')}</p>
+            <p className="mt-1 font-headline text-[1.4rem] font-semibold leading-none text-on-surface">{routine.exercises.length}</p>
           </div>
-          <div className="relative col-span-2 overflow-hidden rounded-[1rem] bg-surface-container-low p-3">
-            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-on-surface-variant">{t('settings.volume')}</p>
-            <p className="mt-1 font-headline text-[1.8rem] font-semibold leading-none text-on-surface">
-              {volume.toFixed(0)} <span className="text-xs font-medium text-on-surface-variant">{t('session.totalKg')}</span>
+          <div className="min-w-0 rounded-[0.9rem] bg-surface-container-low px-3 py-3">
+            <p className="truncate text-[0.52rem] font-bold uppercase tracking-[0.12em] text-on-surface-variant">{t('settings.volume')}</p>
+            <p className="mt-1 truncate font-headline text-[1.4rem] font-semibold leading-none text-on-surface">
+              {volume.toFixed(0)} <span className="text-[0.55rem] font-medium lowercase text-on-surface-variant">kg</span>
             </p>
-            <Dumbbell className="absolute -bottom-4 right-0 h-14 w-14 text-on-surface-variant/15" />
-          </div>
-          <div className="col-span-2 flex items-center justify-between gap-3 rounded-[1rem] bg-surface-container-high p-4 sm:col-span-4">
-            <div className="min-w-0">
-              <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-on-surface-variant">{t('session.mainFocus')}</p>
-              <p className="font-headline text-[1.15rem] font-semibold uppercase italic tracking-[0.02em] text-primary sm:text-[1.3rem]">
-                {routine.focus || t('session.undefined')}
-              </p>
-            </div>
-            <div className="flex -space-x-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-surface-container-high bg-secondary text-black">
-                <Play size={14} fill="currentColor" />
-              </div>
-              <div className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-surface-container-high bg-primary text-black">
-                <ArrowRight size={14} strokeWidth={3} />
-              </div>
-            </div>
           </div>
         </section>
 
@@ -1602,71 +1650,56 @@ export const RoutineDetailKineticView = ({
           })}
         </section>
 
-        <section className="mt-8 space-y-3 pb-20">
-          <button
-            onClick={() => !activeSession && onEditRoutine(routine)}
-            disabled={!!activeSession}
-            className={`neon-button flex w-full items-center justify-center gap-2 rounded-[0.9rem] py-4 font-sans text-sm font-bold uppercase tracking-[0.22em] transition-all active:scale-[0.985] ${activeSession ? 'opacity-40 cursor-not-allowed brightness-50' : ''}`}
-          >
-            <Edit2 size={16} strokeWidth={2.5} />
-            {t('session.editRoutine')}
-          </button>
-          <button
-            onClick={() => !activeSession && setConfirmRoutineDelete(true)}
-            disabled={!!activeSession}
-            className={`flex w-full items-center justify-center gap-2 rounded-[0.9rem] border border-secondary/18 bg-surface-container-low py-4 font-sans text-sm font-bold uppercase tracking-[0.22em] text-secondary transition-all hover:bg-secondary/10 active:scale-[0.985] ${activeSession ? 'opacity-30 cursor-not-allowed' : ''}`}
-          >
-            <Trash2 size={16} strokeWidth={2.5} />
-            {t('session.deleteRoutine')}
-          </button>
-        </section>
+        <div aria-hidden="true" className="h-20" />
 
-        <div className="fixed bottom-[8.5rem] sm:bottom-36 left-0 right-0 z-[60] px-4 pointer-events-none flex justify-center pb-safe">
-          {activeSession?.routineId === routine.id ? (
-            <div className="pointer-events-auto flex w-full max-w-md flex-col gap-2">
+        <div className="pointer-events-none fixed bottom-[calc(env(safe-area-inset-bottom)+6.5rem)] left-0 right-0 z-[60] flex justify-center px-4">
+          <div className="pointer-events-auto w-full max-w-md">
+            {activeSession?.routineId === routine.id ? (
+              <div className="grid grid-cols-[0.8fr_1.2fr] gap-2">
+                <button
+                  type="button"
+                  onClick={() => !isEndingSession && setConfirmCancelSession(true)}
+                  disabled={isEndingSession}
+                  aria-label={t('session.cancelWorkout')}
+                  className={`flex h-14 items-center justify-center gap-2 rounded-[1rem] border border-secondary bg-secondary px-3 text-black shadow-[0_8px_24px_color-mix(in_srgb,var(--color-secondary)_24%,transparent)] transition-all font-headline text-[0.72rem] leading-none font-semibold uppercase tracking-[0.08em] ${isEndingSession ? 'cursor-not-allowed opacity-60' : 'hover:brightness-105 active:scale-[0.98]'}`}
+                >
+                  <X size={17} strokeWidth={2.8} />
+                  {t('session.cancelShort')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => !isEndingSession && setConfirmEndSession(true)}
+                  disabled={isEndingSession}
+                  aria-label={t('session.finishWorkout')}
+                  className={`theme-primary-shadow-strong flex h-14 items-center justify-center gap-2 rounded-[1rem] border border-primary/20 bg-primary px-3 font-headline text-[0.78rem] font-bold uppercase leading-none tracking-[0.09em] text-black transition-all ${isEndingSession ? 'cursor-not-allowed opacity-70' : 'hover:scale-[1.01] active:scale-[0.98]'}`}
+                >
+                  {isEndingSession ? (
+                    <Loader2 size={18} className="animate-spin" />
+                  ) : (
+                    <Check size={18} strokeWidth={3} />
+                  )}
+                  {isEndingSession ? t('session.saving') : t('session.finishShort')}
+                </button>
+              </div>
+            ) : (
               <button
-                onClick={() => !isEndingSession && setConfirmCancelSession(true)}
-                disabled={isEndingSession}
-                className={`h-[3rem] rounded-[0.95rem] border border-secondary/45 bg-secondary/10 text-secondary transition-all font-headline text-[0.82rem] leading-none font-semibold uppercase tracking-[0.12em] ${isEndingSession ? 'cursor-not-allowed opacity-50' : 'hover:border-secondary/70 hover:bg-secondary/18 active:scale-[0.99]'}`}
+                onClick={() => {
+                  if (selectedStartWeekdayId && routine) {
+                    // Find CORE day if it exists
+                    const coreDay = routine.dayEntries?.find(d => d.dayType === 'core');
+                    // Start on the selected weekday and keep CORE available as an optional day.
+                    const dayIds = buildSessionDayIds(selectedStartWeekdayId, coreDay?.id);
+                    onStartSession(routine.id, routine.name, dayIds);
+                  }
+                }}
+                disabled={!selectedStartWeekdayId}
+                className={`flex h-14 w-full items-center justify-center gap-2 rounded-[1rem] border px-4 font-headline text-[0.9rem] font-bold uppercase leading-none tracking-[0.1em] transition-all ${selectedStartWeekdayId ? 'theme-primary-shadow-strong border-primary/20 bg-primary text-black hover:scale-[1.01] active:scale-[0.98]' : 'cursor-not-allowed border-outline-variant/60 bg-surface-container-highest text-on-surface-variant shadow-none'}`}
               >
-                {t('session.cancelWorkout')}
+                <Play fill="currentColor" size={18} />
+                {selectedStartWeekdayId ? t('session.startWorkout') : t('session.selectDay')}
               </button>
-              <button
-                onClick={() => !isEndingSession && setConfirmEndSession(true)}
-                disabled={isEndingSession}
-className={`theme-primary-shadow-strong h-[4.5rem] rounded-[1.2rem] bg-primary text-black transition-all flex items-center justify-center gap-3 font-headline text-[1.15rem] leading-none font-bold uppercase tracking-[0.15em] border border-primary/20 ${isEndingSession ? 'cursor-not-allowed opacity-70' : 'hover:scale-[1.02] active:scale-[0.98]'}`}
-              >
-                {isEndingSession ? (
-                  <>
-                    <Loader2 size={22} className="mt-0.5 animate-spin" />
-                    {t('session.saving')}
-                  </>
-                ) : (
-                  <>
-                    <X strokeWidth={3} size={22} className="mt-0.5" />
-                    {t('session.finishWorkout')}
-                  </>
-                )}
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => {
-                if (selectedStartWeekdayId && routine) {
-                  // Find CORE day if it exists
-                  const coreDay = routine.dayEntries?.find(d => d.dayType === 'core');
-                  // Start on the selected weekday and keep CORE available as an optional day.
-                  const dayIds = buildSessionDayIds(selectedStartWeekdayId, coreDay?.id);
-                  onStartSession(routine.id, routine.name, dayIds);
-                }
-              }}
-              disabled={!selectedStartWeekdayId}
-className={`theme-primary-shadow-strong pointer-events-auto w-full max-w-md h-[4.5rem] rounded-[1.2rem] bg-primary text-black transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3 font-headline text-[1.15rem] leading-none font-bold uppercase tracking-[0.15em] border border-primary/20 ${!selectedStartWeekdayId ? 'opacity-50 grayscale' : ''}`}
-            >
-              <Play fill="currentColor" size={22} className="mt-0.5" />
-              {selectedStartWeekdayId ? t('session.startWorkout') : t('session.selectDay')}
-            </button>
-          )}
+            )}
+          </div>
         </div>
       </PageShell>
 

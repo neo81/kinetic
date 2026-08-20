@@ -7,6 +7,7 @@ import { DashboardView } from '../views/DashboardView';
 import { ExerciseSelectorKineticView } from '../views/ExerciseSelectorKineticView';
 import { KineticLoginView } from '../views/KineticLoginView';
 import { RoutinesListView } from '../views/RoutinesListView';
+import { SettingsView } from '../views/SettingsView';
 
 const RoutineCreatorView = lazy(() =>
   import('../views/RoutineCreatorView').then((module) => ({ default: module.RoutineCreatorView })),
@@ -19,9 +20,6 @@ const ExerciseListView = lazy(() =>
 );
 const HistoryView = lazy(() =>
   import('../views/HistoryView').then((module) => ({ default: module.HistoryView })),
-);
-const SettingsView = lazy(() =>
-  import('../views/SettingsView').then((module) => ({ default: module.SettingsView })),
 );
 const RoutineDetailKineticView = lazy(() =>
   import('../views/RoutineDetailKineticView').then((module) => ({ default: module.RoutineDetailKineticView })),
@@ -300,20 +298,18 @@ export const AppRouter = ({
       );
     case 'settings':
       return (
-        <Suspense fallback={<LazyViewFallback />}>
-          <SettingsView
-            setView={setView}
-            profile={profile}
-            userEmail={userEmail}
-            onLogout={onLogout}
-            onSaveProfile={onSaveProfile}
-            themePreference={themePreference}
-            resolvedTheme={resolvedTheme}
-            onThemeChange={onThemeChange}
-            onLanguageChange={onLanguageChange}
-            onOpenReleaseNotes={onOpenReleaseNotes}
-          />
-        </Suspense>
+        <SettingsView
+          setView={setView}
+          profile={profile}
+          userEmail={userEmail}
+          onLogout={onLogout}
+          onSaveProfile={onSaveProfile}
+          themePreference={themePreference}
+          resolvedTheme={resolvedTheme}
+          onThemeChange={onThemeChange}
+          onLanguageChange={onLanguageChange}
+          onOpenReleaseNotes={onOpenReleaseNotes}
+        />
       );
     default:
       return null;

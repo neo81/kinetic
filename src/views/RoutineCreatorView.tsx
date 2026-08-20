@@ -147,6 +147,7 @@ export const RoutineCreatorView = ({
   const [itemToTrash, setItemToTrash] = useState<{ type: 'day' | 'exercise'; id: string } | null>(null);
   const [isReordering, setIsReordering] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const hasUnsavedChanges = name.trim() !== (currentRoutine?.name ?? '').trim();
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -275,6 +276,7 @@ export const RoutineCreatorView = ({
         activeView="routine-creator"
         setView={setView}
         profile={profile}
+        hasUnsavedChanges={hasUnsavedChanges}
         contentClassName="pb-32"
       >
         <section className="space-y-8">

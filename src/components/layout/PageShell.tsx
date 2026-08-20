@@ -13,6 +13,7 @@ type PageShellProps = {
   containerClassName?: string;
   contentClassName?: string;
   profile?: UserProfile | null;
+  hasUnsavedChanges?: boolean;
 };
 
 export const PageShell = ({
@@ -25,6 +26,7 @@ export const PageShell = ({
   containerClassName = '',
   contentClassName = '',
   profile,
+  hasUnsavedChanges = false,
 }: PageShellProps) => (
   <div className={`relative min-h-screen overflow-hidden bg-background text-on-background ${showFooter ? 'pb-32' : ''} ${containerClassName}`.trim()}>
     <div className="pointer-events-none absolute inset-0 z-0 opacity-10">
@@ -44,6 +46,13 @@ export const PageShell = ({
       {children}
     </main>
 
-    {showFooter && <BottomNav active={activeView} setView={setView} avatarUrl={profile?.avatarUrl} />}
+    {showFooter && (
+      <BottomNav
+        active={activeView}
+        setView={setView}
+        avatarUrl={profile?.avatarUrl}
+        hasUnsavedChanges={hasUnsavedChanges}
+      />
+    )}
   </div>
 );

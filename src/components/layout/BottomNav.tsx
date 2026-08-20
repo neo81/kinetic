@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useTransition, type PointerEvent as ReactP
 import { Dumbbell, History, Home, Search } from 'lucide-react';
 import type { View } from '../../types';
 import { useLanguage } from '../../i18n/LanguageContext';
+import { ConfirmDialog } from './ConfirmDialog';
 import { ProfileAvatar } from './ProfileAvatar';
 
 let lastBottomNavIndex: number | null = null;
@@ -29,10 +30,12 @@ export const BottomNav = ({
   active,
   setView,
   avatarUrl,
+  hasUnsavedChanges = false,
 }: {
   active: View;
   setView: (v: View) => void;
   avatarUrl?: string | null;
+  hasUnsavedChanges?: boolean;
 }) => {
   const { t } = useLanguage();
   const items = [
@@ -48,6 +51,7 @@ export const BottomNav = ({
   const [isDragging, setIsDragging] = useState(false);
   const [dragTargetIndex, setDragTargetIndex] = useState<number | null>(null);
   const [isNavigating, startNavigation] = useTransition();
+  const [pendingView, setPendingView] = useState<View | null>(null);
   const selectionTrackRef = useRef<HTMLDivElement>(null);
   const dragStateRef = useRef<LensDragState | null>(null);
   const dragTargetIndexRef = useRef<number | null>(null);
@@ -65,6 +69,27 @@ export const BottomNav = ({
     }
 
     startNavigation(() => setView(targetView));
+  };
+
+  const resetLensToActive = () => {
+    if (selectionTrackRef.current) {
+      selectionTrackRef.current.style.transition = '';
+      selectionTrackRef.current.style.transform = `translate3d(${activeIndex * 100}%, 0, 0)`;
+    }
+    setAnimatedIndex(activeIndex);
+    lastBottomNavIndex = activeIndex;
+  };
+
+  const requestNavigate = (targetView: View) => {
+    if (targetView === active) return;
+
+    if (hasUnsavedChanges) {
+      setPendingView(targetView);
+      resetLensToActive();
+      return;
+    }
+
+    handleNavigate(targetView);
   };
 
   const handlePointerDown = (event: ReactPointerEvent<HTMLButtonElement>, itemId: string) => {
@@ -150,13 +175,14 @@ export const BottomNav = ({
     }, 0);
 
     if (!cancelled && targetIndex !== activeIndex) {
-      handleNavigate(items[targetIndex].id as View);
+      requestNavigate(items[targetIndex].id as View);
     }
   };
 
   return (
-    <nav aria-busy={isNavigating} className="theme-bottom-nav liquid-glass-bottom-nav fixed bottom-0 left-0 z-50 w-full px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-2">
-      <div className="theme-bottom-nav-inner liquid-glass-bottom-nav__surface mx-auto grid h-16 w-full max-w-[24rem] grid-cols-5 items-center rounded-[2rem] px-1.5">
+    <>
+      <nav aria-busy={isNavigating} className="theme-bottom-nav liquid-glass-bottom-nav fixed bottom-0 left-0 z-50 w-full px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-2">
+        <div className="theme-bottom-nav-inner liquid-glass-bottom-nav__surface mx-auto grid h-16 w-full max-w-[24rem] grid-cols-5 items-center rounded-[2rem] px-1.5">
         <div aria-hidden="true" className="pointer-events-none absolute inset-x-1.5 top-1.5 z-10">
           <div
             ref={selectionTrackRef}
@@ -182,7 +208,7 @@ export const BottomNav = ({
                   suppressNextClickRef.current = false;
                   return;
                 }
-                handleNavigate(item.id as View);
+                requestNavigate(item.id as View);
               }}
               onPointerDown={(event) => handlePointerDown(event, item.id)}
               onPointerMove={handlePointerMove}
@@ -192,7 +218,7 @@ export const BottomNav = ({
               className={`group relative z-20 flex h-14 min-w-0 items-center justify-center rounded-[1.625rem] transition-all duration-500 focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-primary/70 ${
                 activeItemId === item.id
                   ? `touch-pan-y text-primary ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`
-                  : 'touch-manipulation text-on-surface-variant/40 hover:text-on-surface'
+                  : 'liquid-glass-bottom-nav__item--inactive touch-manipulation'
                 }`}
             >
               {item.icon ? (
@@ -206,7 +232,7 @@ export const BottomNav = ({
                 />
               ) : (
                 <span
-                  className={`pointer-events-none relative z-10 block h-8 w-8 select-none overflow-hidden rounded-full border border-on-surface-variant/25 transition-transform duration-200 ${
+                  className={`liquid-glass-bottom-nav__avatar pointer-events-none relative z-10 block h-8 w-8 select-none overflow-hidden rounded-full border transition-transform duration-200 ${
                     shouldMagnify ? 'scale-[1.16]' : activeItemId === item.id && !isDragging ? 'scale-105' : ''
                   }`}
                 >
@@ -216,7 +242,25 @@ export const BottomNav = ({
             </button>
           );
         })}
-      </div>
-    </nav>
+        </div>
+      </nav>
+      <ConfirmDialog
+        isOpen={pendingView !== null}
+        title={t('navigation.unsavedTitle')}
+        message={t('navigation.unsavedMessage')}
+        confirmText={t('navigation.leave')}
+        cancelText={t('navigation.stay')}
+        variant="warning"
+        onCancel={() => {
+          setPendingView(null);
+          resetLensToActive();
+        }}
+        onConfirm={() => {
+          const targetView = pendingView;
+          setPendingView(null);
+          if (targetView) handleNavigate(targetView);
+        }}
+      />
+    </>
   );
 };

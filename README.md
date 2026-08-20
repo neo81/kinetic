@@ -72,10 +72,12 @@ Mapas anatómicos interactivos (Frontal y Posterior) que proporcionan una interf
 
 ### 📱 PWA y rendimiento móvil
 - **Carga inicial optimizada**: Las vistas secundarias se cargan bajo demanda y las dependencias principales se distribuyen en bloques estables, reduciendo el JavaScript inicial y evitando la advertencia del bundle monolítico.
-- **Service worker controlado**: El build de producción genera y registra un service worker que precarga la estructura de la aplicación, sus vistas y recursos esenciales. Las actualizaciones quedan en espera y nunca recargan automáticamente una sesión activa.
+- **Service worker controlado**: El build de producción genera y registra un service worker que precarga la estructura de la aplicación, sus vistas y recursos esenciales. Informa cuando la app queda disponible sin conexión y pide confirmación antes de aplicar una versión nueva; si hay una sesión activa, difiere la actualización hasta que finalice.
 - **Caché externo delimitado**: Las fuentes de Google se conservan después de su primera descarga para mantener la presentación sin conexión. Las solicitudes de Supabase permanecen exclusivamente en red y continúan bajo la persistencia y sincronización propias de la aplicación.
 - **Transiciones suavizadas**: Ajustes para evitar pantallazos negros y cortes duros en iOS/Android PWA.
-- **Navegación inferior compacta**: La barra flotante usa una superficie Liquid Glass con cuatro iconos accesibles, una lente animada para señalar la sección activa y una alternativa sólida para navegadores sin desenfoque de fondo.
+- **Navegación inferior Liquid Glass**: La barra flotante reúne Inicio, Rutinas, Motor, Historial y Perfil en cinco accesos sin etiquetas visibles. La lente se anima al tocar, puede arrastrarse horizontalmente, aumenta el contenido bajo su centro y conserva una alternativa sólida para navegadores sin desenfoque de fondo.
+- **Jerarquía de navegación simplificada**: Los encabezados ya no duplican el acceso al perfil ni los regresos hacia secciones principales. Solo se conserva un regreso compacto para niveles internos y las salidas que descartan cambios se presentan explícitamente como `Cancelar`.
+- **Ediciones protegidas**: La barra inferior advierte antes de salir de una rutina, ejercicio, perfil u objetivos con cambios locales pendientes, evitando descartes accidentales.
 - **Selector muscular optimizado**: Precarga de imágenes frontal/posterior y regreso respetando la vista activa.
 - **Iconografía PWA renovada**: Iconos de app, favicon y Apple Touch generados desde la imagen base corregida.
 - **Idioma persistente**: La configuración permite alternar entre Español e Inglés sin recargar; la preferencia se guarda localmente y se sincroniza con Supabase. Ya están localizados el acceso y registro, Dashboard, navegación compartida, Configuración, perfil, avatar, novedades históricas, avisos, diagnósticos, rutinas, sesión activa, Historial y la interfaz completa de Motor.

@@ -16,6 +16,10 @@ type EditableSet = {
   targetType: ExerciseTargetType;
 };
 
+const getPersistedSetSignature = (sets: EditableSet[]) => JSON.stringify(
+  sets.map(({ reps, value, targetType }) => ({ reps, value, targetType })),
+);
+
 export const ExerciseEditorView = ({
   setView,
   exercise,
@@ -75,9 +79,14 @@ export const ExerciseEditorView = ({
   const [unit, setUnit] = useState<'kg' | 'min' | 'sec'>(initialUnit);
   const defaultLoadType: ExerciseLoadType = exercise?.loadType === 'bodyweight' ? 'bodyweight' : 'external';
   const [loadType, setLoadType] = useState<ExerciseLoadType>(defaultLoadType);
-  const [localNotes, setLocalNotes] = useState(exercise?.sets?.[0]?.notes || exercise?.notes || '');
+  const initialNotes = exercise?.sets?.[0]?.notes || exercise?.notes || '';
+  const [localNotes, setLocalNotes] = useState(initialNotes);
   const [showDescription, setShowDescription] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const hasUnsavedChanges = unit !== initialUnit
+    || loadType !== defaultLoadType
+    || localNotes !== initialNotes
+    || getPersistedSetSignature(sets) !== getPersistedSetSignature(initialSets);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -209,9 +218,10 @@ export const ExerciseEditorView = ({
 
   return (
     <PageShell
-      activeView="exercise-selector"
+      activeView="exercise-editor"
       setView={setView}
       profile={profile}
+      hasUnsavedChanges={hasUnsavedChanges}
       contentClassName="pb-8"
     >
       <section className="mb-6 space-y-5">

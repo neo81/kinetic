@@ -1,48 +1,19 @@
 import { registerSW } from 'virtual:pwa-register';
-
-export type PwaServiceWorkerState = {
-  offlineReady: boolean;
-  updateAvailable: boolean;
-};
+import {
+  setPwaUpdateActivator,
+  updatePwaServiceWorkerState,
+} from './serviceWorkerState';
 
 const UPDATE_INTERVAL_MS = 60 * 60 * 1000;
 
-let state: PwaServiceWorkerState = {
-  offlineReady: false,
-  updateAvailable: false,
-};
-let activateUpdate: ((reloadPage?: boolean) => Promise<void>) | null = null;
-const listeners = new Set<() => void>();
-
-const updateState = (nextState: Partial<PwaServiceWorkerState>) => {
-  state = { ...state, ...nextState };
-  listeners.forEach((listener) => listener());
-};
-
-export const getPwaServiceWorkerState = () => state;
-
-export const subscribeToPwaServiceWorker = (listener: () => void) => {
-  listeners.add(listener);
-  return () => listeners.delete(listener);
-};
-
-export const activatePwaUpdate = async () => {
-  if (!activateUpdate) return;
-  await activateUpdate(true);
-};
-
-export const dismissPwaStatus = (status: keyof PwaServiceWorkerState) => {
-  updateState({ [status]: false });
-};
-
 export const registerServiceWorker = () => {
-  activateUpdate = registerSW({
+  const activateUpdate = registerSW({
     immediate: true,
     onOfflineReady() {
-      updateState({ offlineReady: true });
+      updatePwaServiceWorkerState({ offlineReady: true });
     },
     onNeedRefresh() {
-      updateState({ updateAvailable: true });
+      updatePwaServiceWorkerState({ updateAvailable: true });
     },
     onRegisteredSW(swUrl, registration) {
       if (!registration) return;
@@ -71,4 +42,5 @@ export const registerServiceWorker = () => {
       console.error('No se pudo registrar el service worker:', error);
     },
   });
+  setPwaUpdateActivator(activateUpdate);
 };
