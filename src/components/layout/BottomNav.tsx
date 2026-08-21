@@ -6,7 +6,9 @@ import { ConfirmDialog } from './ConfirmDialog';
 import { ProfileAvatar } from './ProfileAvatar';
 
 let lastBottomNavIndex: number | null = null;
+let dragLensSettleUntil = 0;
 const DRAG_THRESHOLD_PX = 8;
+const DRAG_SETTLE_MS = 480;
 
 type LensDragState = {
   pointerId: number;
@@ -50,6 +52,7 @@ export const BottomNav = ({
   const [animatedIndex, setAnimatedIndex] = useState(() => lastBottomNavIndex ?? activeIndex);
   const [isLensPressed, setIsLensPressed] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [isDragSettling, setIsDragSettling] = useState(() => Date.now() < dragLensSettleUntil);
   const [dragTargetIndex, setDragTargetIndex] = useState<number | null>(null);
   const [isNavigating, startNavigation] = useTransition();
   const [pendingView, setPendingView] = useState<View | null>(null);
@@ -57,12 +60,32 @@ export const BottomNav = ({
   const dragStateRef = useRef<LensDragState | null>(null);
   const dragTargetIndexRef = useRef<number | null>(null);
   const suppressNextClickRef = useRef(false);
+  const dragSettleTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     lastBottomNavIndex = activeIndex;
     const animationFrame = window.requestAnimationFrame(() => setAnimatedIndex(activeIndex));
     return () => window.cancelAnimationFrame(animationFrame);
   }, [activeIndex]);
+
+  useEffect(() => {
+    const remainingDragSettleMs = dragLensSettleUntil - Date.now();
+    if (remainingDragSettleMs > 0) {
+      setIsDragSettling(true);
+      dragSettleTimerRef.current = window.setTimeout(() => {
+        setIsDragSettling(false);
+        dragLensSettleUntil = 0;
+        selectionTrackRef.current?.style.removeProperty('transition');
+        dragSettleTimerRef.current = null;
+      }, remainingDragSettleMs);
+    }
+
+    return () => {
+      if (dragSettleTimerRef.current !== null) {
+        window.clearTimeout(dragSettleTimerRef.current);
+      }
+    };
+  }, []);
 
   const handleNavigate = (targetView: View) => {
     if (targetView === 'exercise-selector') {
@@ -95,6 +118,13 @@ export const BottomNav = ({
 
   const handlePointerDown = (event: ReactPointerEvent<HTMLButtonElement>, itemId: string) => {
     if (itemId !== activeItemId || (event.pointerType === 'mouse' && event.button !== 0)) return;
+
+    if (dragSettleTimerRef.current !== null) {
+      window.clearTimeout(dragSettleTimerRef.current);
+      dragSettleTimerRef.current = null;
+    }
+    dragLensSettleUntil = 0;
+    setIsDragSettling(false);
 
     dragStateRef.current = {
       pointerId: event.pointerId,
@@ -164,10 +194,21 @@ export const BottomNav = ({
       : clampLensPosition(Math.round(dragState.currentPosition), items.length - 1);
 
     if (selectionTrackRef.current) {
-      selectionTrackRef.current.style.transition = '';
+      selectionTrackRef.current.style.transition = 'transform 460ms cubic-bezier(0.2, 0.72, 0.24, 1)';
       selectionTrackRef.current.style.transform = `translate3d(${targetIndex * 100}%, 0, 0)`;
     }
     setIsDragging(false);
+    dragLensSettleUntil = Date.now() + DRAG_SETTLE_MS;
+    setIsDragSettling(true);
+    if (dragSettleTimerRef.current !== null) {
+      window.clearTimeout(dragSettleTimerRef.current);
+    }
+    dragSettleTimerRef.current = window.setTimeout(() => {
+      setIsDragSettling(false);
+      dragLensSettleUntil = 0;
+      selectionTrackRef.current?.style.removeProperty('transition');
+      dragSettleTimerRef.current = null;
+    }, DRAG_SETTLE_MS);
     setDragTargetIndex(null);
     dragTargetIndexRef.current = null;
     setAnimatedIndex(targetIndex);
@@ -189,7 +230,7 @@ export const BottomNav = ({
         <div aria-hidden="true" className="pointer-events-none absolute inset-x-1.5 top-1/2 z-10 -translate-y-1/2">
           <div
             ref={selectionTrackRef}
-            className={`liquid-glass-bottom-nav__selection-track flex justify-center ${isLensPressed ? 'is-pressed' : ''} ${isDragging ? 'is-dragging' : ''}`}
+            className={`liquid-glass-bottom-nav__selection-track flex justify-center ${isLensPressed ? 'is-pressed' : ''} ${isDragging ? 'is-dragging' : ''} ${isDragSettling ? 'is-drag-settling' : ''}`}
             style={{ transform: `translate3d(${animatedIndex * 100}%, 0, 0)` }}
           >
             <span className="liquid-glass-bottom-nav__selection block h-[3.25rem] w-[calc(100%-0.25rem)] max-w-[4.25rem] rounded-[1.625rem]" />

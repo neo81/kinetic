@@ -50,6 +50,7 @@ Mapas anatómicos interactivos (Frontal y Posterior) que proporcionan una interf
 - **Historial detallado**: Las sesiones completadas pueden expandirse para revisar días, ejercicios, sets y valores registrados.
 
 ### 👤 Perfil Avanzado
+- **Organización por submenús**: La portada prioriza identidad, avatar y biografía; altura y peso se gestionan al editar el perfil. Entrenamiento presenta directamente los objetivos y las unidades, mientras preferencias y datos de cuenta se abren en secciones internas más compactas.
 - **Avatar Personalizado**: Sube y ajusta tu avatar con zoom/crop integrado.
 - **Validación de Username**: Validación en tiempo real (3-30 caracteres, sin duplicados).
 - **Datos corporales**: Altura y peso disponibles para seguimiento y para ejercicios basados en peso corporal.
@@ -71,12 +72,14 @@ Mapas anatómicos interactivos (Frontal y Posterior) que proporcionan una interf
 - **Catálogo ampliado**: Incluye variantes de remo con pecho apoyado, curl de bíceps en polea y pullover; los ejercicios internos de pruebas E2E no forman parte del catálogo visible.
 
 ### 📱 PWA y rendimiento móvil
-- **Tipografía local estable**: Inter para la interfaz y Roboto Condensed para títulos, botones y métricas se incluyen dentro de la PWA, evitando cambios de fuente por conexión o caché.
+- **Tipografía local estable**: Inter para la interfaz y Barlow Condensed para títulos, botones y métricas se incluyen dentro de la PWA, evitando cambios de fuente por conexión o caché.
 - **Carga inicial optimizada**: Las vistas secundarias se cargan bajo demanda y las dependencias principales se distribuyen en bloques estables, reduciendo el JavaScript inicial y evitando la advertencia del bundle monolítico.
-- **Service worker controlado**: El build de producción genera y registra un service worker que precarga la estructura de la aplicación, sus vistas y recursos esenciales. Informa cuando la app queda disponible sin conexión y pide confirmación antes de aplicar una versión nueva; si hay una sesión activa, difiere la actualización hasta que finalice.
+- **Service worker controlado**: El build de producción genera y registra un service worker que precarga la estructura de la aplicación, sus vistas y recursos esenciales. Busca versiones nuevas al iniciar, periódicamente durante el uso y al volver al primer plano, con control de frecuencia para evitar consultas duplicadas. Informa cuando la app queda disponible sin conexión y pide confirmación antes de aplicar una versión nueva; si hay una sesión activa, difiere la actualización hasta que finalice.
 - **Caché externo delimitado**: Las fuentes de Google se conservan después de su primera descarga para mantener la presentación sin conexión. Las solicitudes de Supabase permanecen exclusivamente en red y continúan bajo la persistencia y sincronización propias de la aplicación.
 - **Transiciones suavizadas**: Ajustes para evitar pantallazos negros y cortes duros en iOS/Android PWA.
-- **Navegación inferior Liquid Glass**: La barra flotante reúne Inicio, Rutinas, Motor, Historial y Perfil en cinco accesos sin etiquetas visibles. La lente se anima al tocar, puede arrastrarse horizontalmente, aumenta el contenido bajo su centro y conserva una alternativa sólida para navegadores sin desenfoque de fondo.
+- **Navegación inferior Liquid Glass**: La barra flotante reúne Inicio, Rutinas, Motor, Historial y Perfil en cinco accesos sin etiquetas visibles. Al tocar, la lente conserva el desplazamiento horizontal compacto; al arrastrarla aumenta y se asienta de forma progresiva. La superficie aproxima la refracción mediante desenfoque, saturación y reflejos, y conserva una alternativa sólida para navegadores sin desenfoque de fondo.
+- **Historial sin doble carga visual**: La vista principal se incluye en la carga inicial y presenta directamente su único estado de consulta, sin fallback previo ni animación escalonada de entrada.
+- **Vidrio limitado a controles flotantes**: El mismo tratamiento se aplica únicamente a las pastillas de duración, descanso y cronómetro, al indicador que permite regresar a una sesión activa, a ciertos botones contextuales aislados y a los buscadores unificados del Motor. Los menús integrados en encabezados conservan una superficie neutra; tarjetas, formularios y acciones principales mantienen superficies sólidas.
 - **Jerarquía de navegación simplificada**: Los encabezados ya no duplican el acceso al perfil ni los regresos hacia secciones principales. Solo se conserva un regreso compacto para niveles internos y las salidas que descartan cambios se presentan explícitamente como `Cancelar`.
 - **Ediciones protegidas**: La barra inferior advierte antes de salir de una rutina, ejercicio, perfil u objetivos con cambios locales pendientes, evitando descartes accidentales.
 - **Selector muscular optimizado**: Precarga de imágenes frontal/posterior y regreso respetando la vista activa.

@@ -114,9 +114,11 @@ export const AvatarUploadDialog = ({
                   {t('avatar.change')}
                 </h2>
                 <button
+                  type="button"
                   onClick={handleClose}
                   disabled={state === 'uploading'}
-                  className="theme-interactive-hover flex h-8 w-8 items-center justify-center rounded-full transition-colors disabled:opacity-50"
+                  aria-label={t('common.close')}
+                  className="liquid-glass-context-button relative flex h-8 w-8 items-center justify-center rounded-full text-on-surface-variant transition-[color,transform] hover:text-on-surface active:scale-95 disabled:opacity-50"
                 >
                   <X size={18} />
                 </button>

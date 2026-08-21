@@ -5,6 +5,7 @@ import type { AppLanguage } from '../i18n/translations';
 import { useLanguage } from '../i18n/LanguageContext';
 import { DashboardView } from '../views/DashboardView';
 import { ExerciseSelectorKineticView } from '../views/ExerciseSelectorKineticView';
+import { HistoryView } from '../views/HistoryView';
 import { KineticLoginView } from '../views/KineticLoginView';
 import { RoutinesListView } from '../views/RoutinesListView';
 import { SettingsView } from '../views/SettingsView';
@@ -17,9 +18,6 @@ const ExerciseEditorView = lazy(() =>
 );
 const ExerciseListView = lazy(() =>
   import('../views/ExerciseListView').then((module) => ({ default: module.ExerciseListView })),
-);
-const HistoryView = lazy(() =>
-  import('../views/HistoryView').then((module) => ({ default: module.HistoryView })),
 );
 const RoutineDetailKineticView = lazy(() =>
   import('../views/RoutineDetailKineticView').then((module) => ({ default: module.RoutineDetailKineticView })),
@@ -291,11 +289,7 @@ export const AppRouter = ({
         </Suspense>
       );
     case 'history':
-      return (
-        <Suspense fallback={<LazyViewFallback />}>
-          <HistoryView setView={setView} profile={profile} />
-        </Suspense>
-      );
+      return <HistoryView setView={setView} profile={profile} />;
     case 'settings':
       return (
         <SettingsView

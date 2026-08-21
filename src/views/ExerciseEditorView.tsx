@@ -251,10 +251,13 @@ export const ExerciseEditorView = ({
             <p className="mb-1 text-[10px] uppercase tracking-[0.16em] text-on-surface-variant">{t('exerciseEditor.current')}</p>
             <h2 className="break-words text-[clamp(1.45rem,7vw,1.85rem)] font-semibold leading-tight text-on-surface">{getExerciseDisplayName(exercise, language)}</h2>
           </div>
-          <button 
-            onClick={() => setShowDescription(!showDescription)} 
-            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-all shadow-lg active:scale-90 ${
-              showDescription ? 'bg-primary text-black' : 'bg-surface-container-highest text-primary hover:bg-primary/20'
+          <button
+            type="button"
+            onClick={() => setShowDescription(!showDescription)}
+            aria-expanded={showDescription}
+            aria-label={t(showDescription ? 'exerciseEditor.hideDescription' : 'exerciseEditor.showDescription')}
+            className={`liquid-glass-context-button relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-[color,transform] active:scale-90 ${
+              showDescription ? 'liquid-glass-context-button--active' : 'text-primary'
             }`}
           >
             <Info size={18} strokeWidth={2.5} />

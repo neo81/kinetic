@@ -1,7 +1,23 @@
 import { useEffect, useState } from 'react';
-import { ChevronRight, Edit2, LogOut, Ruler, User, Target, Check, AlertCircle, Loader, Sparkles } from 'lucide-react';
+import {
+  AlertCircle,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Database,
+  Dumbbell,
+  Edit2,
+  Loader,
+  LogOut,
+  Palette,
+  Ruler,
+  Sparkles,
+  Target,
+  User,
+  X,
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { useReducedMotion } from '../hooks/useReducedMotion';
 import { PageShell } from '../components/layout/PageShell';
 import { AvatarSection } from '../components/AvatarSection';
 import { AvatarUploadDialog } from '../components/AvatarUploadDialog';
@@ -37,6 +53,43 @@ type SettingsViewProps = {
 };
 
 type FeedbackState = 'idle' | 'saving' | 'success' | 'error';
+type ProfileSection = 'root' | 'training' | 'preferences' | 'data-account';
+type ProfileSubsection = Exclude<ProfileSection, 'root'>;
+
+const profileSectionTitleKeys: Record<ProfileSubsection, TranslationKey> = {
+  training: 'settings.menu.training',
+  preferences: 'settings.menu.preferences',
+  'data-account': 'settings.menu.data-account',
+};
+
+const ProfileMenuRow = ({
+  icon: Icon,
+  title,
+  description,
+  onClick,
+  divider = false,
+}: {
+  icon: LucideIcon;
+  title: string;
+  description: string;
+  onClick: () => void;
+  divider?: boolean;
+}) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className={`flex w-full items-center gap-4 px-4 py-4 text-left transition-colors hover:bg-surface-container-high ${divider ? 'border-t theme-hairline-border' : ''}`}
+  >
+    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface-container-highest text-on-surface">
+      <Icon size={20} strokeWidth={1.9} aria-hidden="true" />
+    </span>
+    <span className="min-w-0 flex-1">
+      <span className="block font-semibold text-on-surface">{title}</span>
+      <span className="mt-0.5 block text-xs leading-relaxed text-on-surface-variant">{description}</span>
+    </span>
+    <ChevronRight size={19} className="shrink-0 text-outline" aria-hidden="true" />
+  </button>
+);
 
 const fitnessLevels = ['Principiante', 'Intermedio', 'Avanzado', 'Competidor'];
 const goalsCache = new Map<string, UserGoals>();
@@ -62,7 +115,7 @@ export const SettingsView = ({
   onOpenReleaseNotes,
 }: SettingsViewProps) => {
   const { language, t } = useLanguage();
-  const prefersReducedMotion = useReducedMotion();
+  const [activeSection, setActiveSection] = useState<ProfileSection>('root');
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isEditingGoals, setIsEditingGoals] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -380,7 +433,6 @@ export const SettingsView = ({
   };
   const storedLevel = fitnessLevel || profile?.fitnessLevel || '';
   const displayLevel = levelLabels[storedLevel as keyof typeof levelLabels] || storedLevel || t('settings.noLevel');
-  const displayUnits = units.toUpperCase();
   const shouldShowProfileImage = Boolean(profile?.avatarUrl && !profileImageError);
   const initialHeightCm = profile?.heightCm ? String(profile.heightCm) : '';
   const initialBodyWeightKg = profile?.bodyWeightKg ? String(profile.bodyWeightKg) : '';
@@ -396,7 +448,16 @@ export const SettingsView = ({
     && editingGoals !== null
     && JSON.stringify(editingGoals) !== JSON.stringify(goals);
   const cancelEditing = () => {
-    if (isEditingProfile) setIsEditingProfile(false);
+    if (isEditingProfile) {
+      setFullName(profile?.fullName ?? '');
+      setUsername(profile?.username ?? '');
+      setBio(profile?.bio ?? '');
+      setFitnessLevel(profile?.fitnessLevel ?? '');
+      setHeightCm(profile?.heightCm ? String(profile.heightCm) : '');
+      setBodyWeightKg(profile?.bodyWeightKg ? String(profile.bodyWeightKg) : '');
+      setUsernameValidation(null);
+      setIsEditingProfile(false);
+    }
     if (isEditingGoals) {
       setIsEditingGoals(false);
       setEditingGoals(null);
@@ -412,12 +473,13 @@ export const SettingsView = ({
       contentClassName="pb-24"
     >
       {(isEditingProfile || isEditingGoals) && (
-        <div className="mb-4 flex justify-end">
+        <div className="mb-4 flex justify-start">
           <button
             type="button"
             onClick={cancelEditing}
-            className="text-[0.68rem] font-black uppercase tracking-[0.16em] text-on-surface-variant transition-colors hover:text-secondary"
+            className="flex items-center gap-2 rounded-full bg-surface-container-low px-3 py-2 text-[0.68rem] font-black uppercase tracking-[0.16em] text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-secondary"
           >
+            <X size={15} aria-hidden="true" />
             {t('common.cancel')}
           </button>
         </div>
@@ -734,10 +796,39 @@ export const SettingsView = ({
       )}
 
       {!isEditingProfile && !isEditingGoals && (
-        <section className="space-y-8 pb-8">
-          <div className="flex items-center gap-5">
+        <section className="space-y-6 pb-8">
+          {activeSection !== 'root' ? (
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setActiveSection('root')}
+                aria-label={t('settings.menu.backToProfile')}
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-container-low text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-on-surface"
+              >
+                <ChevronLeft size={20} aria-hidden="true" />
+              </button>
+              <div>
+                <p className="text-[9px] font-bold uppercase tracking-[0.22em] text-on-surface-variant">{t('settings.profile')}</p>
+                <h2 className="text-2xl font-bold text-on-surface">
+                  {t(profileSectionTitleKeys[activeSection])}
+                </h2>
+              </div>
+            </div>
+          ) : null}
+
+          {activeSection === 'root' ? (
+            <>
+          <div className="relative flex flex-col items-center text-center">
+            <button
+              type="button"
+              onClick={() => setIsEditingProfile(true)}
+              aria-label={t('settings.editProfile')}
+              className="liquid-glass-context-button absolute right-0 top-0 flex h-11 w-11 items-center justify-center rounded-full text-on-surface transition-[color,transform] hover:text-primary active:scale-95"
+            >
+              <Edit2 size={19} aria-hidden="true" />
+            </button>
             <div className="relative">
-              <div className="h-24 w-24 overflow-hidden rounded-full border border-on-surface-variant/20 bg-surface-container-low p-1">
+              <div className="h-28 w-28 overflow-hidden rounded-full border border-on-surface-variant/25 bg-surface-container-low p-1">
                 {shouldShowProfileImage ? (
                   <img
                     src={profile?.avatarUrl}
@@ -752,58 +843,52 @@ export const SettingsView = ({
                   </div>
                 )}
               </div>
-              <div className="absolute -bottom-1 -right-1 rounded-full bg-primary px-2 py-0.5 text-[10px] font-black uppercase text-black shadow-lg">
-                {displayUnits}
-              </div>
             </div>
 
-            <div className="space-y-1">
-              <h2 className="font-headline text-4xl font-black uppercase italic tracking-tight text-on-background sm:text-5xl">{displayName}</h2>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-secondary">•</span>
-                <span className="text-[0.72rem] font-medium uppercase tracking-[0.24em] text-on-surface-variant">{displayLevel}</span>
-              </div>
-              <p className="text-sm text-on-surface-variant">{userEmail ?? t('settings.noEmail')}</p>
+            <div className="mt-4 space-y-1">
+              <h2 className="text-3xl font-bold tracking-tight text-on-background sm:text-4xl">{displayName}</h2>
+              <p className="text-sm font-medium text-on-surface-variant">
+                {username.trim() ? `@${username.replace(/^@/, '')}` : userEmail ?? t('settings.noEmail')}
+              </p>
+              {username.trim() ? <p className="text-xs text-on-surface-variant/70">{userEmail ?? t('settings.noEmail')}</p> : null}
             </div>
+            <span className="mt-3 rounded-full bg-primary/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.15em] text-primary">
+              {displayLevel}
+            </span>
+            <p className="mt-4 max-w-sm text-sm leading-relaxed text-on-surface-variant">
+              {bio?.trim() ? bio : t('settings.noBio')}
+            </p>
           </div>
 
-          <div className="space-y-3">
-            <h3 className="px-1 text-[10px] font-black uppercase italic tracking-[0.4em] text-on-surface-variant/60">{t('settings.account')}</h3>
-            <button
-              onClick={() => setIsEditingProfile(true)}
-              className="flex w-full items-center justify-between rounded-[0.95rem] bg-surface-container-low px-4 py-4 text-left transition-colors hover:bg-surface-container-high"
-            >
-              <div className="flex items-center gap-4">
-                <User size={18} className="text-on-surface-variant" />
-                <span className="font-medium text-on-surface">{t('settings.editProfile')}</span>
-              </div>
-              <ChevronRight size={18} className="text-outline" />
-            </button>
+          <div className="overflow-hidden rounded-[1.25rem] bg-surface-container-low">
+            <ProfileMenuRow
+              icon={Dumbbell}
+              title={t('settings.menu.training')}
+              description={t('settings.menu.trainingDescription')}
+              onClick={() => setActiveSection('training')}
+            />
+            <ProfileMenuRow
+              icon={Palette}
+              title={t('settings.menu.preferences')}
+              description={t('settings.menu.preferencesDescription')}
+              onClick={() => setActiveSection('preferences')}
+              divider
+            />
+            <ProfileMenuRow
+              icon={Database}
+              title={t('settings.menu.data-account')}
+              description={t('settings.menu.dataAccountDescription')}
+              onClick={() => setActiveSection('data-account')}
+              divider
+            />
           </div>
+            </>
+          ) : null}
 
+          {activeSection === 'training' ? (
+            <>
           <div className="space-y-3">
-            <h3 className="px-1 text-[10px] font-black uppercase italic tracking-[0.4em] text-on-surface-variant/60">{t('settings.trainingGoals')}</h3>
             <div className="space-y-3" aria-busy={isLoadingGoals}>
-              <div className="rounded-[0.95rem] bg-surface-container-low px-4 py-4 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-on-surface-variant">{t('settings.volume')}</p>
-                    <p className="mt-1 text-2xl font-black text-primary">{goals ? `${Math.round(goals.weeklyVolumeTarget / 1000)}k kg` : '--'}</p>
-                  </div>
-                </div>
-                <div className="border-t theme-hairline-border pt-4 flex items-center justify-between">
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-on-surface-variant">{t('settings.exercises')}</p>
-                    <p className="mt-1 text-2xl font-black text-secondary">{goals?.weeklyExercisesTarget ?? '--'}</p>
-                  </div>
-                </div>
-                <div className="border-t theme-hairline-border pt-4 flex items-center justify-between">
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-on-surface-variant">{t('settings.time')}</p>
-                    <p className="mt-1 text-2xl font-black text-primary">{goals ? `${goals.weeklyDurationTarget}m` : '--'}</p>
-                  </div>
-                </div>
-              </div>
               <button
                 onClick={handleGoalsEdit}
                 disabled={!goals}
@@ -815,6 +900,20 @@ export const SettingsView = ({
                 </div>
                 <ChevronRight size={18} className="text-outline" />
               </button>
+              <div className="grid grid-cols-3 gap-2 rounded-[0.95rem] bg-surface-container-low p-3">
+                <div className="min-w-0 rounded-xl bg-surface-container px-3 py-3">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-on-surface-variant">{t('settings.volume')}</p>
+                    <p className="mt-1 truncate text-xl font-black text-primary">{goals ? `${Math.round(goals.weeklyVolumeTarget / 1000)}k kg` : '--'}</p>
+                </div>
+                <div className="min-w-0 rounded-xl bg-surface-container px-3 py-3">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-on-surface-variant">{t('settings.exercises')}</p>
+                    <p className="mt-1 text-xl font-black text-secondary">{goals?.weeklyExercisesTarget ?? '--'}</p>
+                </div>
+                <div className="min-w-0 rounded-xl bg-surface-container px-3 py-3">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-on-surface-variant">{t('settings.time')}</p>
+                    <p className="mt-1 text-xl font-black text-primary">{goals ? `${goals.weeklyDurationTarget}m` : '--'}</p>
+                </div>
+              </div>
               {isLoadingGoals ? (
                 <span className="sr-only" role="status" aria-live="polite">{t('settings.loadingGoals')}</span>
               ) : null}
@@ -822,7 +921,6 @@ export const SettingsView = ({
           </div>
 
           <div className="space-y-3">
-            <h3 className="px-1 text-[10px] font-black uppercase italic tracking-[0.4em] text-on-surface-variant/60">{t('settings.preferences')}</h3>
             <div className="rounded-[0.95rem] bg-surface-container-low px-4 py-4">
               <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
@@ -847,20 +945,12 @@ export const SettingsView = ({
                 </div>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-[0.95rem] bg-surface-container-low px-4 py-4">
-                <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-on-surface-variant">{t('settings.height')}</p>
-                <p className="mt-1 text-2xl font-black text-on-surface">{profile?.heightCm ? `${profile.heightCm} cm` : '--'}</p>
-              </div>
-              <div className="rounded-[0.95rem] bg-surface-container-low px-4 py-4">
-                <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-on-surface-variant">{t('settings.weight')}</p>
-                <p className="mt-1 text-2xl font-black text-on-surface">{profile?.bodyWeightKg ? `${profile.bodyWeightKg} kg` : '--'}</p>
-              </div>
-            </div>
           </div>
+            </>
+          ) : null}
 
+          {activeSection === 'preferences' ? (
           <div className="space-y-3">
-            <h3 className="px-1 text-[10px] font-black uppercase italic tracking-[0.4em] text-on-surface-variant/60">{t('settings.preferences')}</h3>
             <div className="space-y-3">
               <div className="rounded-[0.95rem] bg-surface-container-low px-4 py-4">
                 <div className="flex items-center justify-between gap-4">
@@ -943,20 +1033,15 @@ export const SettingsView = ({
               </button>
             </div>
           </div>
+          ) : null}
 
+          {activeSection === 'data-account' ? (
+            <>
           <div className="space-y-3">
-            <h3 className="px-1 text-[10px] font-black uppercase italic tracking-[0.4em] text-on-surface-variant/60">{t('settings.activity')}</h3>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="relative overflow-hidden rounded-[1rem] border-l-2 border-primary bg-surface-container-low p-5">
-                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-on-surface-variant">{t('nav.history')}</p>
-                <p className="mt-2 text-2xl font-black text-on-surface">0</p>
-                <p className="text-[11px] text-on-surface-variant">{t('settings.workouts')}</p>
-              </div>
-              <div className="relative overflow-hidden rounded-[1rem] border-l-2 border-secondary bg-surface-container-low p-5">
-                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-on-surface-variant">{t('settings.records')}</p>
-                <p className="mt-2 text-2xl font-black text-on-surface">0</p>
-                <p className="text-[11px] text-on-surface-variant">{t('settings.registeredPrs')}</p>
-              </div>
+            <h3 className="px-1 text-[10px] font-black uppercase italic tracking-[0.4em] text-on-surface-variant/60">{t('settings.account')}</h3>
+            <div className="rounded-[0.95rem] bg-surface-container-low px-4 py-4">
+              <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-on-surface-variant">{t('settings.email')}</p>
+              <p className="mt-1 break-all text-sm font-medium text-on-surface">{userEmail ?? t('settings.noEmail')}</p>
             </div>
           </div>
 
@@ -964,13 +1049,6 @@ export const SettingsView = ({
             <h3 className="px-1 text-[10px] font-black uppercase italic tracking-[0.4em] text-on-surface-variant/60">{t('settings.sync')}</h3>
             <div className="rounded-[0.95rem] bg-surface-container-low px-4 py-4">
               <SyncDiagnosticsPanel />
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <h3 className="px-1 text-[10px] font-black uppercase italic tracking-[0.4em] text-on-surface-variant/60">{t('settings.profile')}</h3>
-            <div className="rounded-[0.95rem] bg-surface-container-low px-4 py-4 text-sm text-on-surface-variant">
-              {bio?.trim() ? bio : t('settings.noBio')}
             </div>
           </div>
 
@@ -988,6 +1066,8 @@ export const SettingsView = ({
             </button>
             <p className="mt-6 text-center text-[10px] font-medium uppercase tracking-[0.4em] text-on-surface-variant/40">Kinetic Engine</p>
           </div>
+            </>
+          ) : null}
         </section>
       )}
 

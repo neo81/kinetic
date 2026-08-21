@@ -166,20 +166,20 @@ export default function AppRoot() {
         <div className="fixed top-4 left-0 right-0 z-[100] px-4 pointer-events-none">
            <button 
              onClick={handleReturnToSession}
-             className="mx-auto flex w-full max-w-sm items-center justify-between gap-3 rounded-full border border-primary/25 bg-primary px-4 py-2 text-black pointer-events-auto shadow-[0_8px_30px_color-mix(in_srgb,var(--color-primary)_30%,transparent)] transition-transform hover:scale-[1.02] active:scale-[0.98]"
+             className="liquid-glass-active-session pointer-events-auto mx-auto flex w-full max-w-sm items-center justify-between gap-3 rounded-full px-4 py-2 text-on-surface transition-transform hover:scale-[1.02] active:scale-[0.98]"
            >
               <div className="flex min-w-0 items-center gap-3">
-                <div className="theme-inverted-surface flex h-7 w-7 items-center justify-center rounded-full text-primary animate-pulse">
+                <div className="liquid-glass-active-session__indicator flex h-7 w-7 items-center justify-center rounded-full text-primary animate-pulse">
                   <Play size={12} fill="currentColor" className="ml-0.5" />
                 </div>
                 <div className="min-w-0 text-left">
-                  <p className="mb-0.5 text-[9px] font-black uppercase leading-none tracking-widest text-black/70">{t('session.activeWorkout')}</p>
+                  <p className="mb-0.5 text-[9px] font-black uppercase leading-none tracking-widest text-on-surface-variant">{t('session.activeWorkout')}</p>
                   <p className="truncate text-xs font-bold leading-tight">{app.activeSession.routineName}</p>
                 </div>
               </div>
               <SessionElapsedPill
                 startTimeMs={app.activeSession.startTimeMs}
-                tone="inverted"
+                tone="embedded"
               />
            </button>
         </div>

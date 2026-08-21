@@ -37,19 +37,19 @@ const SessionTimerControls = ({
   onOpenStopwatch: () => void;
   t: Translator;
 }) => (
-  <div className="theme-hairline-border flex h-11 shrink-0 items-center gap-1 rounded-full border bg-surface-container-high/95 p-1 shadow-[0_8px_24px_color-mix(in_srgb,var(--strong-foreground)_10%,transparent)] backdrop-blur-xl">
+  <div className="liquid-glass-session-controls flex h-11 shrink-0 items-center gap-1 rounded-full p-1">
     {sessionStartTimeMs !== undefined ? (
       <SessionElapsedPill
         startTimeMs={sessionStartTimeMs}
         tone="embedded"
         compact
-        className="px-1.5 min-[390px]:px-2"
+        className="liquid-glass-session-controls__elapsed px-1.5 min-[390px]:px-2"
       />
     ) : null}
     <button
       type="button"
       onClick={onOpenRestTimer}
-      className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary/10 text-secondary transition-colors hover:bg-secondary/20 active:scale-95"
+      className="liquid-glass-session-controls__button liquid-glass-session-controls__button--rest flex h-9 w-9 items-center justify-center rounded-full text-secondary transition-transform active:scale-95"
       title={t('session.restTimer')}
       aria-label={t('session.restTimer')}
     >
@@ -58,7 +58,7 @@ const SessionTimerControls = ({
     <button
       type="button"
       onClick={onOpenStopwatch}
-      className="theme-interactive-hover flex h-9 w-9 items-center justify-center rounded-full bg-surface-container-highest text-on-surface-variant transition-colors hover:text-on-surface active:scale-95"
+      className="liquid-glass-session-controls__button flex h-9 w-9 items-center justify-center rounded-full text-on-surface-variant transition-[color,transform] hover:text-on-surface active:scale-95"
       title={t('session.temporaryStopwatch')}
       aria-label={t('session.temporaryStopwatch')}
     >
@@ -245,11 +245,13 @@ const triggerCompletionFeedback = async () => {
 const PopupShell = ({
   title,
   accent,
+  closeLabel,
   onClose,
   children,
 }: {
   title: string;
   accent: 'primary' | 'secondary';
+  closeLabel: string;
   onClose: () => void;
   children: ReactNode;
 }) => (
@@ -264,8 +266,10 @@ const PopupShell = ({
             <div className={`mt-3 h-1 w-14 rounded-full ${accent === 'primary' ? 'bg-primary' : 'bg-secondary'}`}></div>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-surface-container-high text-on-surface-variant transition-colors hover:text-on-surface"
+            aria-label={closeLabel}
+            className="liquid-glass-context-button relative flex h-10 w-10 items-center justify-center rounded-full text-on-surface-variant transition-[color,transform] hover:text-on-surface active:scale-95"
           >
             <X size={18} strokeWidth={2.4} />
           </button>
@@ -508,7 +512,7 @@ const RestTimerModal = ({
       {isFlashing && (
         <div className="pointer-events-none fixed inset-0 z-[100] animate-pulse bg-primary/80 backdrop-brightness-150" />
       )}
-      <PopupShell title={t('session.restTimer')} accent="primary" onClose={closeAndReset}>
+      <PopupShell title={t('session.restTimer')} accent="primary" closeLabel={t('common.close')} onClose={closeAndReset}>
       <div className="text-center">
         <div className="theme-primary-text font-headline text-[4.5rem] font-semibold leading-none tracking-[0.02em]">
           {formatCountdown(remainingSeconds)}
@@ -647,7 +651,7 @@ const SessionStopwatchModal = ({
   }
 
   return (
-    <PopupShell title={t('session.stopwatch')} accent="secondary" onClose={onClose}>
+    <PopupShell title={t('session.stopwatch')} accent="secondary" closeLabel={t('common.close')} onClose={onClose}>
       <div className="text-center">
 <div className="theme-primary-text font-headline text-[4.2rem] font-semibold leading-none tracking-[0.02em] sm:text-[4.8rem]">
           {formatStopwatch(elapsedMs)}
@@ -738,6 +742,7 @@ const SetCaptureOverlay = ({
     <PopupShell
       title={`${isEditing ? t('session.editSet') : t('session.captureSet')} ${setNumber} - ${getExerciseDisplayName(exercise, language)}`}
       accent="primary"
+      closeLabel={t('common.close')}
       onClose={onClose}
     >
       <div className="mb-4 flex items-center justify-between">
@@ -1409,7 +1414,9 @@ export const RoutineDetailKineticView = ({
                     aria-label={t('session.routineActions')}
                     aria-expanded={isRoutineActionsOpen}
                     aria-haspopup="menu"
-                    className="theme-hairline-border theme-interactive-hover flex h-11 w-11 items-center justify-center rounded-full border bg-surface-container-high text-on-surface-variant transition-colors hover:text-on-surface active:scale-95"
+                    className={`theme-hairline-border flex h-11 w-11 items-center justify-center rounded-full border bg-surface-container-high text-on-surface-variant transition-[background-color,border-color,color,transform] hover:border-on-surface-variant/25 hover:bg-surface-container-highest hover:text-on-surface active:scale-95 ${
+                      isRoutineActionsOpen ? 'border-on-surface-variant/25 bg-surface-container-highest text-on-surface' : ''
+                    }`}
                   >
                     <MoreHorizontal size={19} strokeWidth={2.5} />
                   </button>

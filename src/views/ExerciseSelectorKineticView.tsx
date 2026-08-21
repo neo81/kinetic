@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Accessibility, Activity, Dumbbell, Search } from 'lucide-react';
+import { Accessibility, Activity, Dumbbell, Search, X } from 'lucide-react';
 import { PageShell } from '../components/layout/PageShell';
 import { supabase, isSupabaseConfigured } from '../lib/supabase/client';
 import { fallbackExerciseLibrary } from '../app/initialData';
@@ -300,14 +300,26 @@ export const ExerciseSelectorKineticView = ({
       </section>
 
       <section className="panel-surface rounded-[1rem] p-4">
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-on-surface-variant/60" />
+        <div className="liquid-glass-search group flex h-14 items-center rounded-full">
+          <div className="liquid-glass-search__icon pointer-events-none absolute inset-y-0 left-5 flex items-center text-primary transition-transform group-focus-within:scale-110">
+            <Search size={20} strokeWidth={3} />
+          </div>
           <input
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
             placeholder={t('engine.searchPlaceholder')}
-            className="h-12 w-full rounded-full border theme-hairline-border bg-surface-container-high px-11 text-sm text-on-surface outline-none transition-all focus:border-primary/35 focus:ring-2 focus:ring-primary/12"
+            className="liquid-glass-search__input h-full w-full bg-transparent pl-14 pr-12 text-sm font-semibold tracking-[0.02em] text-on-surface outline-none placeholder:font-medium placeholder:text-on-surface-variant/45"
           />
+          {searchQuery && (
+            <button
+              type="button"
+              aria-label={t('common.close')}
+              className="liquid-glass-search__clear absolute inset-y-0 right-5 flex items-center text-on-surface-variant/55 transition-colors hover:text-on-surface"
+              onClick={() => setSearchQuery('')}
+            >
+              <X size={16} strokeWidth={2.5} />
+            </button>
+          )}
         </div>
         {searchQuery.trim().length >= 2 && (
           <div className="mt-4 space-y-2">

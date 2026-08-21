@@ -860,7 +860,8 @@ export const ExerciseListView = ({
                 <button
                   type="button"
                   onClick={() => setPreviewExercise(null)}
-                  className="theme-muted-surface flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:text-on-surface"
+                  aria-label={t('common.close')}
+                  className="liquid-glass-context-button relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-on-surface-variant transition-[color,transform] hover:text-on-surface active:scale-95"
                 >
                   <X size={16} strokeWidth={2.5} />
                 </button>
@@ -945,20 +946,22 @@ export const ExerciseListView = ({
         </AnimatePresence>
 
         {/* Search */}
-        <div className="group relative">
-          <div className="pointer-events-none absolute inset-y-0 left-6 flex items-center text-primary transition-transform group-focus-within:scale-110">
+        <div className="liquid-glass-search group flex h-14 items-center rounded-full">
+          <div className="liquid-glass-search__icon pointer-events-none absolute inset-y-0 left-5 flex items-center text-primary transition-transform group-focus-within:scale-110">
             <Search size={20} strokeWidth={3} />
           </div>
           <input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="theme-hairline-border theme-muted-surface w-full rounded-[2.5rem] border py-5 pl-14 pr-6 font-headline text-sm font-black uppercase tracking-[0.2em] text-on-surface shadow-2xl backdrop-blur-xl transition-all placeholder:text-on-surface-variant/20 focus:ring-2 focus:ring-primary/30"
+            className="liquid-glass-search__input h-full w-full bg-transparent pl-14 pr-12 text-sm font-semibold tracking-[0.02em] text-on-surface outline-none placeholder:font-medium placeholder:text-on-surface-variant/45"
             placeholder={t('engine.searchMovement')}
             type="text"
           />
           {searchQuery && (
             <button
-              className="absolute inset-y-0 right-5 flex items-center text-on-surface-variant/40 hover:text-on-surface-variant"
+              type="button"
+              aria-label={t('common.close')}
+              className="liquid-glass-search__clear absolute inset-y-0 right-5 flex items-center text-on-surface-variant/55 transition-colors hover:text-on-surface"
               onClick={() => setSearchQuery('')}
             >
               <X size={16} strokeWidth={2.5} />

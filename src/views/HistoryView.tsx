@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { ChevronDown, History, RotateCcw } from 'lucide-react';
-import { motion } from 'motion/react';
 import { supabase } from '../lib/supabase/client';
 import { PageShell } from '../components/layout/PageShell';
 import { routinesRepository } from '../features/routines/repository';
@@ -138,21 +137,13 @@ export const HistoryView = ({ setView, profile }: { setView: (v: View) => void; 
       )}
 
       {!loading && !hasError && sessions.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.3 }}
-          className="space-y-3"
-        >
-          {sessions.map((session, idx) => {
+        <div className="space-y-3">
+          {sessions.map((session) => {
             const isExpanded = expandedSessionId === session.id;
 
             return (
-              <motion.div
+              <div
                 key={session.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.05, duration: 0.3 }}
                 className="overflow-hidden rounded-[1.2rem] border theme-hairline-border bg-surface-container-high text-left transition-all hover:border-outline hover:bg-surface-container-high/80"
               >
                 <button
@@ -257,10 +248,10 @@ export const HistoryView = ({ setView, profile }: { setView: (v: View) => void; 
                     )}
                   </div>
                 )}
-              </motion.div>
+              </div>
             );
           })}
-        </motion.div>
+        </div>
       )}
     </PageShell>
   );

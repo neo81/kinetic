@@ -43,7 +43,7 @@ export const ReleaseNotesDialog = ({
           <button
             type="button"
             onClick={onClose}
-            className="theme-muted-surface absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:text-on-surface"
+            className="liquid-glass-context-button absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full text-on-surface-variant transition-[color,transform] hover:text-on-surface active:scale-95"
             aria-label={t('release.close')}
           >
             <X size={16} strokeWidth={2.5} />
