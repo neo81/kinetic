@@ -89,8 +89,6 @@ type AppRouterProps = {
   onCaptureSetPerformance: (exerciseId: string, setNumber: number, reps: number | null, weight: number | null, durationMin: number | null, durationSec: number | null, totalSets?: number) => void;
   onClearCapturedSetPerformance: (exerciseId: string, setNumber: number, totalSets?: number) => void;
   onSwitchSessionDay: (dayId: string) => void;
-  onCreateExerciseGroup: (dayId: string, exerciseIds: string[]) => void;
-  onRemoveExerciseGroup: (dayId: string, groupId: string) => void;
   themePreference: ThemePreference;
   resolvedTheme: ResolvedTheme;
   onThemeChange: (theme: ThemePreference) => Promise<void>;
@@ -141,8 +139,6 @@ export const AppRouter = ({
   onCaptureSetPerformance,
   onClearCapturedSetPerformance,
   onSwitchSessionDay,
-  onCreateExerciseGroup,
-  onRemoveExerciseGroup,
   themePreference,
   resolvedTheme,
   onThemeChange,
@@ -265,8 +261,6 @@ export const AppRouter = ({
             onCaptureSetPerformance={onCaptureSetPerformance}
             onClearCapturedSetPerformance={onClearCapturedSetPerformance}
             onSwitchSessionDay={onSwitchSessionDay}
-            onCreateExerciseGroup={onCreateExerciseGroup}
-            onRemoveExerciseGroup={onRemoveExerciseGroup}
             onDeleteRoutine={onDeleteRoutine}
             onDeleteRoutineDay={onDeleteRoutineDay}
             onDeleteExercise={onDeleteExercise}

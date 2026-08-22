@@ -115,7 +115,6 @@ export interface ActiveSession {
   completedExercises: string[];
   skippedExercises?: string[];
   completedDayIds: string[];
-  exerciseGroupsByDay: Record<string, SessionExerciseGroup[]>;
   performanceData: {
     [exerciseId: string]: {
       [setNumber: number]: {
@@ -128,11 +127,6 @@ export interface ActiveSession {
       };
     };
   };
-}
-
-export interface SessionExerciseGroup {
-  id: string;
-  exerciseIds: string[];
 }
 
 export interface SessionExportDayPayload {

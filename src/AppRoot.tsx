@@ -232,8 +232,6 @@ export default function AppRoot() {
         onCaptureSetPerformance={app.captureSetPerformance}
         onClearCapturedSetPerformance={app.clearCapturedSetPerformance}
         onSwitchSessionDay={app.switchSessionDay}
-        onCreateExerciseGroup={app.createExerciseGroup}
-        onRemoveExerciseGroup={app.removeExerciseGroup}
         themePreference={app.themePreference}
         resolvedTheme={app.resolvedTheme}
         onThemeChange={app.handleThemeChange}

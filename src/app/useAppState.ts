@@ -66,12 +66,13 @@ const loadPersistedActiveSession = (): ActiveSession | null => {
     const raw = window.localStorage.getItem(ACTIVE_SESSION_STORAGE_KEY);
     if (!raw) return null;
 
-    const parsed = JSON.parse(raw) as ActiveSession;
+    const parsed = JSON.parse(raw) as ActiveSession & { exerciseGroupsByDay?: unknown };
     if (!parsed?.id || !parsed.routineId || !parsed.activeRoutineDayId || !Array.isArray(parsed.routineDayIds)) {
       return null;
     }
-    if (!parsed.exerciseGroupsByDay || typeof parsed.exerciseGroupsByDay !== 'object') {
-      parsed.exerciseGroupsByDay = {};
+    if ('exerciseGroupsByDay' in parsed) {
+      delete parsed.exerciseGroupsByDay;
+      window.localStorage.setItem(ACTIVE_SESSION_STORAGE_KEY, JSON.stringify(parsed));
     }
     if (!Array.isArray(parsed.skippedExercises)) {
       parsed.skippedExercises = [];
@@ -596,7 +597,6 @@ export const useAppState = () => {
         completedExercises: [],
         skippedExercises: [],
         completedDayIds: [],
-        exerciseGroupsByDay: {},
         performanceData: {}
       };
       setActiveSession(nextSession);
@@ -739,57 +739,6 @@ export const useAppState = () => {
           ? Array.from(new Set([...prev.completedExercises, exerciseId]))
           : prev.completedExercises.filter((id) => id !== exerciseId),
         performanceData: nextPerformanceData,
-      };
-
-      persistActiveSession(nextSession);
-      return nextSession;
-    });
-  }, []);
-
-  const createExerciseGroup = useCallback((dayId: string, exerciseIds: string[]) => {
-    setActiveSession((prev) => {
-      if (!prev || exerciseIds.length < 2) return prev;
-
-      const sanitizedIds = Array.from(new Set(exerciseIds));
-      const existingGroups = prev.exerciseGroupsByDay[dayId] || [];
-      const availableIds = sanitizedIds.filter((exerciseId) =>
-        !existingGroups.some((group) => group.exerciseIds.includes(exerciseId))
-      );
-
-      if (availableIds.length < 2) return prev;
-
-      const nextGroup = {
-        id: `${dayId}-${Date.now()}`,
-        exerciseIds: availableIds,
-      };
-
-      const nextSession = {
-        ...prev,
-        exerciseGroupsByDay: {
-          ...prev.exerciseGroupsByDay,
-          [dayId]: [...existingGroups, nextGroup],
-        },
-      };
-
-      persistActiveSession(nextSession);
-      return nextSession;
-    });
-  }, []);
-
-  const removeExerciseGroup = useCallback((dayId: string, groupId: string) => {
-    setActiveSession((prev) => {
-      if (!prev) return prev;
-
-      const existingGroups = prev.exerciseGroupsByDay[dayId] || [];
-      const nextGroups = existingGroups.filter((group) => group.id !== groupId);
-      if (nextGroups.length === existingGroups.length) return prev;
-
-      const nextSession = {
-        ...prev,
-        exerciseGroupsByDay: {
-          ...prev.exerciseGroupsByDay,
-          [dayId]: nextGroups,
-        },
       };
 
       persistActiveSession(nextSession);
@@ -1236,8 +1185,6 @@ export const useAppState = () => {
     captureSetPerformance,
     clearCapturedSetPerformance,
     switchSessionDay,
-    createExerciseGroup,
-    removeExerciseGroup,
     isAppLoading,
     themePreference,
     resolvedTheme,

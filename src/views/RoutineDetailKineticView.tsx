@@ -17,7 +17,7 @@ import {
 import { RoutineSyncPendingBadge } from '../components/RoutineSyncPendingBadge';
 import { PageShell } from '../components/layout/PageShell';
 import { buildSessionDayIds } from '../features/routines/sessionDays';
-import type { ActiveSession, Exercise, Routine, View, RoutineDayExercise, SessionExerciseGroup, UserProfile } from '../types';
+import type { ActiveSession, Exercise, Routine, View, RoutineDayExercise, UserProfile } from '../types';
 import { useLanguage } from '../i18n/LanguageContext';
 import type { TranslationKey } from '../i18n/translations';
 import { getExerciseDisplayName } from '../i18n/exerciseLocalization';
@@ -107,12 +107,6 @@ const isExerciseDoneForSession = (
   dayExercise: RoutineDayExercise,
 ) => isExerciseSkipped(activeSession, dayExercise.id) || isExerciseFullyCompleted(activeSession, dayExercise);
 
-const getGroupLabel = (exerciseCount: number, t: Translator) => {
-  if (exerciseCount === 2) return t('session.superset');
-  if (exerciseCount === 3) return t('session.triset');
-  return t('session.circuit');
-};
-
 type CapturedSetPerformance = ActiveSession['performanceData'][string][number];
 
 const joinSetValues = (values: Array<string | null>) => values.filter((value): value is string => !!value).join(' · ');
@@ -151,10 +145,6 @@ const getCapturedSetDisplayValue = (exercise: Exercise, performance: CapturedSet
       : null;
   return joinSetValues([reps, load]) || t('session.noDataPlural');
 };
-
-type DayRenderItem =
-  | { type: 'single'; exercise: RoutineDayExercise }
-  | { type: 'group'; group: SessionExerciseGroup; exercises: RoutineDayExercise[] };
 
 let alertAudioContext: AudioContext | null = null;
 
@@ -257,8 +247,6 @@ const PopupShell = ({
 }) => (
   <div className="theme-overlay fixed inset-0 z-[70] flex items-center justify-center px-4 backdrop-blur-sm">
     <div className="theme-elevated-surface relative max-h-[calc(100dvh-2rem)] w-full max-w-[22rem] overflow-y-auto rounded-[1.6rem]">
-      <div className={`absolute left-0 top-0 h-1 w-16 ${accent === 'primary' ? 'bg-primary' : 'bg-secondary'}`}></div>
-      <div className={`absolute bottom-0 right-0 h-1 w-16 ${accent === 'primary' ? 'bg-primary' : 'bg-secondary'}`}></div>
       <div className="p-6">
         <div className="mb-6 flex items-start justify-between gap-4">
           <div>
@@ -873,7 +861,6 @@ const ConfirmDialog = ({
   return (
     <div className="theme-overlay fixed inset-0 z-[100] flex items-center justify-center px-6 backdrop-blur-md">
       <div className="theme-elevated-surface relative w-full max-w-sm rounded-[1.8rem] p-8">
-        <div className="absolute left-0 top-0 h-1.5 w-20 bg-secondary"></div>
         <h3 className="font-headline text-[1.8rem] font-bold uppercase leading-tight tracking-tight text-on-surface">
           {title}
         </h3>
@@ -930,8 +917,6 @@ export const RoutineDetailKineticView = ({
   onCaptureSetPerformance,
   onClearCapturedSetPerformance,
   onSwitchSessionDay,
-  onCreateExerciseGroup,
-  onRemoveExerciseGroup,
 }: {
   setView: (v: View) => void;
   routine: Routine | null;
@@ -954,8 +939,6 @@ export const RoutineDetailKineticView = ({
   onCaptureSetPerformance: (exerciseId: string, setNumber: number, reps: number | null, weight: number | null, durationMin: number | null, durationSec: number | null, totalSets?: number) => void;
   onClearCapturedSetPerformance: (exerciseId: string, setNumber: number, totalSets?: number) => void;
   onSwitchSessionDay: (dayId: string) => void;
-  onCreateExerciseGroup: (dayId: string, exerciseIds: string[]) => void;
-  onRemoveExerciseGroup: (dayId: string, groupId: string) => void;
 }) => {
   const { language, t } = useLanguage();
   const [isRestTimerOpen, setIsRestTimerOpen] = useState(false);
@@ -971,8 +954,6 @@ export const RoutineDetailKineticView = ({
   const [confirmCancelSession, setConfirmCancelSession] = useState(false);
   const [isRoutineActionsOpen, setIsRoutineActionsOpen] = useState(false);
   const [isEndingSession, setIsEndingSession] = useState(false);
-  const [isGroupingMode, setIsGroupingMode] = useState(false);
-  const [selectedGroupExerciseIds, setSelectedGroupExerciseIds] = useState<string[]>([]);
   const lastOpenedSessionDayRef = useRef<string | null>(null);
   const daySectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
@@ -1028,10 +1009,6 @@ export const RoutineDetailKineticView = ({
 
     return () => window.clearInterval(timer);
   }, [isSessionTimerRunning]);
-
-  useEffect(() => {
-    resetGroupingMode();
-  }, [openDayId, activeSession?.activeRoutineDayId]);
 
   const handleSetCaptureClose = () => {
     setSetCapturePending(null);
@@ -1095,25 +1072,6 @@ export const RoutineDetailKineticView = ({
     });
   };
 
-  const toggleExerciseGroupSelection = (exerciseId: string) => {
-    setSelectedGroupExerciseIds((current) =>
-      current.includes(exerciseId)
-        ? current.filter((id) => id !== exerciseId)
-        : [...current, exerciseId]
-    );
-  };
-
-  const resetGroupingMode = () => {
-    setIsGroupingMode(false);
-    setSelectedGroupExerciseIds([]);
-  };
-
-  const handleCreateGroup = (dayId: string) => {
-    if (selectedGroupExerciseIds.length < 2) return;
-    onCreateExerciseGroup(dayId, selectedGroupExerciseIds);
-    resetGroupingMode();
-  };
-
   if (!routine) {
     return (
       <>
@@ -1168,75 +1126,17 @@ export const RoutineDetailKineticView = ({
     return `${firstSet.weight || 0} kg`;
   };
 
-  const getDayExerciseGroups = (dayId: string) => activeSession?.exerciseGroupsByDay[dayId] || [];
   const selectedStartDay = routine.dayEntries?.find((day) => day.id === openDayId) ?? null;
   const selectedStartWeekdayId = selectedStartDay?.dayType === 'weekday' ? selectedStartDay.id : null;
-
-  const buildDayRenderItems = (dayExercises: RoutineDayExercise[], groups: SessionExerciseGroup[]): DayRenderItem[] => {
-    const groupByExerciseId = new Map<string, SessionExerciseGroup>();
-
-    groups.forEach((group) => {
-      group.exerciseIds.forEach((exerciseId) => {
-        groupByExerciseId.set(exerciseId, group);
-      });
-    });
-
-    const renderedGroups = new Set<string>();
-
-    const items: DayRenderItem[] = [];
-
-    dayExercises.forEach((exercise) => {
-      const group = groupByExerciseId.get(exercise.id);
-      if (!group) {
-        items.push({ type: 'single', exercise });
-        return;
-      }
-
-      if (renderedGroups.has(group.id)) {
-        return;
-      }
-
-      renderedGroups.add(group.id);
-      const groupedExercises = dayExercises.filter((dayExercise) => group.exerciseIds.includes(dayExercise.id));
-      if (groupedExercises.length > 1) {
-        items.push({ type: 'group', group, exercises: groupedExercises });
-        return;
-      }
-
-      items.push({ type: 'single', exercise });
-    });
-
-    return items;
-  };
-
-  const renderExerciseCard = (day: NonNullable<Routine['dayEntries']>[number], dayEx: RoutineDayExercise, index: number, totalCount: number, grouped = false) => {
+  const renderExerciseCard = (day: NonNullable<Routine['dayEntries']>[number], dayEx: RoutineDayExercise, index: number, totalCount: number) => {
     const isSkipped = activeSession?.routineId === routine.id && isExerciseSkipped(activeSession, dayEx.id);
     const isCompleted = activeSession?.routineId === routine.id && isExerciseDoneForSession(activeSession, dayEx);
     const completedSetCount = getExerciseCompletedSetCount(activeSession, dayEx.id);
-    const groupSelectionEnabled = isGroupingMode && activeSession?.routineId === routine.id;
-    const isSelectedForGroup = selectedGroupExerciseIds.includes(dayEx.id);
-    const isAlreadyGrouped = getDayExerciseGroups(day.id).some((group) => group.exerciseIds.includes(dayEx.id));
 
     return (
       <div key={dayEx.id || dayEx.exercise.name} className={`transition-all duration-300 ${isCompleted ? 'opacity-60 scale-[0.99]' : 'opacity-100 scale-100'}`}>
         <div className="mb-2 flex items-start justify-between gap-3">
           <div className="flex min-w-0 flex-1 items-start gap-3">
-            {groupSelectionEnabled && (
-              <button
-                onClick={() => toggleExerciseGroupSelection(dayEx.id)}
-                disabled={isAlreadyGrouped}
-                className={`mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-bold transition-colors ${
-                  isAlreadyGrouped
-                                ? 'theme-hairline-border cursor-not-allowed bg-surface-container-high text-on-surface-variant/35'
-                    : isSelectedForGroup
-                    ? 'border-primary bg-primary text-black'
-                                : 'theme-hairline-border theme-input-surface text-on-surface-variant hover:border-primary/45'
-                }`}
-                title={isAlreadyGrouped ? t('session.alreadyGrouped') : isSelectedForGroup ? t('session.removeSelection') : t('session.selectToGroup')}
-              >
-                {isSelectedForGroup ? <Check size={14} strokeWidth={3} /> : null}
-              </button>
-            )}
             <div className="min-w-0 flex-1">
               <h4 className={`font-sans text-[1.15rem] font-semibold leading-tight text-on-surface ${isCompleted ? 'line-through' : ''}`}>{getExerciseDisplayName(dayEx.exercise, language)}</h4>
               <p className="mt-0.5 text-[9px] font-bold uppercase tracking-widest text-on-surface-variant/60">{dayEx.exercise.muscleGroup || dayEx.exercise.muscle}</p>
@@ -1364,7 +1264,7 @@ export const RoutineDetailKineticView = ({
           </div>
         )}
 
-                        {!grouped && index < totalCount - 1 && <div className="theme-divider mt-4 h-px"></div>}
+                        {index < totalCount - 1 && <div className="theme-divider mt-4 h-px"></div>}
       </div>
     );
   };
@@ -1561,92 +1461,10 @@ export const RoutineDetailKineticView = ({
 
                 {isOpen && (
                   <div className="space-y-6 px-4 pb-4 sm:px-5 sm:pb-5">
-                    {activeSession?.routineId === routine.id && (
-                      <div className="theme-hairline-border rounded-[1rem] border bg-surface-container-low p-3">
-                        <div className="flex flex-wrap items-center justify-between gap-3">
-                          <div>
-                            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">{t('session.dayBlocks')}</p>
-                            <p className="mt-1 text-sm text-on-surface-variant">
-                              {t('session.groupWithin')} {day.dayType === 'core' ? 'CORE' : day.title}.
-                            </p>
-                          </div>
-                          {!isGroupingMode ? (
-                            <button
-                              onClick={() => {
-                                setIsGroupingMode(true);
-                                setSelectedGroupExerciseIds([]);
-                              }}
-                              className="rounded-full border border-primary/30 bg-primary/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-primary transition-colors hover:bg-primary/15"
-                            >
-                              {t('session.groupExercises')}
-                            </button>
-                          ) : (
-                            <div className="flex flex-wrap gap-2">
-                              <button
-                                onClick={resetGroupingMode}
-                                className="theme-hairline-border rounded-full border px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-on-surface-variant transition-colors hover:text-on-surface"
-                              >
-                                {t('common.cancel')}
-                              </button>
-                              <button
-                                onClick={() => handleCreateGroup(day.id)}
-                                disabled={selectedGroupExerciseIds.length < 2}
-                                className={`rounded-full px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] transition-colors ${
-                                  selectedGroupExerciseIds.length >= 2
-                                    ? 'bg-primary text-black'
-                                    : 'bg-surface-container-high text-on-surface-variant'
-                                }`}
-                              >
-                                {t('session.createBlock')}
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                        {isGroupingMode && (
-<p className="theme-primary-text-soft mt-3 text-[10px] font-bold uppercase tracking-[0.18em]">
-                            {t('session.selected')}: {selectedGroupExerciseIds.length}
-                          </p>
-                        )}
-                      </div>
-                    )}
                     {day.exercises.length > 0 ? (
-                      buildDayRenderItems(day.exercises, getDayExerciseGroups(day.id)).map((item, index, items) => {
-                        if (item.type === 'group') {
-                          const totalSets = item.exercises.reduce((sum, exercise) => sum + exercise.exercise.sets.length, 0);
-                          const completedSets = item.exercises.reduce((sum, exercise) => sum + getExerciseCompletedSetCount(activeSession, exercise.id), 0);
-
-                          return (
-                            <div key={item.group.id} className="rounded-[1.1rem] border border-primary/18 bg-primary/5 p-4">
-                              <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-                                <div>
-<p className="theme-primary-text-soft text-[10px] font-bold uppercase tracking-[0.22em]">
-                                    {t('session.block')} {index + 1} · {getGroupLabel(item.exercises.length, t)}
-                                  </p>
-                                  <p className="mt-1 text-sm text-on-surface-variant">
-                                    {completedSets}/{totalSets} {t('session.completedSets')}
-                                  </p>
-                                </div>
-                                <button
-                                  onClick={() => onRemoveExerciseGroup(day.id, item.group.id)}
-                                  className="theme-hairline-border rounded-full border px-3 py-2 text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant transition-colors hover:text-on-surface"
-                                >
-                                  {t('session.ungroup')}
-                                </button>
-                              </div>
-                              <div className="space-y-4">
-                                {item.exercises.map((exercise, exerciseIndex) => (
-                                  <div key={exercise.id}>
-                                    {renderExerciseCard(day, exercise, exerciseIndex, item.exercises.length, true)}
-                                    {exerciseIndex < item.exercises.length - 1 && <div className="theme-divider mt-4 h-px"></div>}
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          );
-                        }
-
-                        return renderExerciseCard(day, item.exercise, index, items.length);
-                      })
+                      day.exercises.map((exercise, index) =>
+                        renderExerciseCard(day, exercise, index, day.exercises.length)
+                      )
                     ) : (
                       <p className="py-2 text-sm text-on-surface-variant">{t('session.emptyDay')}</p>
                     )}
