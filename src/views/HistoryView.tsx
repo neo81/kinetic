@@ -156,19 +156,20 @@ export const HistoryView = ({ setView, profile }: { setView: (v: View) => void; 
                       <p className="text-[0.75rem] font-bold uppercase tracking-[0.15em] text-on-surface-variant">
                         {formatSessionDate(session.endedAt, language)}
                       </p>
-                      <h3 className="mt-1 truncate font-headline text-[1.1rem] font-semibold uppercase text-on-surface">
-                        {session.routineName || t('history.unnamedRoutine')}
+                      <h3 className="mt-1 font-headline text-[1.25rem] font-bold uppercase leading-tight tracking-[0.04em] text-primary">
+                        {getSessionDayInfo(session)}
                       </h3>
+                      <p className="mt-1 truncate text-[0.72rem] font-semibold uppercase tracking-[0.12em] text-on-surface-variant">
+                        <span className="font-bold">{t('history.routineLabel')}</span>
+                        <span aria-hidden="true"> · </span>
+                        {session.routineName || t('history.unnamedRoutine')}
+                      </p>
                     </div>
                     <ChevronDown
                       size={18}
                       className={`mt-1 shrink-0 text-on-surface-variant transition-transform ${isExpanded ? 'rotate-180 text-primary' : ''}`}
                     />
                   </div>
-
-                  <p className="mb-3 text-[0.8rem] font-bold uppercase tracking-[0.12em] text-primary">
-                    {getSessionDayInfo(session)}
-                  </p>
 
                   <div className="grid grid-cols-3 gap-3">
                     <div className="rounded-[0.7rem] bg-surface-container p-2 text-center">

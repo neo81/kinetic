@@ -753,7 +753,10 @@ const SetCaptureOverlay = ({
       >
         <div className="space-y-3">
           <div>
-            <label className="block text-[12px] font-bold uppercase tracking-[0.2em] text-on-surface-variant mb-2">
+            <label
+              htmlFor="captured-set-reps"
+              className="block text-[12px] font-bold uppercase tracking-[0.2em] text-on-surface-variant mb-2"
+            >
               {targetType === 'failure' ? t('session.failureRepsDone') : t('session.repsDone')}
             </label>
             {targetType === 'failure' && (
@@ -762,6 +765,7 @@ const SetCaptureOverlay = ({
               </p>
             )}
             <input
+              id="captured-set-reps"
               type="text"
               inputMode="decimal"
               value={actualReps}
@@ -772,7 +776,11 @@ const SetCaptureOverlay = ({
                 }
               }}
               placeholder={targetType === 'failure' ? t('session.repsAchieved') : String(plannedReps ?? '0')}
-              className="w-full rounded-lg bg-surface-container p-3 text-center font-headline text-xl font-semibold text-on-surface focus:outline-none focus:ring-1 focus:ring-primary"
+              className={`w-full rounded-lg p-3 text-center font-headline text-xl font-semibold text-on-surface outline-none transition-[border-color,background-color,box-shadow] focus:ring-2 focus:ring-primary/25 ${
+                targetType === 'failure'
+                  ? 'min-h-16 border-2 border-primary/60 bg-surface-container-highest placeholder:font-semibold placeholder:text-on-surface-variant/75 focus:border-primary'
+                  : 'border border-transparent bg-surface-container placeholder:text-on-surface-variant/55 focus:border-primary/50'
+              }`}
             />
           </div>
 
