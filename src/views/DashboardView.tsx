@@ -223,7 +223,16 @@ export const DashboardView = ({
 
           <div className="relative z-10 space-y-10">
             <div className="space-y-2">
-              <span className="theme-primary-text-soft block text-[9px] font-black uppercase italic tracking-[0.4em] sm:text-[10px]">{t('dashboard.weekPerformance')}</span>
+              <div className="flex items-center justify-between gap-3">
+                <span className="theme-primary-text-soft block text-[9px] font-black uppercase italic tracking-[0.4em] sm:text-[10px]">{t('dashboard.weekPerformance')}</span>
+                <button
+                  type="button"
+                  onClick={() => setView('progress')}
+                  className="theme-muted-surface theme-primary-text rounded-full px-3 py-1.5 text-[0.6rem] font-black uppercase tracking-[0.12em] transition-colors hover:bg-primary/15"
+                >
+                  {t('dashboard.viewProgress')}
+                </button>
+              </div>
               <h3 className="font-headline text-3xl font-black italic leading-none tracking-tighter text-on-background sm:text-4xl">
                 {dashboardData ? formatSessionVolume(Math.round(dashboardData.thisWeek.volume), dashboardData.thisWeek.volumeMinutes, language) : t('common.loading')}
               </h3>

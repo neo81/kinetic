@@ -415,7 +415,8 @@ export type Database = {
           created_at: string
           ended_at: string | null
           id: string
-          routine_id: string
+          routine_id: string | null
+          routine_name_snapshot: string | null
           started_at: string | null
           status: string
           user_id: string
@@ -425,6 +426,7 @@ export type Database = {
           ended_at?: string | null
           id?: string
           routine_id: string
+          routine_name_snapshot?: string | null
           started_at?: string | null
           status?: string
           user_id: string
@@ -433,7 +435,8 @@ export type Database = {
           created_at?: string
           ended_at?: string | null
           id?: string
-          routine_id?: string
+          routine_id?: string | null
+          routine_name_snapshot?: string | null
           started_at?: string | null
           status?: string
           user_id?: string
@@ -495,6 +498,9 @@ export type Database = {
       }
       session_day_logs: {
         Row: {
+          day_number_snapshot: number | null
+          day_title_snapshot: string | null
+          day_type_snapshot: string | null
           ended_at: string | null
           id: string
           routine_day_id: string | null
@@ -502,6 +508,9 @@ export type Database = {
           started_at: string | null
         }
         Insert: {
+          day_number_snapshot?: number | null
+          day_title_snapshot?: string | null
+          day_type_snapshot?: string | null
           ended_at?: string | null
           id?: string
           routine_day_id?: string | null
@@ -509,6 +518,9 @@ export type Database = {
           started_at?: string | null
         }
         Update: {
+          day_number_snapshot?: number | null
+          day_title_snapshot?: string | null
+          day_type_snapshot?: string | null
           ended_at?: string | null
           id?: string
           routine_day_id?: string | null
@@ -535,23 +547,32 @@ export type Database = {
       session_exercise_logs: {
         Row: {
           exercise_id: string | null
+          exercise_name_en_snapshot: string | null
+          exercise_name_snapshot: string | null
           id: string
           notes: string | null
           position: number | null
+          routine_day_exercise_id: string | null
           session_day_log_id: string
         }
         Insert: {
           exercise_id?: string | null
+          exercise_name_en_snapshot?: string | null
+          exercise_name_snapshot?: string | null
           id?: string
           notes?: string | null
           position?: number | null
+          routine_day_exercise_id?: string | null
           session_day_log_id: string
         }
         Update: {
           exercise_id?: string | null
+          exercise_name_en_snapshot?: string | null
+          exercise_name_snapshot?: string | null
           id?: string
           notes?: string | null
           position?: number | null
+          routine_day_exercise_id?: string | null
           session_day_log_id?: string
         }
         Relationships: [
@@ -569,6 +590,13 @@ export type Database = {
             referencedRelation: "session_day_logs"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "session_exercise_logs_routine_day_exercise_id_fkey"
+            columns: ["routine_day_exercise_id"]
+            isOneToOne: false
+            referencedRelation: "routine_day_exercises"
+            referencedColumns: ["id"]
+          },
         ]
       }
       session_set_logs: {
@@ -579,6 +607,10 @@ export type Database = {
           duration_seconds: number | null
           id: string
           load_type: string
+          planned_duration_minutes: number | null
+          planned_duration_seconds: number | null
+          planned_reps: number | null
+          planned_weight: number | null
           reps: number | null
           session_exercise_log_id: string
           set_number: number
@@ -592,6 +624,10 @@ export type Database = {
           duration_seconds?: number | null
           id?: string
           load_type?: string
+          planned_duration_minutes?: number | null
+          planned_duration_seconds?: number | null
+          planned_reps?: number | null
+          planned_weight?: number | null
           reps?: number | null
           session_exercise_log_id: string
           set_number: number
@@ -605,6 +641,10 @@ export type Database = {
           duration_seconds?: number | null
           id?: string
           load_type?: string
+          planned_duration_minutes?: number | null
+          planned_duration_seconds?: number | null
+          planned_reps?: number | null
+          planned_weight?: number | null
           reps?: number | null
           session_exercise_log_id?: string
           set_number?: number
@@ -749,6 +789,33 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_exercise_progress: {
+        Args: {
+          p_bucket?: string
+          p_exercise_id: string
+          p_from: string
+          p_timezone?: string
+          p_to: string
+        }
+        Returns: Json
+      }
+      get_progress_overview: {
+        Args: {
+          p_bucket?: string
+          p_from: string
+          p_timezone?: string
+          p_to: string
+        }
+        Returns: Json
+      }
+      get_progress_insights: {
+        Args: {
+          p_from: string
+          p_timezone?: string
+          p_to: string
+        }
+        Returns: Json
+      }
       end_session_transaction_service: {
         Args: {
           p_ended_at: string

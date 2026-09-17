@@ -25,6 +25,7 @@ const clampLensPosition = (position: number, lastIndex: number) =>
 const getActiveItemId = (active: View): View => {
   if (active === 'routine-creator' || active === 'routine-detail') return 'routines-list';
   if (active === 'exercise-list' || active === 'exercise-editor') return 'exercise-selector';
+  if (active === 'progress') return 'history';
   return active;
 };
 

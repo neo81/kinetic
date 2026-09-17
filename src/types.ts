@@ -8,6 +8,7 @@ export type View =
   | 'routine-detail'
   | 'settings'
   | 'history'
+  | 'progress'
   | 'routines-list';
 
 export interface UserProfile {
@@ -135,6 +136,7 @@ export interface SessionExportDayPayload {
 
 export interface SessionExportExercisePayload {
   exercise_id: string;
+  routine_day_exercise_id: string;
   routine_day_id: string;
   position: number;
   notes: string | null;
@@ -142,12 +144,14 @@ export interface SessionExportExercisePayload {
 
 export interface SessionExportSetPayload {
   exercise_id: string;
+  routine_day_exercise_id: string;
   exercise_position: number;
   routine_day_id: string;
   set_number: number;
   planned_reps: number | null;
   planned_weight: number | null;
   planned_duration_minutes: number | null;
+  planned_duration_seconds: number | null;
   target_type: ExerciseTargetType;
   load_type: ExerciseLoadType;
   body_weight_kg_snapshot: number | null;
@@ -161,6 +165,12 @@ export interface SessionExportPayload {
   days: SessionExportDayPayload[];
   exercises: SessionExportExercisePayload[];
   sets: SessionExportSetPayload[];
+}
+
+export interface SessionWeightProgression {
+  routineDayExerciseId: string;
+  previousWeight: number;
+  newWeight: number;
 }
 
 export interface CompletedSession {
@@ -230,4 +240,105 @@ export interface DashboardData {
   thisWeek: WeeklyStats;
   lastWeek: WeeklyStats;
   goals: UserGoals;
+}
+
+export type ProgressPeriod = '30d' | '60d' | '90d' | '6m' | '1y' | 'custom';
+export type ProgressBucket = 'day' | 'week' | 'month';
+
+export interface ProgressSummary {
+  sessions: number;
+  trainingDays: number;
+  durationMinutes: number;
+  averageDurationMinutes: number;
+  sets: number;
+  reps: number;
+  volumeKg: number;
+  timedMinutes: number;
+  uniqueExercises: number;
+}
+
+export interface ProgressSeriesPoint {
+  bucketStart: string;
+  sessions: number;
+  durationMinutes: number;
+  sets: number;
+  reps: number;
+  volumeKg: number;
+  timedMinutes: number;
+}
+
+export interface ProgressExerciseOption {
+  id: string;
+  name: string;
+  nameEn?: string;
+  sessions: number;
+  lastPerformedAt: string;
+}
+
+export interface ProgressOverview {
+  summary: ProgressSummary;
+  previousSummary: ProgressSummary;
+  series: ProgressSeriesPoint[];
+  exercises: ProgressExerciseOption[];
+}
+
+export interface ExerciseProgressPoint {
+  bucketStart: string;
+  sessions: number;
+  sets: number;
+  maxWeight: number;
+  maxReps: number;
+  volumeKg: number;
+  estimatedOneRepMax: number;
+  adherencePercent: number | null;
+}
+
+export interface ProgressActivityDay {
+  date: string;
+  sessions: number;
+  volumeKg: number;
+  durationMinutes: number;
+}
+
+export interface ProgressRoutineDay {
+  routineId: string;
+  routineName: string;
+  dayKey: string;
+  dayType: 'core' | 'weekday';
+  dayNumber: number | null;
+  dayTitle: string | null;
+  sessions: number;
+  sets: number;
+  exercises: number;
+  volumeKg: number;
+  lastPerformedAt: string;
+}
+
+export type ProgressRecordKind = 'heaviest_set' | 'most_reps' | 'largest_session_volume' | 'longest_session';
+
+export interface ProgressRecord {
+  kind: ProgressRecordKind;
+  value: number;
+  unit: 'kg' | 'reps' | 'minutes';
+  achievedAt: string;
+  exerciseId?: string;
+  exerciseName?: string;
+  exerciseNameEn?: string;
+}
+
+export interface ProgressEstimatedMax {
+  exerciseId: string;
+  exerciseName: string;
+  exerciseNameEn?: string;
+  estimatedOneRepMax: number;
+  weight: number;
+  reps: number;
+  achievedAt: string;
+}
+
+export interface ProgressInsights {
+  activity: ProgressActivityDay[];
+  routineDays: ProgressRoutineDay[];
+  records: ProgressRecord[];
+  estimatedMaxes: ProgressEstimatedMax[];
 }

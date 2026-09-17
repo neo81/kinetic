@@ -1,10 +1,11 @@
 import { supabase } from '../../lib/supabase/client';
 import type { Database } from '../../lib/supabase/database.types';
-import type { Exercise, Routine, CompletedSession, UserGoals, WeeklyStats, DashboardData } from '../../types';
+import type { Exercise, Routine, CompletedSession, UserGoals, WeeklyStats, DashboardData, SessionWeightProgression } from '../../types';
 import { mapSupabaseErrorCode, RoutineRepositoryError } from './errors';
 import { loadCachedRoutines, saveCachedRoutines } from './localRoutineCache';
 import { reorderRoutineDayExercises } from './reorderExercises';
 import { syncQueue } from '../../services/syncQueue';
+import { applyWeightProgressionsToRoutine } from '../../services/sessionCompletion/weightProgression';
 
 type RoutineRow = Database['public']['Tables']['routines']['Row'];
 type RoutineDayRow = Database['public']['Tables']['routine_days']['Row'];
@@ -84,6 +85,34 @@ const mergeRemoteWithPendingLocal = (remote: Routine[], previousLocal: Routine[]
       byId.set(routine.id, routine);
     }
   }
+
+  // Keep optimistic weight progressions visible while their completed session
+  // is waiting in the durable offline queue. Once the queue item succeeds, the
+  // same values already exist remotely and this guard becomes a no-op.
+  for (const item of syncQueue.getAll()) {
+    if (item.type !== 'session_end' || !item.payload || typeof item.payload !== 'object') continue;
+
+    const payload = item.payload as {
+      routineId?: unknown;
+      weightProgressions?: unknown;
+    };
+    if (typeof payload.routineId !== 'string' || !Array.isArray(payload.weightProgressions)) continue;
+
+    const progressions = payload.weightProgressions.filter(
+      (progression): progression is SessionWeightProgression => (
+        !!progression
+        && typeof progression === 'object'
+        && typeof progression.routineDayExerciseId === 'string'
+        && typeof progression.previousWeight === 'number'
+        && typeof progression.newWeight === 'number'
+      ),
+    );
+    const routine = byId.get(payload.routineId);
+    if (routine && progressions.length > 0) {
+      byId.set(payload.routineId, applyWeightProgressionsToRoutine(routine, progressions));
+    }
+  }
+
   return Array.from(byId.values()).sort((a, b) => {
     if (!!a.syncPending !== !!b.syncPending) {
       return a.syncPending ? -1 : 1;
@@ -666,12 +695,16 @@ const fetchCompletedSessions = async (userId: string): Promise<CompletedSession[
         id,
         started_at,
         ended_at,
+        routine_name_snapshot,
         routines (
           name
         ),
         session_day_logs (
           id,
           routine_day_id,
+          day_type_snapshot,
+          day_number_snapshot,
+          day_title_snapshot,
           routine_days (
             day_type,
             day_number,
@@ -682,6 +715,8 @@ const fetchCompletedSessions = async (userId: string): Promise<CompletedSession[
             id,
             position,
             notes,
+            exercise_name_snapshot,
+            exercise_name_en_snapshot,
             exercises (
               name,
               name_en
@@ -720,8 +755,8 @@ const fetchCompletedSessions = async (userId: string): Promise<CompletedSession[
       const durationMs = endDate.getTime() - startDate.getTime();
 
       const dayLogs = [...(session.session_day_logs || [])].sort((left: any, right: any) => {
-        const leftPosition = Number(left.routine_days?.position ?? left.routine_days?.day_number ?? 0);
-        const rightPosition = Number(right.routine_days?.position ?? right.routine_days?.day_number ?? 0);
+        const leftPosition = Number(left.routine_days?.position ?? left.day_number_snapshot ?? left.routine_days?.day_number ?? 0);
+        const rightPosition = Number(right.routine_days?.position ?? right.day_number_snapshot ?? right.routine_days?.day_number ?? 0);
         return leftPosition - rightPosition;
       });
       const dayCount = dayLogs.length;
@@ -729,10 +764,11 @@ const fetchCompletedSessions = async (userId: string): Promise<CompletedSession[
       // Build day info string (e.g., "Core + Día 1", "Día 1, Día 2")
       const dayNames = dayLogs
         .map((dayLog: any) => {
-          if (dayLog.routine_days?.day_type === 'core') {
+          const dayType = dayLog.day_type_snapshot ?? dayLog.routine_days?.day_type;
+          if (dayType === 'core') {
             return '⚡ Core';
           }
-          const dayNum = dayLog.routine_days?.day_number ?? 0;
+          const dayNum = dayLog.day_number_snapshot ?? dayLog.routine_days?.day_number ?? 0;
           return `Día ${dayNum}`;
         })
         .join(', ');
@@ -742,15 +778,18 @@ const fetchCompletedSessions = async (userId: string): Promise<CompletedSession[
       let totalVolumeWeight = 0;
       let totalVolumeMinutes = 0;
       const detailedDays: CompletedSession['days'] = dayLogs.map((dayLog: any) => {
-        const dayLabel = dayLog.routine_days?.day_type === 'core'
+        const dayType = dayLog.day_type_snapshot ?? dayLog.routine_days?.day_type;
+        const dayNumber = dayLog.day_number_snapshot ?? dayLog.routine_days?.day_number ?? null;
+        const dayTitle = dayLog.day_title_snapshot ?? dayLog.routine_days?.title;
+        const dayLabel = dayType === 'core'
           ? 'Core'
-          : dayLog.routine_days?.title || `Día ${dayLog.routine_days?.day_number ?? '-'}`;
+          : dayTitle || `Día ${dayNumber ?? '-'}`;
         const exercises = [...(dayLog.session_exercise_logs || [])]
           .sort((left: any, right: any) => Number(left.position ?? 0) - Number(right.position ?? 0))
           .map((exercise: any) => ({
             id: exercise.id,
-            name: exercise.exercises?.name || '',
-            nameEn: exercise.exercises?.name_en ?? undefined,
+            name: exercise.exercise_name_snapshot || exercise.exercises?.name || '',
+            nameEn: exercise.exercise_name_en_snapshot ?? exercise.exercises?.name_en ?? undefined,
             notes: exercise.notes ?? null,
             position: Number(exercise.position ?? 0),
             sets: [...(exercise.session_set_logs || [])]
@@ -771,8 +810,8 @@ const fetchCompletedSessions = async (userId: string): Promise<CompletedSession[
         return {
           id: dayLog.id,
           label: dayLabel,
-          dayType: dayLog.routine_days?.day_type === 'core' ? 'core' : 'weekday',
-          dayNumber: dayLog.routine_days?.day_number ?? null,
+          dayType: dayType === 'core' ? 'core' : 'weekday',
+          dayNumber,
           exercises,
         };
       });
@@ -801,7 +840,7 @@ const fetchCompletedSessions = async (userId: string): Promise<CompletedSession[
 
       return {
         id: session.id,
-        routineName: session.routines?.name || '',
+        routineName: session.routine_name_snapshot || session.routines?.name || '',
         endedAt: endDate,
         startedAt: startDate,
         durationMs,
@@ -946,6 +985,23 @@ export const routinesRepository = {
     }
 
     return localRoutines;
+  },
+
+  applyLocalWeightProgressions(
+    routineId: string,
+    progressions: SessionWeightProgression[],
+  ): Routine | null {
+    ensureHydratedFromStorage();
+    const targetRoutine = localRoutines.find((routine) => routine.id === routineId);
+    if (!targetRoutine) return null;
+
+    const updatedRoutine = applyWeightProgressionsToRoutine(targetRoutine, progressions);
+    if (updatedRoutine === targetRoutine) return targetRoutine;
+
+    commitLocalRoutines(
+      localRoutines.map((routine) => (routine.id === routineId ? updatedRoutine : routine)),
+    );
+    return updatedRoutine;
   },
 
   async saveRoutine(currentRoutine: Routine | null, input: SaveRoutineInput, shouldSync = true): Promise<Routine> {

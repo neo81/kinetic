@@ -40,6 +40,7 @@ Mapas anatómicos interactivos (Frontal y Posterior) que proporcionan una interf
 - **Comparación durante la sesión**: Todas las series usan una presentación unificada y legible en navegador y PWA; las registradas muestran el valor realizado junto al planificado y las pendientes conservan el objetivo.
 - **Registro libre durante la sesión**: Se puede alternar entre ejercicios y cargar cualquier serie sin completar primero las restantes; la interfaz evita bloques de agrupación redundantes y conserva cada registro individual.
 - **Inicio posicionado en el día**: Al comenzar una sesión, la vista vuelve al encabezado del día iniciado aunque el usuario estuviera revisando una serie intermedia o final.
+- **Progresión automática de carga**: Al guardar una sesión, si todas las series de un ejercicio externo se registraron con el mismo peso superior y al menos una repetición, la rutina adopta esa nueva carga aunque las repeticiones hayan descendido. La actualización es atómica, conserva el plan durante sesiones canceladas y permanece disponible cuando la finalización queda en cola offline.
 - **Notas Globales**: Notas de entrenamiento persistentes que proporcionan contexto en todas las series de una instancia de ejercicio.
 - **Gestión de Series Fluida**: Añade o elimina series con un solo toque, con persistencia automática.
 
@@ -49,6 +50,7 @@ Mapas anatómicos interactivos (Frontal y Posterior) que proporcionan una interf
 - **Objetivos Personalizados**: Define y personaliza tus metas semanales.
 - **Acceso claro a rutinas**: `VER TODAS` y el footer `RUTINAS` abren la lista completa; el detalle se muestra solo al elegir una rutina o continuar desde el dashboard.
 - **Historial detallado**: Las sesiones completadas pueden expandirse para revisar días, ejercicios, sets y valores registrados.
+- **Informes de progreso**: Historial alterna entre sesiones y una vista de progreso con períodos de 30, 60 y 90 días, 6 meses, 1 año o fechas personalizadas. Los informes muestran frecuencia, volumen externo, duración y evolución por ejercicio mediante gráficos táctiles ampliables, con acceso directo desde el Dashboard y agregación segura en Supabase.
 
 ### 👤 Perfil Avanzado
 - **Organización por submenús**: La portada prioriza identidad, avatar y biografía; altura y peso se gestionan al editar el perfil. Entrenamiento presenta directamente los objetivos y las unidades, mientras preferencias y datos de cuenta se abren en secciones internas más compactas.
@@ -227,6 +229,7 @@ Interactive anatomical maps (Front & Back) that provide a direct interface for e
 - **Failure Sets**: Plan sets as fixed reps or `To failure`, while still capturing actual reps at session completion.
 - **Controlled Bodyweight Load**: Supports bodyweight exercises and profile weight snapshots without enabling bodyweight by default for newly selected exercises.
 - **In-session corrections**: Captured sets can be opened again to edit values or remove the record if they were logged by mistake.
+- **Automatic load progression**: When a session is saved, a routine adopts a consistently higher external load recorded across every planned set, even if repetitions decreased. The update is atomic, leaves canceled sessions unchanged, and remains available while an offline completion waits to sync.
 - **Global Notes**: Persistent training notes that provide context across all sets of an exercise instance.
 - **Fluid Set Management**: Add or remove sets with a single tap, with automatic persistence.
 
@@ -236,6 +239,7 @@ Interactive anatomical maps (Front & Back) that provide a direct interface for e
 - **Custom Goals**: Set and personalize your weekly objectives.
 - **Clear routines access**: `View all` and the `RUTINAS` footer entry open the full routine list; routine detail appears only after selecting a routine or continuing from the dashboard.
 - **Detailed history**: Completed sessions can be expanded to review days, exercises, sets, and recorded values.
+- **Progress reports**: History switches between sessions and a progress view with 30, 60 and 90-day, 6-month, 1-year, or custom ranges. Reports show frequency, external volume, duration, and per-exercise trends through touch-friendly expandable charts, with direct Dashboard access and secure aggregation in Supabase.
 
 ### 👤 Advanced Profile
 - **Custom Avatar**: Upload and adjust your avatar with integrated zoom/crop.

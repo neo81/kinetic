@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { ChevronDown, History, RotateCcw } from 'lucide-react';
 import { supabase } from '../lib/supabase/client';
 import { PageShell } from '../components/layout/PageShell';
@@ -8,6 +8,10 @@ import { formatSessionDate, formatSessionDuration, formatSessionVolume } from '.
 import { useLanguage } from '../i18n/LanguageContext';
 import type { TranslationKey } from '../i18n/translations';
 import { getExerciseDisplayName } from '../i18n/exerciseLocalization';
+
+const ProgressView = lazy(() =>
+  import('../features/progress/ProgressView').then((module) => ({ default: module.ProgressView })),
+);
 
 const formatSessionSetValue = (set: CompletedSessionSet, t: (key: TranslationKey) => string) => {
   const parts: string[] = [];
@@ -31,8 +35,17 @@ const formatSessionSetValue = (set: CompletedSessionSet, t: (key: TranslationKey
   return parts.length > 0 ? parts.join(' · ') : t('history.noValues');
 };
 
-export const HistoryView = ({ setView, profile }: { setView: (v: View) => void; profile?: UserProfile | null }) => {
+export const HistoryView = ({
+  setView,
+  profile,
+  initialSection = 'sessions',
+}: {
+  setView: (v: View) => void;
+  profile?: UserProfile | null;
+  initialSection?: 'sessions' | 'progress';
+}) => {
   const { language, t } = useLanguage();
+  const [section, setSection] = useState<'sessions' | 'progress'>(initialSection);
   const [sessions, setSessions] = useState<CompletedSession[]>([]);
   const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -71,8 +84,8 @@ export const HistoryView = ({ setView, profile }: { setView: (v: View) => void; 
   };
 
   useEffect(() => {
-    loadSessions();
-  }, []);
+    if (section === 'sessions' && sessions.length === 0 && !hasError) loadSessions();
+  }, [section]);
 
   return (
     <PageShell
@@ -91,7 +104,42 @@ export const HistoryView = ({ setView, profile }: { setView: (v: View) => void; 
         </h1>
       </header>
 
-      {loading && (
+      <div className="sticky top-[4.75rem] z-30 mb-6 grid grid-cols-2 gap-1 rounded-full border theme-hairline-border bg-surface-container-high/90 p-1 shadow-xl backdrop-blur-xl">
+        <button
+          type="button"
+          onClick={() => {
+            setSection('sessions');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          aria-pressed={section === 'sessions'}
+          className={`rounded-full px-4 py-2.5 text-[0.7rem] font-black uppercase tracking-[0.12em] transition-colors ${section === 'sessions' ? 'bg-primary text-black' : 'text-on-surface-variant'}`}
+        >
+          {t('history.sessionsTab')}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setSection('progress');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          aria-pressed={section === 'progress'}
+          className={`rounded-full px-4 py-2.5 text-[0.7rem] font-black uppercase tracking-[0.12em] transition-colors ${section === 'progress' ? 'bg-primary text-black' : 'text-on-surface-variant'}`}
+        >
+          {t('history.progressTab')}
+        </button>
+      </div>
+
+      {section === 'progress' && (
+        <Suspense fallback={(
+          <div className="flex min-h-72 items-center justify-center" role="status">
+            <div className="h-12 w-12 animate-pulse rounded-full border-2 border-primary/30 border-t-primary" />
+          </div>
+        )}>
+          <ProgressView />
+        </Suspense>
+      )}
+
+      {section === 'sessions' && loading && (
         <div className="flex flex-col items-center justify-center space-y-6 py-20">
           <div className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-primary/30 animate-spin">
             <History size={32} className="text-primary/60" />
@@ -102,7 +150,7 @@ export const HistoryView = ({ setView, profile }: { setView: (v: View) => void; 
         </div>
       )}
 
-      {hasError && !loading && (
+      {section === 'sessions' && hasError && !loading && (
         <div className="flex flex-col items-center justify-center space-y-6 py-20">
           <div className="flex h-20 w-20 items-center justify-center rounded-full border-2 border-secondary/40 bg-secondary/5">
             <History size={40} className="text-secondary/70" />
@@ -122,7 +170,7 @@ export const HistoryView = ({ setView, profile }: { setView: (v: View) => void; 
         </div>
       )}
 
-      {!loading && !hasError && sessions.length === 0 && (
+      {section === 'sessions' && !loading && !hasError && sessions.length === 0 && (
         <div className="flex flex-col items-center justify-center space-y-6 py-20 opacity-50">
           <div className="flex h-24 w-24 items-center justify-center rounded-full border-2 border-dashed border-on-surface-variant">
             <History size={40} />
@@ -136,7 +184,7 @@ export const HistoryView = ({ setView, profile }: { setView: (v: View) => void; 
         </div>
       )}
 
-      {!loading && !hasError && sessions.length > 0 && (
+      {section === 'sessions' && !loading && !hasError && sessions.length > 0 && (
         <div className="space-y-3">
           {sessions.map((session) => {
             const isExpanded = expandedSessionId === session.id;

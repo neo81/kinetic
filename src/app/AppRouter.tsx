@@ -284,6 +284,8 @@ export const AppRouter = ({
       );
     case 'history':
       return <HistoryView setView={setView} profile={profile} />;
+    case 'progress':
+      return <HistoryView setView={setView} profile={profile} initialSection="progress" />;
     case 'settings':
       return (
         <SettingsView

@@ -5,10 +5,14 @@ import type { Database, Json } from '../lib/supabase/database.types';
 import { initialRoutines } from './initialData';
 import { consumeRoutinesRepositoryNotice, routinesRepository } from '../features/routines/repository';
 import { RoutineRepositoryError } from '../features/routines/errors';
-import type { ActiveSession, Exercise, Routine, UserProfile, View } from '../types';
+import type { ActiveSession, Exercise, Routine, SessionWeightProgression, UserProfile, View } from '../types';
 import { syncQueue, syncStatusManager } from '../services/syncQueue';
 import { exportSessionDataForRPC } from '../services/sessionCompletion/exportSessionData';
 import { invokeEndSession } from '../services/sessionCompletion/invokeEndSession';
+import {
+  applyWeightProgressionsToRoutine,
+  deriveSessionWeightProgressions,
+} from '../services/sessionCompletion/weightProgression';
 import { ensureWeeklyStatsBackfilled } from '../services/dataBackfill/backfillWeeklyStats';
 import { preferencesService } from '../services/preferencesService';
 import { normalizeRestTimerPresets } from '../features/restTimer/presets';
@@ -762,6 +766,8 @@ export const useAppState = () => {
     if (!supabase || !activeSession) return;
     let didQueueSuccessfully = false;
     let wasDirectlySaved = false;
+    let finalizedRoutine: Routine | null = null;
+    let finalizedProgressions: SessionWeightProgression[] = [];
     const endedAt = new Date().toISOString();
 
     try {
@@ -806,6 +812,8 @@ export const useAppState = () => {
         });
 
         console.log('[endSession] ✓ Session saved directly to server');
+        finalizedRoutine = activeRoutine;
+        finalizedProgressions = deriveSessionWeightProgressions(activeSession, activeRoutine);
         syncStatusManager.recordSyncSuccess();
         didQueueSuccessfully = true;
         wasDirectlySaved = true;
@@ -835,6 +843,7 @@ export const useAppState = () => {
             }
             
             const sessionData = exportSessionDataForRPC(activeSession, activeRoutine);
+            const weightProgressions = deriveSessionWeightProgressions(activeSession, activeRoutine);
 
             console.log(
               `[endSession] Queuing session (attempt ${queueAttempts}/${maxQueueAttempts})`
@@ -852,12 +861,16 @@ export const useAppState = () => {
                 sessionId: activeSession.id,
                 endedAt,
                 sessionData,
+                routineId: activeRoutine?.id ?? null,
+                weightProgressions,
               },
               createdAt: Date.now(),
               attemptCount: 1,
             });
 
             console.log('[endSession] ✓ Session queued successfully for retry');
+            finalizedRoutine = activeRoutine;
+            finalizedProgressions = weightProgressions;
             didQueueSuccessfully = true;
           } catch (queueError) {
             const queueErrorMsg = queueError instanceof Error ? queueError.message : String(queueError);
@@ -925,6 +938,22 @@ export const useAppState = () => {
       // IMPROVED: Clean up session only after successful direct save or successful queue
       if (didQueueSuccessfully || wasDirectlySaved) {
         try {
+          if (finalizedRoutine && finalizedProgressions.length > 0) {
+            routinesRepository.applyLocalWeightProgressions(
+              finalizedRoutine.id,
+              finalizedProgressions,
+            );
+            setRoutines((previous) => previous.map((routine) => (
+              routine.id === finalizedRoutine?.id
+                ? applyWeightProgressionsToRoutine(routine, finalizedProgressions)
+                : routine
+            )));
+            setCurrentRoutine((previous) => (
+              previous?.id === finalizedRoutine?.id
+                ? applyWeightProgressionsToRoutine(previous, finalizedProgressions)
+                : previous
+            ));
+          }
           setActiveSession(null);
           persistActiveSession(null);
           syncRoutines();
@@ -933,7 +962,9 @@ export const useAppState = () => {
             setAppBanner({
               level: 'warning',
               title: t('banner.workoutFinished'),
-              message: t('banner.workoutFinishedMessage'),
+              message: t(finalizedProgressions.length > 0
+                ? 'banner.workoutFinishedProgressionMessage'
+                : 'banner.workoutFinishedMessage'),
             });
           }
         } catch (persistError) {

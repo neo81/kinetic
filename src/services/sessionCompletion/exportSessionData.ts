@@ -42,6 +42,7 @@ export function exportSessionDataForRPC(
 
         exercises.push({
           exercise_id: exDef.exerciseId,
+          routine_day_exercise_id: exDef.id,
           routine_day_id: dayId,
           position: exDef.position,
           notes: exDef.notes ?? exDef.exercise.notes ?? null,
@@ -64,12 +65,14 @@ export function exportSessionDataForRPC(
 
             sets.push({
               exercise_id: exDef.exerciseId,
+              routine_day_exercise_id: exDef.id,
               exercise_position: exDef.position,
               routine_day_id: dayId,
               set_number: setNumber,
               planned_reps: plannedSet.reps ?? null,
               planned_weight: plannedSet.weight ?? null,
               planned_duration_minutes: plannedSet.durationMinutes ?? null,
+              planned_duration_seconds: plannedSet.durationSeconds ?? null,
               target_type: plannedSet.targetType ?? 'fixed_reps',
               load_type: loadType,
               body_weight_kg_snapshot: loadType === 'bodyweight' ? actualWeight : null,
