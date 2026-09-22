@@ -239,7 +239,7 @@ Interactive anatomical maps (Front & Back) that provide a direct interface for e
 - **Custom Goals**: Set and personalize your weekly objectives.
 - **Clear routines access**: `View all` and the `RUTINAS` footer entry open the full routine list; routine detail appears only after selecting a routine or continuing from the dashboard.
 - **Detailed history**: Completed sessions can be expanded to review days, exercises, sets, and recorded values.
-- **Progress reports**: History switches between sessions and a progress view with 30, 60 and 90-day, 6-month, 1-year, or custom ranges. Reports show frequency, external volume, duration, and per-exercise trends through touch-friendly expandable charts, with direct Dashboard access and secure aggregation in Supabase.
+- **Progress reports**: History switches between sessions and a progress view with 30, 60 and 90-day, 6-month, 1-year, or custom ranges. Reports show frequency, external volume, duration, activity, weekly consistency, muscle-group distribution, routine/day performance, records, estimated 1RM, forward-only plan adherence, and per-exercise trends through touch-friendly expandable charts. A landscape report can be reviewed on a larger screen, printed or saved as PDF, and exported as a semicolon-delimited CSV for spreadsheet analysis. Aggregation remains secure in Supabase and the Dashboard provides direct access.
 
 ### 👤 Advanced Profile
 - **Custom Avatar**: Upload and adjust your avatar with integrated zoom/crop.

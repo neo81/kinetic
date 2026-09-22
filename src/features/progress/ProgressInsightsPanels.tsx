@@ -3,9 +3,28 @@ import { Award, CalendarDays, Clock3, Dumbbell, Repeat2, Trophy } from 'lucide-r
 import { formatAppDate, formatAppNumber } from '../../i18n/locale';
 import type { AppLanguage, TranslationKey } from '../../i18n/translations';
 import { getExerciseDisplayName } from '../../i18n/exerciseLocalization';
-import type { ProgressActivityDay, ProgressEstimatedMax, ProgressRecord, ProgressRoutineDay } from '../../types';
+import type { ProgressActivityDay, ProgressEstimatedMax, ProgressRecord, ProgressRoutineDay, ProgressTrainingDistribution } from '../../types';
 
 type Translator = (key: TranslationKey) => string;
+
+const muscleTranslationKeys: Record<string, TranslationKey> = {
+  hombros: 'muscle.hombros',
+  pectorales: 'muscle.pectorales',
+  biceps: 'muscle.biceps',
+  abdomen: 'muscle.abdomen',
+  oblicuos: 'muscle.oblicuos',
+  antebrazo: 'muscle.antebrazo',
+  abductores: 'muscle.abductores',
+  aductores: 'muscle.aductores',
+  cuadriceps: 'muscle.cuadriceps',
+  trapecio: 'muscle.trapecio',
+  triceps: 'muscle.triceps',
+  dorsales: 'muscle.dorsales',
+  lumbares: 'muscle.lumbares',
+  gluteos: 'muscle.gluteos',
+  isquiotibiales: 'muscle.isquiotibiales',
+  pantorrillas: 'muscle.pantorrillas',
+};
 
 const dateKey = (date: Date) => {
   const year = date.getFullYear();
@@ -137,6 +156,69 @@ export const RoutineDaysPanel = ({
         );
       })}
     </div>
+  );
+};
+
+export const TrainingDistributionPanel = ({
+  distribution,
+  language,
+  t,
+}: {
+  distribution: ProgressTrainingDistribution;
+  language: AppLanguage;
+  t: Translator;
+}) => {
+  const [showAll, setShowAll] = useState(false);
+  const visibleMuscles = showAll ? distribution.muscleGroups : distribution.muscleGroups.slice(0, 6);
+  const consistency = distribution.consistency;
+
+  return (
+    <section className="rounded-[1.4rem] border theme-hairline-border bg-surface-container-high/70 p-4 shadow-lg backdrop-blur-xl sm:p-5">
+      <div>
+        <h3 className="font-headline text-xl font-bold uppercase text-on-surface">{t('progress.trainingDistribution')}</h3>
+        <p className="mt-1 text-[0.65rem] font-bold uppercase tracking-[0.12em] text-on-surface-variant">{t('progress.trainingDistributionHint')}</p>
+      </div>
+
+      <div className="mt-4 grid grid-cols-3 gap-2 text-center">
+        <div className="rounded-xl bg-surface-container p-3">
+          <strong className="block font-headline text-2xl font-semibold text-primary">{formatAppNumber(consistency.consistencyPercent, { maximumFractionDigits: 0 }, language)}%</strong>
+          <span className="text-[0.55rem] font-bold uppercase text-on-surface-variant">{t('progress.consistency')}</span>
+        </div>
+        <div className="rounded-xl bg-surface-container p-3">
+          <strong className="block font-headline text-2xl font-semibold text-on-surface">{consistency.activeWeeks}/{consistency.totalWeeks}</strong>
+          <span className="text-[0.55rem] font-bold uppercase text-on-surface-variant">{t('progress.activeWeeks')}</span>
+        </div>
+        <div className="rounded-xl bg-surface-container p-3">
+          <strong className="block font-headline text-2xl font-semibold text-secondary">{consistency.longestStreakWeeks}</strong>
+          <span className="text-[0.55rem] font-bold uppercase text-on-surface-variant">{t('progress.longestStreak')}</span>
+        </div>
+      </div>
+
+      {visibleMuscles.length > 0 ? (
+        <div className="mt-5 space-y-3">
+          {visibleMuscles.map((muscle) => (
+            <div key={muscle.code}>
+              <div className="mb-1.5 flex items-baseline justify-between gap-3">
+                <span className="truncate text-sm font-bold text-on-surface">{muscleTranslationKeys[muscle.code] ? t(muscleTranslationKeys[muscle.code]) : muscle.name}</span>
+                <span className="shrink-0 text-xs font-bold text-on-surface-variant">{muscle.sets} {t('progress.setsShort')} · {formatAppNumber(muscle.sharePercent, { maximumFractionDigits: 1 }, language)}%</span>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-surface-container">
+                <div className="h-full rounded-full bg-primary" style={{ width: `${Math.max(2, muscle.sharePercent)}%` }} />
+              </div>
+            </div>
+          ))}
+          {distribution.muscleGroups.length > 6 && (
+            <button type="button" onClick={() => setShowAll((current) => !current)} className="w-full rounded-full border theme-hairline-border py-2 text-[0.65rem] font-black uppercase tracking-[0.08em] text-on-surface-variant">
+              {showAll ? t('progress.showLess') : t('progress.showAllMuscles')}
+            </button>
+          )}
+        </div>
+      ) : (
+        <p className="mt-5 rounded-xl border border-dashed theme-hairline-border p-6 text-center text-sm text-on-surface-variant">{t('progress.noMuscleData')}</p>
+      )}
+
+      <p className="mt-4 text-[0.6rem] leading-relaxed text-on-surface-variant/75">{t('progress.muscleDistributionMethod')}</p>
+    </section>
   );
 };
 

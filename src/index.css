@@ -981,3 +981,60 @@ textarea::placeholder {
   }
 
 }
+
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 10mm;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+  }
+
+  body::before,
+  body > *:not(.progress-report-overlay) {
+    display: none !important;
+  }
+
+  .progress-report-overlay {
+    position: static !important;
+    display: block !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    background: #fff !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+
+  .progress-report-print-root {
+    --color-surface: #fff;
+    --color-surface-container: #f1f3ef;
+    --color-surface-container-low: #f7f8f5;
+    --color-surface-container-high: #e9ede5;
+    --color-on-surface: #141711;
+    --color-on-surface-variant: #596252;
+    --color-outline-variant: #c7cec1;
+    --hairline-border: #c7cec1;
+    width: 100% !important;
+    max-width: none !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    color: #141711;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .progress-report-controls {
+    display: none !important;
+  }
+
+  .progress-report-chart,
+  .progress-report-print-root article,
+  .progress-report-print-root section {
+    break-inside: avoid;
+  }
+}

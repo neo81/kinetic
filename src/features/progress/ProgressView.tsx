@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Activity, CalendarDays, Clock3, Dumbbell, Expand, RefreshCw, TrendingDown, TrendingUp, X } from 'lucide-react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Activity, CalendarDays, Clock3, Dumbbell, Expand, FileDown, RefreshCw, TrendingDown, TrendingUp, X } from 'lucide-react';
 import { formatAppDate, formatAppNumber } from '../../i18n/locale';
 import { useLanguage } from '../../i18n/LanguageContext';
 import type { TranslationKey } from '../../i18n/translations';
@@ -11,10 +11,15 @@ import type {
   ProgressPeriod,
   ProgressSeriesPoint,
   ProgressSummary,
+  ProgressTrainingDistribution,
 } from '../../types';
 import { getExerciseDisplayName } from '../../i18n/exerciseLocalization';
 import { progressRepository } from './repository';
-import { ActivityHeatmap, RecordsPanel, RoutineDaysPanel } from './ProgressInsightsPanels';
+import { ActivityHeatmap, RecordsPanel, RoutineDaysPanel, TrainingDistributionPanel } from './ProgressInsightsPanels';
+
+const ProgressExportDialog = lazy(() => import('./ProgressExportDialog').then((module) => ({
+  default: module.ProgressExportDialog,
+})));
 
 type DateRange = { from: Date; to: Date; bucket: ProgressBucket };
 type ChartDatum = { date: string; value: number };
@@ -360,6 +365,7 @@ export const ProgressView = () => {
   const [customTo, setCustomTo] = useState(() => toDateInputValue(new Date()));
   const [overview, setOverview] = useState<ProgressOverview | null>(null);
   const [insights, setInsights] = useState<ProgressInsights | null>(null);
+  const [distribution, setDistribution] = useState<ProgressTrainingDistribution | null>(null);
   const [progressSection, setProgressSection] = useState<ProgressSection>('overview');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -368,9 +374,11 @@ export const ProgressView = () => {
   const [exerciseSeries, setExerciseSeries] = useState<ExerciseProgressPoint[]>([]);
   const [exerciseLoading, setExerciseLoading] = useState(false);
   const [exerciseExpanded, setExerciseExpanded] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
   const overviewRequestRef = useRef(0);
   const range = useMemo(() => rangeForPeriod(period, customFrom, customTo), [period, customFrom, customTo]);
   const timezone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC', []);
+  const closeReport = useCallback(() => setReportOpen(false), []);
 
   const loadOverview = async () => {
     if (!range) return;
@@ -379,13 +387,15 @@ export const ProgressView = () => {
     setLoading(true);
     setError(false);
     try {
-      const [data, insightData] = await Promise.all([
+      const [data, insightData, distributionData] = await Promise.all([
         progressRepository.getOverview({ ...range, timezone }),
         progressRepository.getInsights({ from: range.from, to: range.to, timezone }),
+        progressRepository.getTrainingDistribution({ from: range.from, to: range.to, timezone }),
       ]);
       if (overviewRequestRef.current !== requestId) return;
       setOverview(data);
       setInsights(insightData);
+      setDistribution(distributionData);
       setSelectedExerciseId((current) => data.exercises.some((exercise) => exercise.id === current)
         ? current
         : data.exercises[0]?.id ?? '');
@@ -395,6 +405,7 @@ export const ProgressView = () => {
       setError(true);
       setOverview(null);
       setInsights(null);
+      setDistribution(null);
     } finally {
       if (overviewRequestRef.current === requestId) setLoading(false);
     }
@@ -484,6 +495,18 @@ export const ProgressView = () => {
             </label>
           </div>
         )}
+
+        {!loading && overview && insights && range && (
+          <div className="mt-3 flex justify-end border-t theme-hairline-border pt-3">
+            <button
+              type="button"
+              onClick={() => setReportOpen(true)}
+              className="liquid-glass-contextual-button inline-flex h-10 items-center gap-2 rounded-full px-4 font-headline text-sm font-semibold uppercase tracking-[0.05em] text-on-surface"
+            >
+              <FileDown size={16} /> {t('progress.openReport')}
+            </button>
+          </div>
+        )}
       </section>
 
       {!range && <p className="rounded-xl border border-secondary/30 bg-secondary/5 p-4 text-sm text-secondary">{t('progress.invalidRange')}</p>}
@@ -513,9 +536,9 @@ export const ProgressView = () => {
                 type="button"
                 onClick={() => setProgressSection(section)}
                 aria-pressed={progressSection === section}
-                className={`rounded-xl px-1 py-2.5 text-[0.58rem] font-black uppercase tracking-[0.05em] transition-colors ${progressSection === section ? 'bg-primary text-black' : 'text-on-surface-variant'}`}
+                className={`min-w-0 rounded-xl px-0.5 py-2.5 font-headline text-[0.72rem] font-semibold uppercase tracking-[0.02em] transition-colors ${progressSection === section ? 'bg-primary text-black' : 'text-on-surface-variant'}`}
               >
-                {t(progressSectionTranslation[section])}
+                <span className="block w-full truncate">{t(progressSectionTranslation[section])}</span>
               </button>
             ))}
           </nav>
@@ -531,6 +554,10 @@ export const ProgressView = () => {
 
           {insights && range && (
             <ActivityHeatmap activity={insights.activity} from={range.from} to={range.to} language={language} t={t} />
+          )}
+
+          {distribution && (
+            <TrainingDistributionPanel distribution={distribution} language={language} t={t} />
           )}
 
           <section className="grid grid-cols-2 gap-2 rounded-[1.1rem] border theme-hairline-border bg-surface-container-high/55 p-3 text-center">
@@ -639,6 +666,21 @@ export const ProgressView = () => {
                 <ChartCanvas data={getExerciseSeries(exerciseSeries, exerciseMetric)} color={exerciseMetric === 'volume' || exerciseMetric === 'oneRepMax' ? 'secondary' : 'primary'} kind="line" valueFormatter={exerciseMetricFormatter} expanded />
               </div>
             </div>
+          )}
+
+          {reportOpen && insights && distribution && range && (
+            <Suspense fallback={<div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/90"><div className="h-12 w-12 animate-pulse rounded-full border-2 border-primary/30 border-t-primary" /></div>}>
+              <ProgressExportDialog
+                overview={overview}
+              insights={insights}
+              distribution={distribution}
+                from={range.from}
+                to={range.to}
+                language={language}
+                t={t}
+                onClose={closeReport}
+              />
+            </Suspense>
           )}
         </>
       )}

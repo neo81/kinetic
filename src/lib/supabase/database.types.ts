@@ -550,6 +550,8 @@ export type Database = {
           exercise_name_en_snapshot: string | null
           exercise_name_snapshot: string | null
           id: string
+          muscle_group_code_snapshot: string | null
+          muscle_group_name_snapshot: string | null
           notes: string | null
           position: number | null
           routine_day_exercise_id: string | null
@@ -560,6 +562,8 @@ export type Database = {
           exercise_name_en_snapshot?: string | null
           exercise_name_snapshot?: string | null
           id?: string
+          muscle_group_code_snapshot?: string | null
+          muscle_group_name_snapshot?: string | null
           notes?: string | null
           position?: number | null
           routine_day_exercise_id?: string | null
@@ -570,6 +574,8 @@ export type Database = {
           exercise_name_en_snapshot?: string | null
           exercise_name_snapshot?: string | null
           id?: string
+          muscle_group_code_snapshot?: string | null
+          muscle_group_name_snapshot?: string | null
           notes?: string | null
           position?: number | null
           routine_day_exercise_id?: string | null
@@ -809,6 +815,14 @@ export type Database = {
         Returns: Json
       }
       get_progress_insights: {
+        Args: {
+          p_from: string
+          p_timezone?: string
+          p_to: string
+        }
+        Returns: Json
+      }
+      get_progress_training_distribution: {
         Args: {
           p_from: string
           p_timezone?: string

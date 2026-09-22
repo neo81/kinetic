@@ -10,6 +10,7 @@ import type {
   ProgressRoutineDay,
   ProgressSeriesPoint,
   ProgressSummary,
+  ProgressTrainingDistribution,
 } from '../../types';
 
 const emptySummary = (): ProgressSummary => ({
@@ -219,5 +220,52 @@ export const progressRepository = {
       : [];
 
     return { activity, routineDays, records, estimatedMaxes };
+  },
+
+  async getTrainingDistribution(input: {
+    from: Date;
+    to: Date;
+    timezone: string;
+  }): Promise<ProgressTrainingDistribution> {
+    if (!supabase) throw new Error('Supabase is not available');
+
+    const { data, error } = await supabase.rpc('get_progress_training_distribution', {
+      p_from: input.from.toISOString(),
+      p_to: input.to.toISOString(),
+      p_timezone: input.timezone,
+    });
+
+    if (error) throw error;
+    const result = data && typeof data === 'object' && !Array.isArray(data)
+      ? data as Record<string, unknown>
+      : {};
+    const consistencyValue = result.consistency && typeof result.consistency === 'object' && !Array.isArray(result.consistency)
+      ? result.consistency as Record<string, unknown>
+      : {};
+
+    return {
+      muscleGroups: Array.isArray(result.muscle_groups)
+        ? result.muscle_groups.map((item) => {
+          const row = item as Record<string, unknown>;
+          return {
+            code: String(row.code ?? ''),
+            name: String(row.name ?? ''),
+            sessions: numberValue(row.sessions),
+            sets: numberValue(row.sets),
+            reps: numberValue(row.reps),
+            volumeKg: numberValue(row.volume_kg),
+            sharePercent: numberValue(row.share_percent),
+            lastPerformedAt: String(row.last_performed_at ?? ''),
+          };
+        }).filter((item) => item.code)
+        : [],
+      consistency: {
+        activeWeeks: numberValue(consistencyValue.active_weeks),
+        totalWeeks: numberValue(consistencyValue.total_weeks),
+        consistencyPercent: numberValue(consistencyValue.consistency_percent),
+        longestStreakWeeks: numberValue(consistencyValue.longest_streak_weeks),
+        averageSessionsPerActiveWeek: numberValue(consistencyValue.average_sessions_per_active_week),
+      },
+    };
   },
 };

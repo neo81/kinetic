@@ -342,3 +342,27 @@ export interface ProgressInsights {
   records: ProgressRecord[];
   estimatedMaxes: ProgressEstimatedMax[];
 }
+
+export interface ProgressMuscleGroup {
+  code: string;
+  name: string;
+  sessions: number;
+  sets: number;
+  reps: number;
+  volumeKg: number;
+  sharePercent: number;
+  lastPerformedAt: string;
+}
+
+export interface ProgressConsistency {
+  activeWeeks: number;
+  totalWeeks: number;
+  consistencyPercent: number;
+  longestStreakWeeks: number;
+  averageSessionsPerActiveWeek: number;
+}
+
+export interface ProgressTrainingDistribution {
+  muscleGroups: ProgressMuscleGroup[];
+  consistency: ProgressConsistency;
+}
