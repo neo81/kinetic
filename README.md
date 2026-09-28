@@ -50,7 +50,7 @@ Mapas anatómicos interactivos (Frontal y Posterior) que proporcionan una interf
 - **Objetivos Personalizados**: Define y personaliza tus metas semanales.
 - **Acceso claro a rutinas**: `VER TODAS` y el footer `RUTINAS` abren la lista completa; el detalle se muestra solo al elegir una rutina o continuar desde el dashboard.
 - **Historial detallado**: Las sesiones completadas pueden expandirse para revisar días, ejercicios, sets y valores registrados.
-- **Informes de progreso**: Historial alterna entre sesiones y una vista de progreso con períodos de 30, 60 y 90 días, 6 meses, 1 año o fechas personalizadas. Los informes muestran frecuencia, volumen externo, duración y evolución por ejercicio mediante gráficos táctiles ampliables, con acceso directo desde el Dashboard y agregación segura en Supabase.
+- **Informes de progreso**: Historial alterna entre sesiones y una vista de progreso con períodos de 30, 60 y 90 días, 6 meses, 1 año o fechas personalizadas. Los informes muestran frecuencia, volumen externo, duración y evolución por ejercicio mediante gráficos táctiles ampliables con escalas visibles. La métrica `Series` compara peso y repeticiones en dos gráficos sincronizados a partir de las series externas completadas. Incluye acceso directo desde el Dashboard y agregación segura en Supabase.
 
 ### 👤 Perfil Avanzado
 - **Organización por submenús**: La portada prioriza identidad, avatar y biografía; altura y peso se gestionan al editar el perfil. Entrenamiento presenta directamente los objetivos y las unidades, mientras preferencias y datos de cuenta se abren en secciones internas más compactas.
@@ -239,7 +239,7 @@ Interactive anatomical maps (Front & Back) that provide a direct interface for e
 - **Custom Goals**: Set and personalize your weekly objectives.
 - **Clear routines access**: `View all` and the `RUTINAS` footer entry open the full routine list; routine detail appears only after selecting a routine or continuing from the dashboard.
 - **Detailed history**: Completed sessions can be expanded to review days, exercises, sets, and recorded values.
-- **Progress reports**: History switches between sessions and a progress view with 30, 60 and 90-day, 6-month, 1-year, or custom ranges. Reports show frequency, external volume, duration, activity, weekly consistency, muscle-group distribution, routine/day performance, records, estimated 1RM, forward-only plan adherence, and per-exercise trends through touch-friendly expandable charts. A landscape report can be reviewed on a larger screen, printed or saved as PDF, and exported as a semicolon-delimited CSV for spreadsheet analysis. Aggregation remains secure in Supabase and the Dashboard provides direct access.
+- **Progress reports**: History switches between sessions and a progress view with 30, 60 and 90-day, 6-month, 1-year, or custom ranges. Reports show frequency, external volume, duration, activity, weekly consistency, muscle-group distribution, routine/day performance, records, estimated 1RM, forward-only plan adherence, and per-exercise trends through touch-friendly expandable charts with visible scales. The `Sets` metric compares weight and repetitions in two synchronized charts built from completed external-load sets. A landscape report can be reviewed on a larger screen, printed or saved as PDF, and exported as a semicolon-delimited CSV for spreadsheet analysis. Aggregation remains secure in Supabase and the Dashboard provides direct access.
 
 ### 👤 Advanced Profile
 - **Custom Avatar**: Upload and adjust your avatar with integrated zoom/crop.

@@ -5,6 +5,7 @@ import { useLanguage } from '../../i18n/LanguageContext';
 import type { TranslationKey } from '../../i18n/translations';
 import type {
   ExerciseProgressPoint,
+  ExerciseSetProgressPoint,
   ProgressBucket,
   ProgressOverview,
   ProgressInsights,
@@ -23,7 +24,7 @@ const ProgressExportDialog = lazy(() => import('./ProgressExportDialog').then((m
 
 type DateRange = { from: Date; to: Date; bucket: ProgressBucket };
 type ChartDatum = { date: string; value: number };
-type ExerciseMetric = 'weight' | 'reps' | 'volume' | 'oneRepMax' | 'adherence';
+type ExerciseMetric = 'weight' | 'reps' | 'volume' | 'oneRepMax' | 'sets' | 'adherence';
 type ProgressSection = 'overview' | 'exercises' | 'routines' | 'records';
 
 const progressSectionTranslation: Record<ProgressSection, TranslationKey> = {
@@ -137,46 +138,93 @@ const SummaryCard = ({
   </article>
 );
 
+const niceStep = (range: number, targetIntervals: number) => {
+  const roughStep = Math.max(range / Math.max(targetIntervals, 1), Number.EPSILON);
+  const magnitude = 10 ** Math.floor(Math.log10(roughStep));
+  const normalized = roughStep / magnitude;
+  const niceNormalized = normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10;
+  return niceNormalized * magnitude;
+};
+
+const buildAxisScale = (data: ChartDatum[], tickCount: number, includeZero: boolean, minimumStep: number) => {
+  const values = data.map((item) => item.value).filter(Number.isFinite);
+  const dataMin = values.length > 0 ? Math.min(...values) : 0;
+  const dataMax = values.length > 0 ? Math.max(...values) : 0;
+  const spread = Math.max(dataMax - dataMin, Math.abs(dataMax) * 0.1, 1);
+  const paddedMin = includeZero ? 0 : Math.max(0, dataMin - spread * 0.12);
+  const paddedMax = dataMax + spread * 0.12;
+  const step = Math.max(niceStep(Math.max(paddedMax - paddedMin, 1), tickCount - 1), minimumStep);
+  const min = includeZero ? 0 : Math.floor(paddedMin / step) * step;
+  const max = Math.max(Math.ceil(paddedMax / step) * step, min + step);
+  return {
+    min,
+    max,
+    ticks: Array.from({ length: tickCount }, (_, index) => min + ((max - min) * index) / Math.max(tickCount - 1, 1)),
+  };
+};
+
 const ChartCanvas = ({
   data,
   color,
   kind,
   valueFormatter,
+  axisFormatter = valueFormatter,
+  includeZero = kind === 'bar',
+  minimumAxisStep = 0,
   expanded = false,
+  selectedIndex: controlledSelectedIndex,
+  onSelectedIndexChange,
+  showXLabels = true,
 }: {
   data: ChartDatum[];
   color: 'primary' | 'secondary';
   kind: 'line' | 'bar';
   valueFormatter: (value: number) => string;
+  axisFormatter?: (value: number) => string;
+  includeZero?: boolean;
+  minimumAxisStep?: number;
   expanded?: boolean;
+  selectedIndex?: number;
+  onSelectedIndexChange?: (index: number) => void;
+  showXLabels?: boolean;
 }) => {
   const { language } = useLanguage();
-  const [selectedIndex, setSelectedIndex] = useState(Math.max(data.length - 1, 0));
+  const [internalSelectedIndex, setInternalSelectedIndex] = useState(Math.max(data.length - 1, 0));
+  const selectedIndex = Math.min(controlledSelectedIndex ?? internalSelectedIndex, Math.max(data.length - 1, 0));
+  const setSelectedIndex = (index: number) => {
+    const nextIndex = Math.min(Math.max(index, 0), Math.max(data.length - 1, 0));
+    if (controlledSelectedIndex === undefined) setInternalSelectedIndex(nextIndex);
+    onSelectedIndexChange?.(nextIndex);
+  };
   const width = 600;
   const height = expanded ? 300 : 220;
-  const padding = { left: 18, right: 18, top: 24, bottom: 34 };
+  const padding = { left: 76, right: 18, top: 18, bottom: showXLabels ? 36 : 12 };
   const chartWidth = width - padding.left - padding.right;
   const chartHeight = height - padding.top - padding.bottom;
-  const maxValue = Math.max(...data.map((item) => item.value), 1);
+  const scale = buildAxisScale(data, expanded ? 6 : 3, includeZero, minimumAxisStep);
   const xAt = (index: number) => data.length <= 1
     ? width / 2
     : padding.left + (index / (data.length - 1)) * chartWidth;
-  const yAt = (value: number) => padding.top + chartHeight - (value / maxValue) * chartHeight;
+  const yAt = (value: number) => padding.top + chartHeight - ((value - scale.min) / (scale.max - scale.min)) * chartHeight;
   const path = data.map((item, index) => `${index === 0 ? 'M' : 'L'} ${xAt(index)} ${yAt(item.value)}`).join(' ');
   const selected = data[selectedIndex] ?? data[data.length - 1];
   const strokeClass = color === 'primary' ? 'stroke-primary' : 'stroke-secondary';
   const fillClass = color === 'primary' ? 'fill-primary' : 'fill-secondary';
   const labelDate = (value: string) => formatAppDate(new Date(value), { day: 'numeric', month: 'short' }, language);
-  const labelIndexes = data.length <= 2 ? data.map((_, index) => index) : [0, Math.floor((data.length - 1) / 2), data.length - 1];
+  const labelCount = expanded ? 5 : 3;
+  const labelIndexes = Array.from(new Set(Array.from({ length: Math.min(labelCount, data.length) }, (_, index) => (
+    Math.round((index / Math.max(Math.min(labelCount, data.length) - 1, 1)) * Math.max(data.length - 1, 0))
+  ))));
   const selectFromPointer = (clientX: number, element: SVGSVGElement) => {
     const bounds = element.getBoundingClientRect();
-    const ratio = Math.min(1, Math.max(0, (clientX - bounds.left) / Math.max(bounds.width, 1)));
+    const viewBoxX = ((clientX - bounds.left) / Math.max(bounds.width, 1)) * width;
+    const ratio = Math.min(1, Math.max(0, (viewBoxX - padding.left) / Math.max(chartWidth, 1)));
     setSelectedIndex(Math.round(ratio * Math.max(data.length - 1, 0)));
   };
 
   useEffect(() => {
-    setSelectedIndex(Math.max(data.length - 1, 0));
-  }, [data]);
+    if (controlledSelectedIndex === undefined) setInternalSelectedIndex(Math.max(data.length - 1, 0));
+  }, [controlledSelectedIndex, data]);
 
   if (data.length === 0) return null;
 
@@ -198,16 +246,25 @@ const ChartCanvas = ({
           if (event.pointerType === 'touch' || event.buttons > 0) selectFromPointer(event.clientX, event.currentTarget);
         }}
       >
-        {[0, 0.5, 1].map((ratio) => (
-          <line
-            key={ratio}
-            x1={padding.left}
-            x2={width - padding.right}
-            y1={padding.top + chartHeight * ratio}
-            y2={padding.top + chartHeight * ratio}
-            className="stroke-outline-variant/25"
-            strokeWidth="1"
-          />
+        {scale.ticks.map((tick) => (
+          <g key={tick}>
+            <line
+              x1={padding.left}
+              x2={width - padding.right}
+              y1={yAt(tick)}
+              y2={yAt(tick)}
+              className="stroke-outline-variant/25"
+              strokeWidth="1"
+            />
+            <text
+              x={padding.left - 10}
+              y={yAt(tick) + 5}
+              textAnchor="end"
+              className="fill-on-surface-variant text-[14px] font-bold"
+            >
+              {axisFormatter(tick)}
+            </text>
+          </g>
         ))}
 
         {kind === 'line' && data.length > 1 && (
@@ -219,13 +276,14 @@ const ChartCanvas = ({
           const barWidth = Math.max(4, Math.min(22, available * 0.62));
           const x = data.length <= 1 ? width / 2 - barWidth / 2 : xAt(index) - barWidth / 2;
           const y = yAt(item.value);
+          const baseline = yAt(scale.min);
           return (
             <rect
               key={`${item.date}-${index}`}
               x={x}
               y={y}
               width={barWidth}
-              height={Math.max(2, padding.top + chartHeight - y)}
+              height={Math.max(2, baseline - y)}
               rx={barWidth / 2}
               className={`${fillClass} ${selectedIndex === index ? 'opacity-100' : 'opacity-45'}`}
             />
@@ -242,25 +300,7 @@ const ChartCanvas = ({
           />
         ))}
 
-        {data.map((item, index) => {
-          const slotWidth = chartWidth / Math.max(data.length, 1);
-          return (
-            <rect
-              key={`hit-${item.date}-${index}`}
-              x={Math.max(0, xAt(index) - Math.max(slotWidth / 2, 10))}
-              y={padding.top}
-              width={Math.max(slotWidth, 20)}
-              height={chartHeight}
-              fill="transparent"
-              onPointerDown={() => setSelectedIndex(index)}
-              onPointerEnter={(event) => {
-                if (event.buttons > 0 || event.pointerType === 'mouse') setSelectedIndex(index);
-              }}
-            />
-          );
-        })}
-
-        {labelIndexes.map((index) => (
+        {showXLabels && labelIndexes.map((index) => (
           <text
             key={`label-${index}`}
             x={xAt(index)}
@@ -283,6 +323,9 @@ const ChartCard = ({
   color = 'primary',
   kind = 'line',
   valueFormatter,
+  axisFormatter,
+  includeZero,
+  minimumAxisStep,
 }: {
   title: string;
   subtitle: string;
@@ -290,6 +333,9 @@ const ChartCard = ({
   color?: 'primary' | 'secondary';
   kind?: 'line' | 'bar';
   valueFormatter: (value: number) => string;
+  axisFormatter?: (value: number) => string;
+  includeZero?: boolean;
+  minimumAxisStep?: number;
 }) => {
   const { t } = useLanguage();
   const [expanded, setExpanded] = useState(false);
@@ -311,7 +357,7 @@ const ChartCard = ({
             <Expand size={17} />
           </button>
         </div>
-        <ChartCanvas data={data} color={color} kind={kind} valueFormatter={valueFormatter} />
+        <ChartCanvas data={data} color={color} kind={kind} valueFormatter={valueFormatter} axisFormatter={axisFormatter} includeZero={includeZero} minimumAxisStep={minimumAxisStep} />
       </article>
 
       {expanded && (
@@ -326,7 +372,7 @@ const ChartCard = ({
                 <X size={20} />
               </button>
             </div>
-            <ChartCanvas data={data} color={color} kind={kind} valueFormatter={valueFormatter} expanded />
+            <ChartCanvas data={data} color={color} kind={kind} valueFormatter={valueFormatter} axisFormatter={axisFormatter} includeZero={includeZero} minimumAxisStep={minimumAxisStep} expanded />
           </div>
         </div>
       )}
@@ -340,6 +386,7 @@ const getSeries = (series: ProgressSeriesPoint[], field: keyof ProgressSeriesPoi
 }));
 
 const getExerciseSeries = (series: ExerciseProgressPoint[], metric: ExerciseMetric): ChartDatum[] => series.flatMap((point) => {
+  if (metric === 'sets') return [];
   if (metric === 'adherence' && point.adherencePercent === null) return [];
   const value = metric === 'weight'
     ? point.maxWeight
@@ -352,6 +399,67 @@ const getExerciseSeries = (series: ExerciseProgressPoint[], metric: ExerciseMetr
           : point.adherencePercent ?? 0;
   return [{ date: point.bucketStart, value }];
 });
+
+const ExerciseSetProgressCharts = ({
+  points,
+  expanded = false,
+}: {
+  points: ExerciseSetProgressPoint[];
+  expanded?: boolean;
+}) => {
+  const { language, t } = useLanguage();
+  const [selectedIndex, setSelectedIndex] = useState(Math.max(points.length - 1, 0));
+  const selected = points[selectedIndex] ?? points[points.length - 1];
+  const weightData = points.map((point) => ({ date: point.performedAt, value: point.weight }));
+  const repsData = points.map((point) => ({ date: point.performedAt, value: point.reps }));
+  const formatWeight = (value: number) => `${formatAppNumber(value, { maximumFractionDigits: 1 }, language)} kg`;
+  const formatReps = (value: number) => `${formatAppNumber(value, { maximumFractionDigits: 0 }, language)} reps`;
+
+  useEffect(() => {
+    setSelectedIndex(Math.max(points.length - 1, 0));
+  }, [points]);
+
+  return (
+    <div className="mt-3 space-y-5">
+      <p className="px-1 text-[0.65rem] font-bold uppercase tracking-[0.1em] text-on-surface-variant">{t('progress.setEvolutionHint')}</p>
+      {selected && (
+        <div className="rounded-xl bg-surface-container/65 px-3 py-2 text-center text-[0.68rem] font-bold uppercase tracking-[0.1em] text-on-surface-variant" aria-live="polite">
+          {formatAppDate(new Date(selected.performedAt), { day: 'numeric', month: 'short' }, language)} · {t('progress.setNumber')} {selected.setNumber}
+        </div>
+      )}
+      <section>
+        <h4 className="px-1 text-[0.68rem] font-black uppercase tracking-[0.14em] text-primary">{t('progress.weightPerSet')}</h4>
+        <ChartCanvas
+          data={weightData}
+          color="primary"
+          kind="line"
+          valueFormatter={formatWeight}
+          axisFormatter={formatWeight}
+          includeZero={false}
+          expanded={expanded}
+          selectedIndex={selectedIndex}
+          onSelectedIndexChange={setSelectedIndex}
+          showXLabels={false}
+        />
+      </section>
+      <section className="border-t theme-hairline-border pt-4">
+        <h4 className="px-1 text-[0.68rem] font-black uppercase tracking-[0.14em] text-secondary">{t('progress.repsPerSet')}</h4>
+        <ChartCanvas
+          data={repsData}
+          color="secondary"
+          kind="line"
+          valueFormatter={formatReps}
+          axisFormatter={(value) => formatAppNumber(value, { maximumFractionDigits: 0 }, language)}
+          includeZero={false}
+          minimumAxisStep={1}
+          expanded={expanded}
+          selectedIndex={selectedIndex}
+          onSelectedIndexChange={setSelectedIndex}
+        />
+      </section>
+    </div>
+  );
+};
 
 export const ProgressView = () => {
   const { language, t } = useLanguage();
@@ -372,7 +480,9 @@ export const ProgressView = () => {
   const [selectedExerciseId, setSelectedExerciseId] = useState('');
   const [exerciseMetric, setExerciseMetric] = useState<ExerciseMetric>('weight');
   const [exerciseSeries, setExerciseSeries] = useState<ExerciseProgressPoint[]>([]);
+  const [exerciseSetSeries, setExerciseSetSeries] = useState<ExerciseSetProgressPoint[]>([]);
   const [exerciseLoading, setExerciseLoading] = useState(false);
+  const [exerciseSetLoading, setExerciseSetLoading] = useState(false);
   const [exerciseExpanded, setExerciseExpanded] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const overviewRequestRef = useRef(0);
@@ -436,6 +546,28 @@ export const ProgressView = () => {
     return () => { active = false; };
   }, [selectedExerciseId, range?.from.getTime(), range?.to.getTime(), range?.bucket, timezone]);
 
+  useEffect(() => {
+    if (exerciseMetric !== 'sets') return;
+    if (!selectedExerciseId || !range) {
+      setExerciseSetSeries([]);
+      return;
+    }
+    let active = true;
+    setExerciseSetLoading(true);
+    progressRepository.getExerciseSetProgress({ exerciseId: selectedExerciseId, from: range.from, to: range.to })
+      .then((data) => {
+        if (active) setExerciseSetSeries(data);
+      })
+      .catch((loadError) => {
+        console.error('Error loading exercise set progress:', loadError);
+        if (active) setExerciseSetSeries([]);
+      })
+      .finally(() => {
+        if (active) setExerciseSetLoading(false);
+      });
+    return () => { active = false; };
+  }, [exerciseMetric, selectedExerciseId, range?.from.getTime(), range?.to.getTime()]);
+
   const selectedExercise = overview?.exercises.find((exercise) => exercise.id === selectedExerciseId);
   const summary: ProgressSummary = overview?.summary ?? {
     sessions: 0,
@@ -457,7 +589,9 @@ export const ProgressView = () => {
         ? t('progress.exerciseVolume')
         : exerciseMetric === 'oneRepMax'
           ? t('progress.estimatedOneRepMax')
-          : t('progress.planAdherence');
+          : exerciseMetric === 'sets'
+            ? t('progress.setEvolution')
+            : t('progress.planAdherence');
   const exerciseMetricFormatter = (value: number) => exerciseMetric === 'weight'
     ? `${formatAppNumber(value, { maximumFractionDigits: 1 }, language)} kg`
     : exerciseMetric === 'reps'
@@ -465,6 +599,17 @@ export const ProgressView = () => {
       : exerciseMetric === 'adherence'
         ? `${formatAppNumber(value, { maximumFractionDigits: 0 }, language)}%`
         : `${formatAppNumber(value, { maximumFractionDigits: 1 }, language)} kg`;
+  const exerciseAxisFormatter = (value: number) => exerciseMetric === 'weight'
+    ? `${formatAppNumber(value, { maximumFractionDigits: 1 }, language)} kg`
+    : exerciseMetric === 'reps'
+      ? formatAppNumber(value, { maximumFractionDigits: 0 }, language)
+      : exerciseMetric === 'adherence'
+        ? `${formatAppNumber(value, { maximumFractionDigits: 0 }, language)}%`
+        : `${formatAppNumber(value, { notation: 'compact', maximumFractionDigits: 1 }, language)} kg`;
+  const exerciseIsLoading = exerciseMetric === 'sets' ? exerciseSetLoading : exerciseLoading;
+  const exerciseHasData = exerciseMetric === 'sets'
+    ? exerciseSetSeries.length > 0
+    : getExerciseSeries(exerciseSeries, exerciseMetric).length > 0;
 
   return (
     <div className="space-y-5">
@@ -574,9 +719,33 @@ export const ProgressView = () => {
             </div>
           ) : (
             <div className="space-y-4">
-              <ChartCard title={t('progress.sessionFrequency')} subtitle={t('progress.tapChart')} data={getSeries(overview.series, 'sessions')} kind="bar" valueFormatter={(value) => `${formatAppNumber(value, undefined, language)} ${t('progress.sessionsShort')}`} />
-              <ChartCard title={t('progress.volumeTrend')} subtitle={t('progress.externalLoadOnly')} data={getSeries(overview.series, 'volumeKg')} color="secondary" valueFormatter={(value) => `${formatAppNumber(Math.round(value), undefined, language)} kg`} />
-              <ChartCard title={t('progress.durationTrend')} subtitle={t('progress.totalPerPeriod')} data={getSeries(overview.series, 'durationMinutes')} valueFormatter={formatDuration} />
+              <ChartCard
+                title={t('progress.sessionFrequency')}
+                subtitle={t('progress.tapChart')}
+                data={getSeries(overview.series, 'sessions')}
+                kind="bar"
+                valueFormatter={(value) => `${formatAppNumber(value, undefined, language)} ${t('progress.sessionsShort')}`}
+                axisFormatter={(value) => formatAppNumber(value, { maximumFractionDigits: 0 }, language)}
+                includeZero
+                minimumAxisStep={1}
+              />
+              <ChartCard
+                title={t('progress.volumeTrend')}
+                subtitle={t('progress.externalLoadOnly')}
+                data={getSeries(overview.series, 'volumeKg')}
+                color="secondary"
+                valueFormatter={(value) => `${formatAppNumber(Math.round(value), undefined, language)} kg`}
+                axisFormatter={(value) => `${formatAppNumber(value, { notation: 'compact', maximumFractionDigits: 1 }, language)} kg`}
+                includeZero
+              />
+              <ChartCard
+                title={t('progress.durationTrend')}
+                subtitle={t('progress.totalPerPeriod')}
+                data={getSeries(overview.series, 'durationMinutes')}
+                valueFormatter={formatDuration}
+                axisFormatter={formatDuration}
+                includeZero
+              />
             </div>
           )}
             </div>
@@ -598,7 +767,7 @@ export const ProgressView = () => {
               </div>
 
               <div className="mb-4 grid grid-cols-3 gap-1 rounded-[1.1rem] bg-surface-container p-1">
-                {(['weight', 'reps', 'volume', 'oneRepMax', 'adherence'] as ExerciseMetric[]).map((metric) => (
+                {(['weight', 'reps', 'volume', 'oneRepMax', 'sets', 'adherence'] as ExerciseMetric[]).map((metric) => (
                   <button
                     key={metric}
                     type="button"
@@ -613,7 +782,9 @@ export const ProgressView = () => {
                           ? t('progress.volume')
                           : metric === 'oneRepMax'
                             ? t('progress.oneRepMaxShort')
-                            : t('progress.planShort')}
+                            : metric === 'sets'
+                              ? t('progress.seriesShort')
+                              : t('progress.planShort')}
                   </button>
                 ))}
               </div>
@@ -623,18 +794,34 @@ export const ProgressView = () => {
                   <h3 className="font-headline text-xl font-bold uppercase text-on-surface">{selectedExercise ? getExerciseDisplayName(selectedExercise, language) : ''}</h3>
                   <p className="mt-1 text-[0.65rem] font-bold uppercase tracking-[0.12em] text-on-surface-variant">{exerciseMetricLabel}</p>
                 </div>
-                {getExerciseSeries(exerciseSeries, exerciseMetric).length > 0 && !exerciseLoading && (
+                {exerciseHasData && !exerciseIsLoading && (
                   <button type="button" onClick={() => setExerciseExpanded(true)} aria-label={t('progress.expandChart')} className="liquid-glass-contextual-button flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-on-surface">
                     <Expand size={17} />
                   </button>
                 )}
               </div>
-              {exerciseLoading ? (
+              {exerciseIsLoading ? (
                 <div className="flex h-52 items-center justify-center"><div className="h-9 w-9 animate-pulse rounded-full border-2 border-primary/30 border-t-primary" /></div>
+              ) : exerciseMetric === 'sets' && exerciseSetSeries.length > 0 ? (
+                <ExerciseSetProgressCharts points={exerciseSetSeries} />
               ) : getExerciseSeries(exerciseSeries, exerciseMetric).length > 0 ? (
-                <ChartCanvas data={getExerciseSeries(exerciseSeries, exerciseMetric)} color={exerciseMetric === 'volume' || exerciseMetric === 'oneRepMax' ? 'secondary' : 'primary'} kind="line" valueFormatter={exerciseMetricFormatter} />
+                <ChartCanvas
+                  data={getExerciseSeries(exerciseSeries, exerciseMetric)}
+                  color={exerciseMetric === 'volume' || exerciseMetric === 'oneRepMax' ? 'secondary' : 'primary'}
+                  kind="line"
+                  valueFormatter={exerciseMetricFormatter}
+                  axisFormatter={exerciseAxisFormatter}
+                  includeZero={exerciseMetric === 'volume' || exerciseMetric === 'adherence'}
+                  minimumAxisStep={exerciseMetric === 'reps' ? 1 : 0}
+                />
               ) : (
-                <p className="py-12 text-center text-sm text-on-surface-variant">{exerciseMetric === 'adherence' ? t('progress.adherenceFutureOnly') : t('progress.noExerciseData')}</p>
+                <p className="py-12 text-center text-sm text-on-surface-variant">
+                  {exerciseMetric === 'sets'
+                    ? t('progress.noSetProgress')
+                    : exerciseMetric === 'adherence'
+                      ? t('progress.adherenceFutureOnly')
+                      : t('progress.noExerciseData')}
+                </p>
               )}
             </section>
           )}
@@ -651,9 +838,9 @@ export const ProgressView = () => {
             <RecordsPanel records={insights.records} estimatedMaxes={insights.estimatedMaxes} language={language} t={t} />
           )}
 
-          {exerciseExpanded && selectedExercise && getExerciseSeries(exerciseSeries, exerciseMetric).length > 0 && (
+          {exerciseExpanded && selectedExercise && exerciseHasData && (
             <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/75 p-3 backdrop-blur-md" role="dialog" aria-modal="true" aria-label={getExerciseDisplayName(selectedExercise, language)}>
-              <div className="theme-elevated-surface w-full max-w-3xl rounded-[1.7rem] border theme-hairline-border p-5 shadow-2xl">
+              <div className="theme-elevated-surface max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-[1.7rem] border theme-hairline-border p-5 shadow-2xl">
                 <div className="mb-3 flex items-start justify-between gap-3">
                   <div>
                     <h3 className="font-headline text-2xl font-bold uppercase text-on-surface">{getExerciseDisplayName(selectedExercise, language)}</h3>
@@ -663,7 +850,20 @@ export const ProgressView = () => {
                     <X size={20} />
                   </button>
                 </div>
-                <ChartCanvas data={getExerciseSeries(exerciseSeries, exerciseMetric)} color={exerciseMetric === 'volume' || exerciseMetric === 'oneRepMax' ? 'secondary' : 'primary'} kind="line" valueFormatter={exerciseMetricFormatter} expanded />
+                {exerciseMetric === 'sets' ? (
+                  <ExerciseSetProgressCharts points={exerciseSetSeries} expanded />
+                ) : (
+                  <ChartCanvas
+                    data={getExerciseSeries(exerciseSeries, exerciseMetric)}
+                    color={exerciseMetric === 'volume' || exerciseMetric === 'oneRepMax' ? 'secondary' : 'primary'}
+                    kind="line"
+                    valueFormatter={exerciseMetricFormatter}
+                    axisFormatter={exerciseAxisFormatter}
+                    includeZero={exerciseMetric === 'volume' || exerciseMetric === 'adherence'}
+                    minimumAxisStep={exerciseMetric === 'reps' ? 1 : 0}
+                    expanded
+                  />
+                )}
               </div>
             </div>
           )}
@@ -672,8 +872,8 @@ export const ProgressView = () => {
             <Suspense fallback={<div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/90"><div className="h-12 w-12 animate-pulse rounded-full border-2 border-primary/30 border-t-primary" /></div>}>
               <ProgressExportDialog
                 overview={overview}
-              insights={insights}
-              distribution={distribution}
+                insights={insights}
+                distribution={distribution}
                 from={range.from}
                 to={range.to}
                 language={language}

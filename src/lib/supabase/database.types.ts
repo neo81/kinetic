@@ -795,6 +795,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_exercise_set_progress: {
+        Args: {
+          p_exercise_id: string
+          p_from: string
+          p_to: string
+        }
+        Returns: Json
+      }
       get_exercise_progress: {
         Args: {
           p_bucket?: string

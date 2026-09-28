@@ -1,6 +1,7 @@
 import { supabase } from '../../lib/supabase/client';
 import type {
   ExerciseProgressPoint,
+  ExerciseSetProgressPoint,
   ProgressActivityDay,
   ProgressBucket,
   ProgressExerciseOption,
@@ -138,6 +139,38 @@ export const progressRepository = {
           : numberValue(row.adherence_percent),
       };
     }).filter((point) => point.bucketStart);
+  },
+
+  async getExerciseSetProgress(input: {
+    exerciseId: string;
+    from: Date;
+    to: Date;
+  }): Promise<ExerciseSetProgressPoint[]> {
+    if (!supabase) throw new Error('Supabase is not available');
+
+    const { data, error } = await supabase.rpc('get_exercise_set_progress', {
+      p_exercise_id: input.exerciseId,
+      p_from: input.from.toISOString(),
+      p_to: input.to.toISOString(),
+    });
+
+    if (error) throw error;
+    const result = data && typeof data === 'object' && !Array.isArray(data)
+      ? data as Record<string, unknown>
+      : {};
+    const points = result.points;
+    if (!Array.isArray(points)) return [];
+
+    return points.map((point) => {
+      const row = point as Record<string, unknown>;
+      return {
+        sessionId: String(row.session_id ?? ''),
+        performedAt: String(row.performed_at ?? ''),
+        setNumber: numberValue(row.set_number),
+        reps: numberValue(row.reps),
+        weight: numberValue(row.weight),
+      };
+    }).filter((point) => point.sessionId && point.performedAt && point.weight > 0);
   },
 
   async getInsights(input: {

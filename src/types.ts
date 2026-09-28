@@ -293,6 +293,14 @@ export interface ExerciseProgressPoint {
   adherencePercent: number | null;
 }
 
+export interface ExerciseSetProgressPoint {
+  sessionId: string;
+  performedAt: string;
+  setNumber: number;
+  reps: number;
+  weight: number;
+}
+
 export interface ProgressActivityDay {
   date: string;
   sessions: number;
