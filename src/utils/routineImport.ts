@@ -81,6 +81,14 @@ export function parseAndValidatePayload(jsonText: string): RoutineExportPayload 
   return parsed as RoutineExportPayload;
 }
 
+export function resolveImportedExerciseNote(exportExercise: RoutineExportExercise): string | null {
+  const legacySetNote = exportExercise.sets
+    .map((set) => set.notes?.trim())
+    .find((note): note is string => !!note);
+
+  return exportExercise.notes?.trim() || legacySetNote || null;
+}
+
 // ─── Resolución de ejercicios ─────────────────────────────────────────────────
 
 /**
@@ -224,9 +232,12 @@ async function buildRoutineFromPayload(
         weight: s.weight ?? null,
         durationMinutes: s.durationMinutes ?? undefined,
         durationSeconds: s.durationSeconds ?? undefined,
-        notes: s.notes ?? undefined,
         targetType: ((s as any).targetType ?? 'fixed_reps') as any,
       }));
+
+      // Compatibilidad con archivos v1 antiguos, que repetían la misma nota
+      // dentro de cada serie en lugar de guardarla en el ejercicio de la rutina.
+      const exerciseNote = resolveImportedExerciseNote(exportExercise);
 
       const exercise: Exercise = {
         id: resolvedExerciseId,
@@ -237,6 +248,7 @@ async function buildRoutineFromPayload(
         measureUnit: (exportExercise.measureUnit as any) ?? 'kg',
         loadType: ((exportExercise as any).loadType ?? 'external') as any,
         sets,
+        notes: exerciseNote ?? undefined,
         isCustom: exportExercise.exerciseRef.isCustom,
       };
 
@@ -246,7 +258,7 @@ async function buildRoutineFromPayload(
         exercise,
         position: exportExercise.position,
         restSeconds: exportExercise.restSeconds ?? null,
-        notes: exportExercise.notes ?? null,
+        notes: exerciseNote,
       };
     });
 
@@ -354,7 +366,6 @@ async function persistImportedRoutine(routine: Routine): Promise<void> {
           weight: s.weight,
           duration_minutes: s.durationMinutes ?? null,
           duration_seconds: s.durationSeconds ?? null,
-          notes: s.notes ?? null,
           target_type: s.targetType ?? 'fixed_reps',
         }));
 

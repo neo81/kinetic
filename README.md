@@ -41,7 +41,7 @@ Mapas anatómicos interactivos (Frontal y Posterior) que proporcionan una interf
 - **Registro libre durante la sesión**: Se puede alternar entre ejercicios y cargar cualquier serie sin completar primero las restantes; la interfaz evita bloques de agrupación redundantes y conserva cada registro individual.
 - **Inicio posicionado en el día**: Al comenzar una sesión, la vista vuelve al encabezado del día iniciado aunque el usuario estuviera revisando una serie intermedia o final.
 - **Progresión automática de carga**: Al guardar una sesión, si todas las series de un ejercicio externo se registraron con el mismo peso superior y al menos una repetición, la rutina adopta esa nueva carga aunque las repeticiones hayan descendido. La actualización es atómica, conserva el plan durante sesiones canceladas y permanece disponible cuando la finalización queda en cola offline.
-- **Notas Globales**: Notas de entrenamiento persistentes que proporcionan contexto en todas las series de una instancia de ejercicio.
+- **Notas por ejercicio de rutina**: Cada ejercicio dentro de un día conserva una única nota compartida por sus series. Puede editarse durante una sesión activa sin salir del entrenamiento, se sincroniza al recuperar la conexión y cada sesión completada mantiene su propia copia histórica.
 - **Gestión de Series Fluida**: Añade o elimina series con un solo toque, con persistencia automática.
 
 ### 📊 Dashboard de Rendimiento

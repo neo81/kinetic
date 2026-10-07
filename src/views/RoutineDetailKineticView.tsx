@@ -903,6 +903,85 @@ const ConfirmDialog = ({
   );
 };
 
+const ExerciseNoteDialog = ({
+  open,
+  exerciseName,
+  notes,
+  isSaving,
+  onNotesChange,
+  onSave,
+  onCancel,
+}: {
+  open: boolean;
+  exerciseName: string;
+  notes: string;
+  isSaving: boolean;
+  onNotesChange: (notes: string) => void;
+  onSave: () => void;
+  onCancel: () => void;
+}) => {
+  const { t } = useLanguage();
+  if (!open) return null;
+
+  return (
+    <div className="theme-overlay fixed inset-0 z-[110] flex items-center justify-center px-5 backdrop-blur-md">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="exercise-note-title"
+        className="theme-elevated-surface w-full max-w-md rounded-[1.6rem] p-6"
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">
+              {t('exerciseEditor.notes')}
+            </p>
+            <h3 id="exercise-note-title" className="mt-2 text-xl font-bold leading-tight text-on-surface">
+              {exerciseName}
+            </h3>
+          </div>
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={isSaving}
+            className="theme-hairline-border flex h-10 w-10 shrink-0 items-center justify-center rounded-full border text-on-surface-variant"
+            aria-label={t('common.close')}
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <textarea
+          autoFocus
+          value={notes}
+          onChange={(event) => onNotesChange(event.target.value)}
+          placeholder={t('exerciseEditor.notesPlaceholder')}
+          className="theme-hairline-border mt-5 min-h-36 w-full resize-y rounded-[1rem] border bg-surface-container-high p-4 text-base leading-relaxed text-on-surface outline-none transition-colors focus:border-primary"
+        />
+
+        <div className="mt-5 grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={isSaving}
+            className="theme-hairline-border rounded-[0.9rem] border py-3 text-sm font-bold uppercase tracking-[0.12em] text-on-surface-variant"
+          >
+            {t('common.cancel')}
+          </button>
+          <button
+            type="button"
+            onClick={onSave}
+            disabled={isSaving}
+            className="flex items-center justify-center rounded-[0.9rem] bg-primary py-3 text-sm font-bold uppercase tracking-[0.12em] text-black disabled:opacity-70"
+          >
+            {isSaving ? <Loader2 size={18} className="animate-spin" /> : t('session.saveNote')}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export const RoutineDetailKineticView = ({
   setView,
   routine,
@@ -924,6 +1003,7 @@ export const RoutineDetailKineticView = ({
   onToggleExerciseComplete,
   onCaptureSetPerformance,
   onClearCapturedSetPerformance,
+  onUpdateExerciseNotes,
   onSwitchSessionDay,
 }: {
   setView: (v: View) => void;
@@ -946,6 +1026,7 @@ export const RoutineDetailKineticView = ({
   onToggleExerciseComplete: (exerciseInstanceId: string) => void;
   onCaptureSetPerformance: (exerciseId: string, setNumber: number, reps: number | null, weight: number | null, durationMin: number | null, durationSec: number | null, totalSets?: number) => void;
   onClearCapturedSetPerformance: (exerciseId: string, setNumber: number, totalSets?: number) => void;
+  onUpdateExerciseNotes: (dayId: string, exerciseInstanceId: string, notes: string) => Promise<void>;
   onSwitchSessionDay: (dayId: string) => void;
 }) => {
   const { language, t } = useLanguage();
@@ -962,6 +1043,13 @@ export const RoutineDetailKineticView = ({
   const [confirmCancelSession, setConfirmCancelSession] = useState(false);
   const [isRoutineActionsOpen, setIsRoutineActionsOpen] = useState(false);
   const [isEndingSession, setIsEndingSession] = useState(false);
+  const [exerciseNoteEditor, setExerciseNoteEditor] = useState<{
+    dayId: string;
+    exerciseInstanceId: string;
+    exerciseName: string;
+    notes: string;
+  } | null>(null);
+  const [isSavingExerciseNote, setIsSavingExerciseNote] = useState(false);
   const lastOpenedSessionDayRef = useRef<string | null>(null);
   const daySectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
@@ -1140,6 +1228,8 @@ export const RoutineDetailKineticView = ({
     const isSkipped = activeSession?.routineId === routine.id && isExerciseSkipped(activeSession, dayEx.id);
     const isCompleted = activeSession?.routineId === routine.id && isExerciseDoneForSession(activeSession, dayEx);
     const completedSetCount = getExerciseCompletedSetCount(activeSession, dayEx.id);
+    const exerciseNote = dayEx.notes ?? dayEx.exercise.notes ?? '';
+    const canEditNote = activeSession?.routineId === routine.id;
 
     return (
       <div key={dayEx.id || dayEx.exercise.name} className={`transition-all duration-300 ${isCompleted ? 'opacity-60 scale-[0.99]' : 'opacity-100 scale-100'}`}>
@@ -1265,12 +1355,44 @@ export const RoutineDetailKineticView = ({
           </div>
         )}
 
-        {dayEx.exercise.sets[0]?.notes && (
-                          <div className="theme-hairline-border theme-muted-surface mt-4 rounded-lg border p-3">
-<p className="theme-primary-text-soft mb-1 text-[8px] font-bold uppercase tracking-widest">{t('exerciseEditor.notes')}</p>
-            <p className="text-xs italic leading-relaxed text-on-surface-variant/90">"{dayEx.exercise.sets[0].notes}"</p>
+        {exerciseNote ? (
+          <div className="theme-hairline-border theme-muted-surface mt-4 rounded-lg border p-3">
+            <div className="flex items-center justify-between gap-3">
+              <p className="theme-primary-text-soft text-[9px] font-bold uppercase tracking-widest">{t('exerciseEditor.notes')}</p>
+              {canEditNote && (
+                <button
+                  type="button"
+                  onClick={() => setExerciseNoteEditor({
+                    dayId: day.id,
+                    exerciseInstanceId: dayEx.id,
+                    exerciseName: getExerciseDisplayName(dayEx.exercise, language),
+                    notes: exerciseNote,
+                  })}
+                  className="theme-interactive-hover flex h-8 w-8 items-center justify-center rounded-full text-on-surface-variant"
+                  aria-label={t('session.editNote')}
+                  title={t('session.editNote')}
+                >
+                  <Edit2 size={14} />
+                </button>
+              )}
+            </div>
+            <p className="mt-1 whitespace-pre-wrap text-sm italic leading-relaxed text-on-surface-variant/90">{exerciseNote}</p>
           </div>
-        )}
+        ) : canEditNote ? (
+          <button
+            type="button"
+            onClick={() => setExerciseNoteEditor({
+              dayId: day.id,
+              exerciseInstanceId: dayEx.id,
+              exerciseName: getExerciseDisplayName(dayEx.exercise, language),
+              notes: '',
+            })}
+            className="theme-hairline-border theme-muted-surface mt-4 flex w-full items-center justify-center gap-2 rounded-lg border px-3 py-3 text-xs font-bold uppercase tracking-[0.14em] text-on-surface-variant transition-colors hover:border-primary/50 hover:text-primary"
+          >
+            <Edit2 size={14} />
+            {t('session.addNote')}
+          </button>
+        ) : null}
 
                         {index < totalCount - 1 && <div className="theme-divider mt-4 h-px"></div>}
       </div>
@@ -1552,6 +1674,33 @@ export const RoutineDetailKineticView = ({
           setElapsedSessionMs(0);
           setIsSessionTimerRunning(false);
         }}
+      />
+
+      <ExerciseNoteDialog
+        open={!!exerciseNoteEditor}
+        exerciseName={exerciseNoteEditor?.exerciseName ?? ''}
+        notes={exerciseNoteEditor?.notes ?? ''}
+        isSaving={isSavingExerciseNote}
+        onNotesChange={(notes) => setExerciseNoteEditor((current) => (
+          current ? { ...current, notes } : current
+        ))}
+        onSave={async () => {
+          if (!exerciseNoteEditor || isSavingExerciseNote) return;
+          setIsSavingExerciseNote(true);
+          try {
+            await onUpdateExerciseNotes(
+              exerciseNoteEditor.dayId,
+              exerciseNoteEditor.exerciseInstanceId,
+              exerciseNoteEditor.notes,
+            );
+            setExerciseNoteEditor(null);
+          } catch {
+            // El aviso global explica el error y el editor queda abierto para reintentar.
+          } finally {
+            setIsSavingExerciseNote(false);
+          }
+        }}
+        onCancel={() => !isSavingExerciseNote && setExerciseNoteEditor(null)}
       />
 
       {setCapturePending && allExerciseSets && (

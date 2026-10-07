@@ -1066,6 +1066,42 @@ export const useAppState = () => {
     }
   };
 
+  const handleUpdateExerciseNotes = async (
+    dayId: string,
+    exerciseInstanceId: string,
+    notes: string,
+  ) => {
+    if (!currentRoutine) return;
+
+    try {
+      const updatedRoutine = await routinesRepository.updateExerciseNotes(
+        currentRoutine,
+        dayId,
+        exerciseInstanceId,
+        notes,
+      );
+      setCurrentRoutine(updatedRoutine);
+      setRoutines((previous) => previous.map((routine) => (
+        routine.id === updatedRoutine.id ? updatedRoutine : routine
+      )));
+
+      const repositoryNotice = consumeRoutinesRepositoryNotice();
+      setAppBanner(repositoryNotice ? {
+        level: 'warning',
+        title: t('routines.localSaveTitle'),
+        message: t('routines.localSaveMessage'),
+      } : null);
+    } catch (error) {
+      console.error('Error guardando la nota del ejercicio:', error);
+      setAppBanner({
+        level: 'error',
+        title: t('common.error'),
+        message: getErrorMessage(error, t('error.tryAgain')),
+      });
+      throw error;
+    }
+  };
+
   const handleDeleteRoutine = async (routineId: string) => {
     try {
       await routinesRepository.deleteRoutine(routineId);
@@ -1197,6 +1233,7 @@ export const useAppState = () => {
     handleSelectMuscle,
     handleSelectExercise,
     handleSaveExercise,
+    handleUpdateExerciseNotes,
     handleDeleteRoutine,
     handleDeleteRoutineDay,
     handleDeleteExercise,

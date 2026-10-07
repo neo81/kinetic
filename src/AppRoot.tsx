@@ -214,6 +214,7 @@ export default function AppRoot() {
         onSelectMuscle={app.handleSelectMuscle}
         onSelectExercise={app.handleSelectExercise}
         onSaveExercise={app.handleSaveExercise}
+        onUpdateExerciseNotes={app.handleUpdateExerciseNotes}
         onDeleteRoutine={app.handleDeleteRoutine}
         onDeleteRoutineDay={app.handleDeleteRoutineDay}
         onDeleteExercise={app.handleDeleteExercise}

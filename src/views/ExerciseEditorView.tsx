@@ -79,7 +79,7 @@ export const ExerciseEditorView = ({
   const [unit, setUnit] = useState<'kg' | 'min' | 'sec'>(initialUnit);
   const defaultLoadType: ExerciseLoadType = exercise?.loadType === 'bodyweight' ? 'bodyweight' : 'external';
   const [loadType, setLoadType] = useState<ExerciseLoadType>(defaultLoadType);
-  const initialNotes = exercise?.sets?.[0]?.notes || exercise?.notes || '';
+  const initialNotes = exercise?.notes || '';
   const [localNotes, setLocalNotes] = useState(initialNotes);
   const [showDescription, setShowDescription] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -179,7 +179,6 @@ export const ExerciseEditorView = ({
       weight: unit === 'kg' && loadType === 'external' ? (parseFloat(set.value || '0') || 0) : null,
       durationMinutes: unit === 'min' ? parseFloat(set.value || '0') || 0 : 0,
       durationSeconds: unit === 'sec' ? parseFloat(set.value || '0') || 0 : 0,
-      notes: localNotes,
       targetType: set.targetType,
     }));
 
@@ -190,7 +189,7 @@ export const ExerciseEditorView = ({
         sets: parsedSets,
         measureUnit: unit,
         loadType: unit === 'kg' ? loadType : 'external',
-        notes: localNotes,
+        notes: localNotes.trim() || undefined,
       });
     } finally {
       setIsSaving(false);

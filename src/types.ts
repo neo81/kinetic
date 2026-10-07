@@ -29,7 +29,6 @@ export type ExerciseTargetType = 'fixed_reps' | 'failure';
 export interface ExerciseSet {
   reps: number | null;
   weight: number | null;
-  notes?: string;
   setNumber?: number;
   durationMinutes?: number;
   durationSeconds?: number;

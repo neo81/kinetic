@@ -75,6 +75,66 @@ const commitLocalRoutines = (next: Routine[]) => {
   saveCachedRoutines(localRoutines);
 };
 
+const normalizeExerciseNote = (notes: string): string | null => notes.trim() || null;
+
+const applyExerciseNote = (
+  routine: Routine,
+  routineDayId: string,
+  exerciseInstanceId: string,
+  notes: string | null,
+): Routine => applyRoutineDerivedFields({
+  ...routine,
+  dayEntries: (routine.dayEntries ?? []).map((day) => (
+    day.id !== routineDayId
+      ? day
+      : {
+          ...day,
+          exercises: day.exercises.map((item) => (
+            item.id !== exerciseInstanceId
+              ? item
+              : {
+                  ...item,
+                  notes,
+                  exercise: {
+                    ...item.exercise,
+                    notes: notes ?? undefined,
+                  },
+                }
+          )),
+        }
+  )),
+  updatedAt: new Date().toISOString(),
+});
+
+const enqueueExerciseNoteSync = (
+  routineId: string,
+  routineDayId: string,
+  exerciseInstanceId: string,
+  notes: string | null,
+) => {
+  for (const item of syncQueue.getAll()) {
+    if (item.type !== 'routine_save' || !item.payload || typeof item.payload !== 'object') continue;
+    const payload = item.payload as { operation?: unknown; exerciseInstanceId?: unknown };
+    if (payload.operation === 'exercise_notes' && payload.exerciseInstanceId === exerciseInstanceId) {
+      syncQueue.remove(item.id);
+    }
+  }
+
+  syncQueue.add({
+    type: 'routine_save',
+    priority: 'normal',
+    payload: {
+      operation: 'exercise_notes',
+      routineId,
+      routineDayId,
+      exerciseInstanceId,
+      notes,
+    },
+    createdAt: Date.now(),
+    attemptCount: 0,
+  });
+};
+
 const mergeRemoteWithPendingLocal = (remote: Routine[], previousLocal: Routine[]): Routine[] => {
   const byId = new Map<string, Routine>();
   for (const routine of remote) {
@@ -90,6 +150,38 @@ const mergeRemoteWithPendingLocal = (remote: Routine[], previousLocal: Routine[]
   // is waiting in the durable offline queue. Once the queue item succeeds, the
   // same values already exist remotely and this guard becomes a no-op.
   for (const item of syncQueue.getAll()) {
+    if (item.type === 'routine_save' && item.payload && typeof item.payload === 'object') {
+      const payload = item.payload as {
+        operation?: unknown;
+        routineId?: unknown;
+        routineDayId?: unknown;
+        exerciseInstanceId?: unknown;
+        notes?: unknown;
+      };
+      if (
+        payload.operation === 'exercise_notes'
+        && typeof payload.routineId === 'string'
+        && typeof payload.routineDayId === 'string'
+        && typeof payload.exerciseInstanceId === 'string'
+        && (typeof payload.notes === 'string' || payload.notes === null)
+      ) {
+        const routine = byId.get(payload.routineId);
+        if (routine) {
+          const queuedNotes = payload.notes as string | null;
+          byId.set(
+            payload.routineId,
+            applyExerciseNote(
+              routine,
+              payload.routineDayId,
+              payload.exerciseInstanceId,
+              queuedNotes,
+            ),
+          );
+        }
+      }
+      continue;
+    }
+
     if (item.type !== 'session_end' || !item.payload || typeof item.payload !== 'object') continue;
 
     const payload = item.payload as {
@@ -282,7 +374,6 @@ const mapExercise = (
       weight: set.weight === null ? null : Number(set.weight),
       durationMinutes: Number(set.duration_minutes ?? 0),
       durationSeconds: Number(set.duration_seconds ?? 0),
-      notes: set.notes ?? undefined,
       targetType: (set as any).target_type || 'fixed_reps',
     })) ?? [],
   notes: routineExercise.notes ?? undefined,
@@ -367,7 +458,6 @@ const syncExerciseSets = async (
     weight: set.weight,
     duration_minutes: set.durationMinutes ?? null,
     duration_seconds: set.durationSeconds ?? null,
-    notes: set.notes ?? null,
     target_type: set.targetType ?? 'fixed_reps',
   }));
 
@@ -549,7 +639,6 @@ const listSupabaseRoutines = async (): Promise<Routine[] | null> => {
               duration_minutes,
               duration_seconds,
               target_type,
-              notes,
               created_at
             )
           )
@@ -1050,6 +1139,7 @@ export const routinesRepository = {
         // Actualizar existente
         newExercises[existingIndex] = {
           ...newExercises[existingIndex],
+          notes: exercise.notes?.trim() || null,
           exercise,
         };
       } else {
@@ -1059,6 +1149,7 @@ export const routinesRepository = {
           exerciseId: exercise.id,
           exercise,
           position: day.exercises.length + 1,
+          notes: exercise.notes?.trim() || null,
         });
       }
 
@@ -1120,6 +1211,55 @@ export const routinesRepository = {
     );
 
     return normalizedRoutine;
+  },
+
+  async updateExerciseNotes(
+    currentRoutine: Routine,
+    routineDayId: string,
+    exerciseInstanceId: string,
+    notes: string,
+  ): Promise<Routine> {
+    const normalizedNotes = normalizeExerciseNote(notes);
+    const updatedRoutine = applyExerciseNote(
+      currentRoutine,
+      routineDayId,
+      exerciseInstanceId,
+      normalizedNotes,
+    );
+
+    let savedRemotely = false;
+    if (supabase && !currentRoutine.syncPending) {
+      const { data, error } = await supabase
+        .from('routine_day_exercises')
+        .update({ notes: normalizedNotes })
+        .eq('id', exerciseInstanceId)
+        .select('id')
+        .single();
+
+      savedRemotely = !error && !!data;
+      if (error) {
+        console.error('Fallo el guardado remoto de la nota; se reintentará:', error);
+      }
+    }
+
+    if (!savedRemotely) {
+      enqueueExerciseNoteSync(
+        currentRoutine.id,
+        routineDayId,
+        exerciseInstanceId,
+        normalizedNotes,
+      );
+      setRepositoryNotice({ level: 'warning', code: 'localSave' });
+    }
+
+    ensureHydratedFromStorage();
+    commitLocalRoutines(
+      localRoutines.map((routine) => (
+        routine.id === updatedRoutine.id ? updatedRoutine : routine
+      )),
+    );
+
+    return updatedRoutine;
   },
 
   async reorderDayExercises(
@@ -1370,6 +1510,29 @@ export const routinesRepository = {
    */
 
   async handleRoutineSaveSync(payload: any): Promise<void> {
+    if (payload?.operation === 'exercise_notes') {
+      if (!supabase || typeof payload.exerciseInstanceId !== 'string') {
+        throw new Error('Invalid exercise note sync payload');
+      }
+
+      const notes = typeof payload.notes === 'string' ? payload.notes : null;
+      const { data, error } = await supabase
+        .from('routine_day_exercises')
+        .update({ notes })
+        .eq('id', payload.exerciseInstanceId)
+        .select('id')
+        .single();
+
+      if (error || !data) {
+        throw new RoutineRepositoryError(
+          mapSupabaseErrorCode(error?.message),
+          'No se pudo sincronizar la nota del ejercicio.',
+          { cause: error ?? undefined },
+        );
+      }
+      return;
+    }
+
     const { routine, input } = payload;
     console.log('[repository] Syncing routine save:', routine.id);
 

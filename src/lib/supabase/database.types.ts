@@ -140,7 +140,6 @@ export type Database = {
           duration_minutes: number | null
           duration_seconds: number | null
           id: string
-          notes: string | null
           reps: number | null
           routine_day_exercise_id: string
           set_number: number
@@ -152,7 +151,6 @@ export type Database = {
           duration_minutes?: number | null
           duration_seconds?: number | null
           id?: string
-          notes?: string | null
           reps?: number | null
           routine_day_exercise_id: string
           set_number: number
@@ -164,7 +162,6 @@ export type Database = {
           duration_minutes?: number | null
           duration_seconds?: number | null
           id?: string
-          notes?: string | null
           reps?: number | null
           routine_day_exercise_id?: string
           set_number?: number

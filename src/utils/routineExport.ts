@@ -25,7 +25,8 @@ export interface RoutineExportSet {
   weight: number | null;
   durationMinutes: number | null;
   durationSeconds: number | null;
-  notes: string | null;
+  /** Campo heredado: los archivos nuevos guardan la nota una sola vez en el ejercicio. */
+  notes?: string | null;
   targetType: string;
 }
 
@@ -110,7 +111,6 @@ export function buildRoutineExportPayload(
         weight: s.weight ?? null,
         durationMinutes: s.durationMinutes ?? null,
         durationSeconds: s.durationSeconds ?? null,
-        notes: s.notes ?? null,
         targetType: s.targetType ?? 'fixed_reps',
       }));
 

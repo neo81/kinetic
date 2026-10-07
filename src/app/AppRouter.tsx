@@ -71,6 +71,7 @@ type AppRouterProps = {
   onSelectMuscle: (muscle: string) => void;
   onSelectExercise: (exercise: Exercise, instanceId?: string) => void;
   onSaveExercise: (exercise: Exercise) => Promise<void>;
+  onUpdateExerciseNotes: (dayId: string, exerciseInstanceId: string, notes: string) => Promise<void>;
   onDeleteRoutine: (routineId: string) => void;
   onDeleteRoutineDay: (routineDayId: string) => void;
   onDeleteExercise: (exerciseId: string, dayId?: string) => void;
@@ -121,6 +122,7 @@ export const AppRouter = ({
   onSelectMuscle,
   onSelectExercise,
   onSaveExercise,
+  onUpdateExerciseNotes,
   onDeleteRoutine,
   onDeleteRoutineDay,
   onDeleteExercise,
@@ -260,6 +262,7 @@ export const AppRouter = ({
             onToggleExerciseComplete={onToggleExerciseComplete}
             onCaptureSetPerformance={onCaptureSetPerformance}
             onClearCapturedSetPerformance={onClearCapturedSetPerformance}
+            onUpdateExerciseNotes={onUpdateExerciseNotes}
             onSwitchSessionDay={onSwitchSessionDay}
             onDeleteRoutine={onDeleteRoutine}
             onDeleteRoutineDay={onDeleteRoutineDay}
