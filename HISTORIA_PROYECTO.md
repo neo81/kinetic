@@ -1,5 +1,29 @@
 # Historia del Proyecto Kinetic
 
+## 2026-10-21 - Inicio e historial: consultas repetidas
+
+- Se evita mostrar login entre la recuperacion de autenticacion y el dashboard. Se deduplican eventos de autenticacion del mismo usuario, se sacan las consultas del callback de auth y se elimina la espera fija adicional de 500 ms.
+- Cargas de inicio independientes en paralelo; backfill estadistico fuera de la espera de arranque.
+- Cache de historial compartida con dashboard, en memoria y aislada por usuario. Vigencia de 60 segundos, deduplicacion de consultas en vuelo, actualizacion en segundo plano al volver e invalidacion al completar sesiones o salir.
+- Verificacion: 143 pruebas unitarias aprobadas, TypeScript y build correctos. Playwright con latencia simulada de 1500 ms en historial y 3500 ms por consulta de perfil: tres visitas repetidas de escritorio de 179/163/164 ms, cero consultas adicionales y sin destello de login. Son tiempos locales controlados, no mediciones de Supabase o telefonos reales.
+- La primera descarga aun obtiene el historial completo; paginacion o resumen remoto se mantienen como una optimizacion posterior, sin modificar schema en esta entrega.
+- Chromium movil (393x852) con sesion activa simulada: visitas de 145/148/166 ms, cero consultas extra y serie registrada preservada. El recorrido inicial hasta historial duro 7047 ms con las demoras artificiales indicadas.
+
+## 2026-10-21 - Series confirmadas y respuestas tardias
+
+- Detectada una carrera en `syncActiveSessionFromStorage`: la comprobacion remota restauraba una copia tomada antes de esperar la respuesta, pudiendo perder visualmente una serie recien confirmada.
+- La reconciliacion usa el estado actual de React y relee el almacenamiento al responder. Conserva las capturas y desmarcados explicitos, ignora respuestas de sesiones anteriores y no borra progreso por errores de red.
+- Pruebas de regresion para respuesta demorada, restauracion inicial, cancelacion local, cambio de sesion y estados terminales remotos. Sin nuevas consultas, cambios de interfaz o modificaciones en Supabase.
+
+## 2026-10-21 - Ajuste bidireccional de pesos
+
+- Se permite actualizar la carga planificada al bajar o subir el peso uniforme registrado, solo al finalizar la sesion.
+- Se conservan las validaciones existentes y la proteccion contra sobrescritura de ediciones concurrentes. No cambia la UX ni se agregan consultas.
+- Migracion `20261021220837_allow_session_weight_decreases.sql`: cambia exclusivamente la comparacion en la funcion desplegada, preservando el resto de su definicion.
+- Pruebas locales para disminuciones, carga igual, carga mixta, series incompletas, cero y repeticiones invalidas. Prueba SQL transaccional para aumentos, disminuciones y reintentos sin dejar datos de prueba.
+- Los cambios de seguridad pendientes quedan fuera de este ajuste.
+- Migracion aplicada en Supabase. TypeScript sin errores y 131 pruebas locales aprobadas.
+
 Este archivo consolida la documentacion historica que antes estaba repartida en multiples `.md`.
 No reemplaza a `README.md` ni al dump tecnico de Supabase.
 
@@ -335,6 +359,20 @@ Se mejoro la biblioteca de ejercicios y la lectura del progreso sin alterar la c
   - La linea base queda en 125 pruebas aprobadas, TypeScript sin errores y build correcto. El build PWA genera el service worker y precarga 67 recursos (aproximadamente 3,90 MiB, incluidas las fuentes locales); Progreso queda aislado en un bloque diferido de aproximadamente 41 kB y el informe exportable se carga solo al solicitarlo en otro bloque de aproximadamente 13 kB, sin reintroducir advertencias por tamano de chunks.
 
 Correccion visual del footer en tema claro: una comparacion local en Edge reprodujo el segundo arco gris dentro de la burbuja seleccionada. Se desactiva su pseudo-elemento `::after`, que agregaba un borde interno y una sombra inferior. Los ajustes previos sobre la capsula exterior no corregian esta capa del indicador activo.
+
+### 2026-10-13 - Primera prioridad de seguridad, pendiente de validacion remota
+
+- Preparada la migracion `20261013223015_guard_session_reference_ownership.sql`:
+  valida referencias antes de los snapshots y elimina sus privilegios elevados.
+- Las consultas usan IDs y los indices existentes; no se modifican pantallas,
+  dependencias ni datos historicos. El costo efectivo queda pendiente de medir.
+- Preparada prueba SQL transaccional con rollback: acceso propio, referencias
+  ajenas en INSERT/UPDATE, snapshots, 120 series, reintento, rechazo atomico de
+  payload ajeno y conservacion de historial al eliminar la rutina de prueba.
+- La ejecucion SQL remota fue cancelada. Verificacion posterior: cero rutinas o
+  ejercicios de prueba y migracion no aplicada. No se avanzo al rate limiting.
+- TypeScript sin errores y 125 pruebas locales aprobadas. Estas pruebas no
+  sustituyen la validacion SQL de aislamiento y rendimiento pendiente.
 
 ## Documentos consolidados
 

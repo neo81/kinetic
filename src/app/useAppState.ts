@@ -3,6 +3,8 @@ import type { User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase/client';
 import type { Database, Json } from '../lib/supabase/database.types';
 import { initialRoutines } from './initialData';
+import { clearSessionHistoryCache } from '../features/routines/sessionHistoryCache';
+import { reconcileActiveSession } from './reconcileActiveSession';
 import { consumeRoutinesRepositoryNotice, routinesRepository } from '../features/routines/repository';
 import { RoutineRepositoryError } from '../features/routines/errors';
 import type { ActiveSession, Exercise, Routine, SessionWeightProgression, UserProfile, View } from '../types';
@@ -301,15 +303,13 @@ export const useAppState = () => {
       .eq('id', persisted.id)
       .maybeSingle();
 
-    if (error || !data || data.status !== 'in_progress' || !data.routine_id) {
-      persistActiveSession(null);
-      setActiveSession(null);
-      return;
-    }
-
-    setActiveSession({
-      ...persisted,
-      routineId: data.routine_id,
+    setActiveSession((current) => {
+      const latestStored = loadPersistedActiveSession();
+      const next = reconcileActiveSession(current, latestStored, persisted.id, data, !!error);
+      if (!error && latestStored?.id === persisted.id && next === null) {
+        persistActiveSession(null);
+      }
+      return next;
     });
   }, []);
 
@@ -329,14 +329,18 @@ export const useAppState = () => {
   }, [currentRoutine, routines, view]);
 
   useEffect(() => {
+    let handledUserId: string | null | undefined;
+    let disposed = false;
     const fallbackTimeout = setTimeout(() => {
       setIsAppLoading((loading) => {
+        if (!authInitialized.current) return loading;
         if (loading) console.warn('Forcing splash screen hide after timeout');
         return false;
       });
     }, 6000); // Dar un poco más de margen en iOS
 
     if (!supabase) {
+      setIsAppLoading(false);
       // Si supabase no está configurado, no hacer nada más
       return () => {
         clearTimeout(fallbackTimeout);
@@ -344,30 +348,36 @@ export const useAppState = () => {
     }
 
     const handleAuthState = async (session: any) => {
+      if (disposed) return;
+      const nextUserId = session?.user?.id ?? null;
+      if (handledUserId === nextUserId) return;
+      handledUserId = nextUserId;
+      authInitialized.current = true;
       try {
         const isNowLoggedIn = !!session;
         setIsLoggedIn(isNowLoggedIn);
         setUser(session?.user ?? null);
 
         if (isNowLoggedIn) {
+          setView((current) => current === 'login' ? 'dashboard' : current);
+          void ensureWeeklyStatsBackfilled(session.user.id).catch(error => {
+            console.error('Error updating weekly statistics:', error);
+          });
           try {
-            await ensureProfileExists(session.user);
-            // Parallelize profile, theme, and backfill operations
+            // Load independent startup data concurrently; statistics run separately.
             await Promise.all([
-              loadProfile(session.user.id),
+              ensureProfileExists(session.user).then(() => {
+                if (!disposed && handledUserId === nextUserId) return loadProfile(session.user.id);
+              }),
               loadUserPreferences(session.user.id),
-              ensureWeeklyStatsBackfilled(session.user.id),
+              syncRoutinesRef.current(),
+              syncActiveSessionFromStorage(),
             ]);
           } catch (error) {
             console.error('Error cargando perfil o backfill:', error);
           }
-          // Parallelize routine and session sync
-          await Promise.all([
-            syncRoutinesRef.current(),
-            syncActiveSessionFromStorage(),
-          ]);
-          setView((current) => current === 'login' ? 'dashboard' : current);
         } else {
+          clearSessionHistoryCache();
           setRoutines(initialRoutines);
           setProfile(null);
           setActiveSession(null);
@@ -379,15 +389,15 @@ export const useAppState = () => {
         }
       } finally {
         authInitialized.current = true;
-        // Un pequeño delay para que React procese los cambios de estado antes de quitar el splash
-        setTimeout(() => setIsAppLoading(false), 500);
+        if (!disposed) setIsAppLoading(false);
       }
     };
 
     // 1. Escuchar cambios
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       // En iOS PWA, a veces el evento INITIAL_SESSION no llega rapido
-      handleAuthState(session);
+      // Run outside the auth callback so data requests do not wait on its lock.
+      setTimeout(() => { if (!disposed) void handleAuthState(session); }, 0);
     });
 
     // 2. Verificación inmediata
@@ -398,6 +408,7 @@ export const useAppState = () => {
     });
 
     return () => {
+      disposed = true;
       clearTimeout(fallbackTimeout);
       subscription.unsubscribe();
     };
@@ -495,6 +506,7 @@ export const useAppState = () => {
   };
 
   const handleLogout = async () => {
+    clearSessionHistoryCache();
     if (supabase) {
       await supabase.auth.signOut({ scope: 'global' }).catch(console.error);
     }

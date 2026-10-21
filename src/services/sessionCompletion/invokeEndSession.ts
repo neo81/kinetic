@@ -1,4 +1,5 @@
 import { supabase } from '../../lib/supabase/client';
+import { clearSessionHistoryCache } from '../../features/routines/sessionHistoryCache';
 import type { Json } from '../../lib/supabase/database.types';
 import { validateSessionPayload } from './validateSessionPayload';
 
@@ -95,6 +96,7 @@ export async function invokeEndSession(input: InvokeEndSessionInput): Promise<vo
       }
 
       console.log(`[invokeEndSession] ✓ Successfully ended session ${input.sessionId} on attempt ${attempt + 1}`, data);
+      clearSessionHistoryCache();
       return; // Success!
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') {

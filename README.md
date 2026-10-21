@@ -1,3 +1,19 @@
+## Rendimiento de inicio e historial
+
+- La vista autenticada se decide antes de las cargas secundarias; la renovacion de autenticacion del mismo usuario no vuelve a cargar todos los datos.
+- Perfil, preferencias, rutinas y recuperacion de sesion se cargan en paralelo. El backfill estadistico no bloquea el inicio.
+- Dashboard e historial comparten una cache en memoria por usuario (60 segundos). Al volver se muestra la copia disponible y, si vencio, se actualiza sin ocultarla.
+- La cache se invalida al guardar una sesion, tambien desde la cola offline, y al salir de la cuenta. Los errores no se guardan como historiales vacios.
+- Prueba aislada: `npx playwright test tests/e2e/startup-history-performance.spec.ts`. Simula latencia y una sesion activa; no escribe datos en Supabase.
+
+## Ajuste de pesos al finalizar una sesion
+
+La comprobacion del estado remoto de una sesion conserva las series registradas durante la espera de red. Las respuestas antiguas no restauran sesiones canceladas/finalizadas ni reemplazan otra sesion; los errores de conexion no borran el progreso local.
+
+Los pesos de un ejercicio se actualizan tanto al subir como al bajar la carga. Se mantienen los requisitos: todas las series registradas, cargas uniformes y positivas, repeticiones positivas y carga externa en KG. No se sobrescriben ediciones posteriores de la rutina. El ajuste se realiza al finalizar, no al confirmar cada serie.
+
+Validacion SQL reversible: `tests/security/session-weight-adjustment.sql` (aumentos, disminuciones y reintentos; termina con `rollback`).
+
 <div align="center">
   <img width="1200" height="auto" alt="Kinetic Banner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
   
@@ -13,6 +29,17 @@
 </div>
 
 ---
+
+### Seguridad: aislamiento de sesiones (preparado, pendiente de aplicar)
+
+La migracion `20261013223015_guard_session_reference_ownership.sql` agrega
+validaciones de propiedad antes de capturar los datos historicos de sesiones,
+dias, ejercicios y series. Conserva las referencias nulas del historial al
+eliminar rutinas y no agrega solicitudes desde el navegador.
+La prueba `tests/security/session-reference-ownership.sql` usa una transaccion
+con rollback, cubre accesos cruzados y finalizacion/reintento de 120 series.
+La ejecucion remota fue cancelada; la migracion no esta aplicada y su rendimiento
+en base de datos todavia no esta validado. No desplegar sin completar esa prueba.
 
 # 🇪🇸 Español (Neutro)
 

@@ -5,7 +5,7 @@ const allEqual = (values: number[]) => values.every((value) => value === values[
 /**
  * Detects conservative weight progressions from the session being completed.
  * Repetition targets may be missed, but every planned set must be recorded with
- * at least one repetition and the same higher external load.
+ * at least one repetition and the same changed external load.
  */
 export function deriveSessionWeightProgressions(
   activeSession: ActiveSession,
@@ -57,7 +57,7 @@ export function deriveSessionWeightProgressions(
 
       const previousWeight = plannedWeights[0] as number;
       const newWeight = actualWeights[0] as number;
-      if (newWeight <= previousWeight) continue;
+      if (newWeight === previousWeight) continue;
 
       progressions.push({
         routineDayExerciseId: dayExercise.id,

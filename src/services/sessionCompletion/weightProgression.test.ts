@@ -56,6 +56,24 @@ const buildSession = (values: Array<[number, number]>): ActiveSession => ({
 });
 
 describe('session weight progression', () => {
+  it('lowers all planned weights without changing the original plan snapshot', () => {
+    const routine = buildRoutine();
+    const changes = deriveSessionWeightProgressions(buildSession([[12, 10], [8, 10], [6, 10]]), routine);
+    expect(changes).toEqual([{ routineDayExerciseId: 'routine-exercise-1', previousWeight: 15, newWeight: 10 }]);
+    expect(applyWeightProgressionsToRoutine(routine, changes).dayEntries![0].exercises[0].exercise.sets.map(set => set.weight)).toEqual([10, 10, 10]);
+    expect(routine.dayEntries![0].exercises[0].exercise.sets.map(set => set.weight)).toEqual([15, 15, 15]);
+  });
+
+  it.each([
+    [[12, 15], [12, 15], [12, 15]],
+    [[12, 10], [12, 10]],
+    [[12, 10], [12, 10], [12, 12]],
+    [[12, 0], [12, 0], [12, 0]],
+    [[12, 10], [0, 10], [12, 10]],
+  ])('keeps the plan for unchanged or ineligible loads: %j', (...values) => {
+    expect(deriveSessionWeightProgressions(buildSession(values.map(([reps, weight]) => [reps, weight])), buildRoutine())).toEqual([]);
+  });
+
   it('exports the routine exercise instance needed by the atomic database update', () => {
     const payload = exportSessionDataForRPC(
       buildSession([[12, 20], [11, 20], [8, 20]]),

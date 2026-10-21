@@ -1,4 +1,5 @@
 import { supabase } from '../../lib/supabase/client';
+import { getCachedSessionHistory } from './sessionHistoryCache';
 import type { Database } from '../../lib/supabase/database.types';
 import type { Exercise, Routine, CompletedSession, UserGoals, WeeklyStats, DashboardData, SessionWeightProgression } from '../../types';
 import { mapSupabaseErrorCode, RoutineRepositoryError } from './errors';
@@ -772,7 +773,10 @@ const saveSupabaseRoutine = async (
   return routines?.find((routine) => routine.id === routineId) ?? null;
 };
 
-const fetchCompletedSessions = async (userId: string): Promise<CompletedSession[]> => {
+const fetchCompletedSessions = (userId: string): Promise<CompletedSession[]> =>
+  getCachedSessionHistory(userId, () => fetchCompletedSessionsRemote(userId));
+
+const fetchCompletedSessionsRemote = async (userId: string): Promise<CompletedSession[]> => {
   if (!supabase) {
     return [];
   }
@@ -830,7 +834,7 @@ const fetchCompletedSessions = async (userId: string): Promise<CompletedSession[
 
     if (error) {
       console.error('Error fetching completed sessions:', error);
-      return [];
+      throw error;
     }
 
     if (!data || data.length === 0) {
@@ -946,7 +950,7 @@ const fetchCompletedSessions = async (userId: string): Promise<CompletedSession[
     return sessions;
   } catch (error) {
     console.error('Error in fetchCompletedSessions:', error);
-    return [];
+    throw error;
   }
 };
 

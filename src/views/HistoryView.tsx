@@ -3,6 +3,7 @@ import { ChevronDown, History, RotateCcw } from 'lucide-react';
 import { supabase } from '../lib/supabase/client';
 import { PageShell } from '../components/layout/PageShell';
 import { routinesRepository } from '../features/routines/repository';
+import { peekSessionHistory } from '../features/routines/sessionHistoryCache';
 import type { View, CompletedSession, CompletedSessionSet, UserProfile } from '../types';
 import { formatSessionDate, formatSessionDuration, formatSessionVolume } from '../utils/formatting';
 import { useLanguage } from '../i18n/LanguageContext';
@@ -46,9 +47,9 @@ export const HistoryView = ({
 }) => {
   const { language, t } = useLanguage();
   const [section, setSection] = useState<'sessions' | 'progress'>(initialSection);
-  const [sessions, setSessions] = useState<CompletedSession[]>([]);
+  const [sessions, setSessions] = useState<CompletedSession[]>(() => peekSessionHistory(profile?.id) ?? []);
   const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !peekSessionHistory(profile?.id));
   const [hasError, setHasError] = useState(false);
   const getDayLabel = (day: CompletedSession['days'][number]) => day.dayType === 'core'
     ? 'Core'
@@ -70,21 +71,25 @@ export const HistoryView = ({
         return;
       }
 
-      setLoading(true);
+      const cached = peekSessionHistory(session.user.id);
+      if (cached) setSessions(cached);
+      setLoading(!cached);
       setHasError(false);
       const completedSessions = await routinesRepository.getCompletedSessions(session.user.id);
       setSessions(completedSessions);
     } catch (err) {
       console.error('Error loading completed sessions:', err);
-      setHasError(true);
-      setSessions([]);
+      if (!peekSessionHistory(profile?.id)) {
+        setHasError(true);
+        setSessions([]);
+      }
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (section === 'sessions' && sessions.length === 0 && !hasError) loadSessions();
+    if (section === 'sessions') void loadSessions();
   }, [section]);
 
   return (
