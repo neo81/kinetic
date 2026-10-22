@@ -1,11 +1,23 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { clearSessionHistoryCache, getCachedSessionHistory, peekSessionHistory } from './sessionHistoryCache';
+import { clearSessionHistoryCache, getCachedSessionHistory, peekLoadedSessionHistory, peekSessionHistory } from './sessionHistoryCache';
 import type { CompletedSession } from '../../types';
 
 beforeEach(() => clearSessionHistoryCache());
 afterEach(() => vi.useRealTimers());
 
 describe('history cache performance and isolation', () => {
+  it('retains older pages after leaving and returning to history', async () => {
+    const sessions = Array.from({ length: 26 }, (_, index) => ({ id: `session-${index}` })) as CompletedSession[];
+    const first = vi.fn(async () => sessions.slice(0, 21));
+    const older = vi.fn(async () => sessions.slice(20));
+    await getCachedSessionHistory('a', first);
+    await getCachedSessionHistory('a', older, 1);
+    expect(peekLoadedSessionHistory('a')?.sessions.map(session => session.id)).toEqual(sessions.map(session => session.id));
+    await getCachedSessionHistory('a', older, 1);
+    expect(older).toHaveBeenCalledTimes(1);
+    clearSessionHistoryCache();
+    expect(peekLoadedSessionHistory('a')).toBeUndefined();
+  });
   it('serves five repeat visits with one slow request, including concurrent consumers', async () => {
     vi.useFakeTimers();
     const fetcher = vi.fn(async () => {

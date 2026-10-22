@@ -1,5 +1,29 @@
 # Historia del Proyecto Kinetic
 
+## 2026-10-22 - Ventana del dashboard e historial paginado
+
+- El dashboard solicita solo las sesiones desde el domingo de la semana anterior. Las estadisticas mantienen la misma definicion de semanas, totales y comparaciones.
+- El historial solicita 21 sesiones para mostrar 20 y saber si quedan mas. "Cargar sesiones anteriores" permite llegar a todas las sesiones con sus ejercicios y series.
+- Las paginas consultadas se conservan en memoria por usuario durante 60 segundos. Al volver al historial se restauran las paginas abiertas; finalizar una sesion o cerrar la cuenta invalida la cache.
+- La consulta usa `ended_at` e `id` como orden estable, y el indice existente `routine_sessions_user_status_ended_at_idx`; no requiere migracion SQL.
+- Pruebas locales: ventana semanal, aislamiento de cache y restauracion de paginas. Prueba de navegador con latencia simulada: peticiones 0-20 y 20-40, navegacion repetida durante una sesion activa, detalles existentes y sin consultas adicionales al volver.
+
+## 2026-10-22 - Retiro de fuente externa sin uso
+
+- Se quitaron de `index.html` la hoja Material Symbols y las preconexiones a Google Fonts. No hay usos de esa familia en los componentes/estilos; Inter y Barlow Condensed siguen siendo locales y se mantienen los SVG de Lucide.
+- Se retiraron de Workbox las dos reglas de cache de Google Fonts. La compilacion regenera el service worker y la revision del HTML; no cambia la estrategia de actualizacion de la PWA.
+- Comparacion controlada de produccion, viewport 393x852, CPU x4, red 200000 bytes/s y 150 ms de latencia, cache vacia y service worker desactivado: LCP con hoja externa 6628/5420/5432 ms; sin ella 5252/5260/5228 ms. Medianas 5432 y 5252 ms. Las seis capturas del login tuvieron el mismo hash, sin diferencias visuales.
+- En esta comparacion se observo la hoja externa de 631 bytes, pero no se reprodujo la descarga de fuente de 414 KB registrada en la auditoria anterior; no se atribuye ese ahorro a estas mediciones.
+- Las pruebas de navegador comprueban ausencia de solicitudes a Google Fonts en login y recorrido autenticado, y conservacion de los iconos SVG del footer. Sin cambios de Supabase, flujo de entrenamiento o seguridad.
+
+## 2026-10-21 - Cronometro aislado
+
+- Punto de recuperacion previo: commit `ec0be71`, enviado a `kinetic/main`. La migracion de seguridad pendiente y su prueba permanecen fuera del commit.
+- Estado y actualizaciones del cronometro manual movidos al modal mediante `useStopwatch`, sin cambiar controles ni estilos.
+- Se reemplaza el intervalo de 10 ms de la vista de rutina por refrescos de animacion locales, solo con modal abierto y documento visible. El tiempo se calcula por marcas de reloj, no sumando ticks.
+- No cambia el temporizador de descanso ni el registro de series. No se incorporan notificaciones en segundo plano ni persistencia al desmontar la vista.
+- Cuatro pruebas verifican aislamiento del padre, cierre y reapertura, visibilidad, pausa, continuar, reiniciar y limpieza al desmontar.
+
 ## 2026-10-21 - Inicio e historial: consultas repetidas
 
 - Se evita mostrar login entre la recuperacion de autenticacion y el dashboard. Se deduplican eventos de autenticacion del mismo usuario, se sacan las consultas del callback de auth y se elimina la espera fija adicional de 500 ms.

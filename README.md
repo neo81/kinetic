@@ -1,8 +1,13 @@
 ## Rendimiento de inicio e historial
 
+La app usa tipografias locales (Inter y Barlow Condensed) e iconos SVG de Lucide. Se retiro la hoja externa de Material Symbols y sus preconexiones/reglas de cache de Google Fonts, sin cambiar las tipografias ni los iconos existentes.
+
+El cronometro manual mantiene su estado dentro de su propio componente: no vuelve a renderizar la rutina en cada refresco. Solo anima mientras esta abierto y la pagina esta visible; al volver calcula el tiempo por marcas de reloj. No agrega alarmas en segundo plano ni persistencia tras recargar o salir de la vista de rutina.
+
 - La vista autenticada se decide antes de las cargas secundarias; la renovacion de autenticacion del mismo usuario no vuelve a cargar todos los datos.
 - Perfil, preferencias, rutinas y recuperacion de sesion se cargan en paralelo. El backfill estadistico no bloquea el inicio.
-- Dashboard e historial comparten una cache en memoria por usuario (60 segundos). Al volver se muestra la copia disponible y, si vencio, se actualiza sin ocultarla.
+- El dashboard consulta solamente las sesiones de la semana actual y anterior, necesarias para sus estadisticas. El historial carga 20 sesiones por pagina y conserva las paginas abiertas en una cache en memoria por usuario (60 segundos). Al volver se muestran los datos disponibles y, si vencieron, se actualizan sin ocultarlos.
+- El boton "Cargar sesiones anteriores" permite recorrer el historial completo. Cada pagina conserva el detalle de sus ejercicios y series.
 - La cache se invalida al guardar una sesion, tambien desde la cola offline, y al salir de la cuenta. Los errores no se guardan como historiales vacios.
 - Prueba aislada: `npx playwright test tests/e2e/startup-history-performance.spec.ts`. Simula latencia y una sesion activa; no escribe datos en Supabase.
 

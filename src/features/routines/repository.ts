@@ -1,5 +1,6 @@
 import { supabase } from '../../lib/supabase/client';
 import { getCachedSessionHistory } from './sessionHistoryCache';
+import { dashboardHistoryStart, HISTORY_PAGE_SIZE } from './historyWindow';
 import type { Database } from '../../lib/supabase/database.types';
 import type { Exercise, Routine, CompletedSession, UserGoals, WeeklyStats, DashboardData, SessionWeightProgression } from '../../types';
 import { mapSupabaseErrorCode, RoutineRepositoryError } from './errors';
@@ -773,16 +774,19 @@ const saveSupabaseRoutine = async (
   return routines?.find((routine) => routine.id === routineId) ?? null;
 };
 
-const fetchCompletedSessions = (userId: string): Promise<CompletedSession[]> =>
-  getCachedSessionHistory(userId, () => fetchCompletedSessionsRemote(userId));
+const fetchCompletedSessions = (userId: string, page: number): Promise<CompletedSession[]> =>
+  getCachedSessionHistory(userId, () => fetchCompletedSessionsRemote(userId, { page }), page);
 
-const fetchCompletedSessionsRemote = async (userId: string): Promise<CompletedSession[]> => {
+const fetchCompletedSessionsRemote = async (
+  userId: string,
+  options: { page: number } | { from: Date },
+): Promise<CompletedSession[]> => {
   if (!supabase) {
     return [];
   }
 
   try {
-    const { data, error } = await supabase
+    let query = supabase
       .from('routine_sessions')
       .select(`
         id,
@@ -830,7 +834,16 @@ const fetchCompletedSessionsRemote = async (userId: string): Promise<CompletedSe
       `)
       .eq('user_id', userId)
       .eq('status', 'completed')
-      .order('ended_at', { ascending: false });
+      .order('ended_at', { ascending: false })
+      .order('id', { ascending: false });
+
+    if ('page' in options) {
+      const start = options.page * HISTORY_PAGE_SIZE;
+      query = query.range(start, start + HISTORY_PAGE_SIZE);
+    } else {
+      query = query.gte('ended_at', options.from.toISOString());
+    }
+    const { data, error } = await query;
 
     if (error) {
       console.error('Error fetching completed sessions:', error);
@@ -1405,8 +1418,8 @@ export const routinesRepository = {
     return updatedRoutine;
   },
 
-  async getCompletedSessions(userId: string): Promise<CompletedSession[]> {
-    return fetchCompletedSessions(userId);
+  async getCompletedSessions(userId: string, page = 0): Promise<CompletedSession[]> {
+    return fetchCompletedSessions(userId, page);
   },
 
   async getUserGoals(userId: string): Promise<UserGoals> {
@@ -1415,8 +1428,10 @@ export const routinesRepository = {
 
   async getDashboardData(userId: string): Promise<DashboardData> {
     try {
-      const allSessions = await fetchCompletedSessions(userId);
-      const goals = await fetchUserGoals(userId);
+      const [allSessions, goals] = await Promise.all([
+        fetchCompletedSessionsRemote(userId, { from: dashboardHistoryStart() }),
+        fetchUserGoals(userId),
+      ]);
 
       // Calculate this week and last week stats
       const thisWeek = calculateWeeklyStats(allSessions, 0);

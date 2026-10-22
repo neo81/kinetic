@@ -22,6 +22,7 @@ import { useLanguage } from '../i18n/LanguageContext';
 import type { TranslationKey } from '../i18n/translations';
 import { getExerciseDisplayName } from '../i18n/exerciseLocalization';
 import { SessionElapsedPill } from '../components/SessionElapsedPill';
+import { useStopwatch } from '../features/restTimer/useStopwatch';
 import { formatRestTimerPreset, MAX_REST_TIMER_PRESETS } from '../features/restTimer/presets';
 
 type Translator = (key: TranslationKey) => string;
@@ -621,19 +622,12 @@ const RestTimerModal = ({
 const SessionStopwatchModal = ({
   open,
   onClose,
-  elapsedMs,
-  isRunning,
-  onToggleRunning,
-  onReset,
 }: {
   open: boolean;
   onClose: () => void;
-  elapsedMs: number;
-  isRunning: boolean;
-  onToggleRunning: () => void;
-  onReset: () => void;
 }) => {
   const { t } = useLanguage();
+  const { elapsedMs, isRunning, toggleRunning, reset } = useStopwatch(open);
   if (!open) {
     return null;
   }
@@ -653,14 +647,14 @@ const SessionStopwatchModal = ({
 
       <div className="mt-8 grid grid-cols-2 gap-3">
         <button
-          onClick={onToggleRunning}
+          onClick={toggleRunning}
           className="neon-button flex items-center justify-center gap-3 rounded-[0.95rem] py-4 font-headline text-[1.2rem] font-semibold uppercase tracking-[0.16em]"
         >
           <Play size={16} fill="currentColor" />
           {isRunning ? t('session.pause') : t('session.start')}
         </button>
         <button
-          onClick={onReset}
+          onClick={reset}
           className="theme-hairline-border flex items-center justify-center gap-2 rounded-[0.95rem] border py-4 text-sm font-bold uppercase tracking-[0.18em] text-on-surface-variant transition-colors hover:text-on-surface"
         >
           <RotateCcw size={15} />
@@ -1032,8 +1026,6 @@ export const RoutineDetailKineticView = ({
   const { language, t } = useLanguage();
   const [isRestTimerOpen, setIsRestTimerOpen] = useState(false);
   const [isSessionTimerOpen, setIsSessionTimerOpen] = useState(false);
-  const [elapsedSessionMs, setElapsedSessionMs] = useState(0);
-  const [isSessionTimerRunning, setIsSessionTimerRunning] = useState(false);
 
   // Estados de confirmación
   const [confirmRoutineDelete, setConfirmRoutineDelete] = useState(false);
@@ -1093,18 +1085,6 @@ export const RoutineDetailKineticView = ({
       };
     }
   }, [activeSession?.id, activeSession?.activeRoutineDayId, activeSession?.routineId, routine?.id, onOpenDayChange]);
-
-  useEffect(() => {
-    if (!isSessionTimerRunning) {
-      return;
-    }
-
-    const timer = window.setInterval(() => {
-      setElapsedSessionMs((current) => current + 10);
-    }, 10);
-
-    return () => window.clearInterval(timer);
-  }, [isSessionTimerRunning]);
 
   const handleSetCaptureClose = () => {
     setSetCapturePending(null);
@@ -1667,13 +1647,6 @@ export const RoutineDetailKineticView = ({
       <SessionStopwatchModal
         open={isSessionTimerOpen}
         onClose={() => setIsSessionTimerOpen(false)}
-        elapsedMs={elapsedSessionMs}
-        isRunning={isSessionTimerRunning}
-        onToggleRunning={() => setIsSessionTimerRunning((current) => !current)}
-        onReset={() => {
-          setElapsedSessionMs(0);
-          setIsSessionTimerRunning(false);
-        }}
       />
 
       <ExerciseNoteDialog

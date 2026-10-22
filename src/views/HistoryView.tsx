@@ -1,9 +1,10 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { ChevronDown, History, RotateCcw } from 'lucide-react';
 import { supabase } from '../lib/supabase/client';
 import { PageShell } from '../components/layout/PageShell';
 import { routinesRepository } from '../features/routines/repository';
-import { peekSessionHistory } from '../features/routines/sessionHistoryCache';
+import { HISTORY_PAGE_SIZE } from '../features/routines/historyWindow';
+import { clearSessionHistoryCache, peekLoadedSessionHistory, peekSessionHistory } from '../features/routines/sessionHistoryCache';
 import type { View, CompletedSession, CompletedSessionSet, UserProfile } from '../types';
 import { formatSessionDate, formatSessionDuration, formatSessionVolume } from '../utils/formatting';
 import { useLanguage } from '../i18n/LanguageContext';
@@ -47,7 +48,12 @@ export const HistoryView = ({
 }) => {
   const { language, t } = useLanguage();
   const [section, setSection] = useState<'sessions' | 'progress'>(initialSection);
-  const [sessions, setSessions] = useState<CompletedSession[]>(() => peekSessionHistory(profile?.id) ?? []);
+  const [sessions, setSessions] = useState<CompletedSession[]>(() => peekLoadedSessionHistory(profile?.id)?.sessions ?? []);
+  const [page, setPage] = useState(() => peekLoadedSessionHistory(profile?.id)?.page ?? 0);
+  const [hasMore, setHasMore] = useState(() => peekLoadedSessionHistory(profile?.id)?.hasMore ?? false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [loadMoreError, setLoadMoreError] = useState(false);
+  const requestVersion = useRef(0);
   const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
   const [loading, setLoading] = useState(() => !peekSessionHistory(profile?.id));
   const [hasError, setHasError] = useState(false);
@@ -59,6 +65,8 @@ export const HistoryView = ({
     .join(', ');
 
   const loadSessions = async () => {
+    const version = ++requestVersion.current;
+    let requestedUserId: string | undefined;
     if (!supabase) {
       setLoading(false);
       return;
@@ -66,27 +74,80 @@ export const HistoryView = ({
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
+      if (version !== requestVersion.current) return;
       if (!session?.user.id) {
         setLoading(false);
         return;
       }
+      requestedUserId = session.user.id;
 
       const cached = peekSessionHistory(session.user.id);
-      if (cached) setSessions(cached);
+      const loadedPages = peekLoadedSessionHistory(session.user.id);
+      if (loadedPages) {
+        setSessions(loadedPages.sessions);
+        setPage(loadedPages.page);
+        setHasMore(loadedPages.hasMore);
+      }
       setLoading(!cached);
       setHasError(false);
+      setLoadMoreError(false);
       const completedSessions = await routinesRepository.getCompletedSessions(session.user.id);
-      setSessions(completedSessions);
+      if (version !== requestVersion.current) return;
+      if (cached && (
+        cached.length !== completedSessions.length
+        || cached.some((item, index) => item.id !== completedSessions[index]?.id)
+      )) {
+        clearSessionHistoryCache();
+      }
+      const currentPages = peekLoadedSessionHistory(session.user.id);
+      if (currentPages && currentPages.sessions[0]?.id === completedSessions[0]?.id) {
+        setSessions(currentPages.sessions);
+        setHasMore(currentPages.hasMore);
+        setPage(currentPages.page);
+      } else {
+        setSessions(completedSessions.slice(0, HISTORY_PAGE_SIZE));
+        setHasMore(completedSessions.length > HISTORY_PAGE_SIZE);
+        setPage(0);
+      }
     } catch (err) {
       console.error('Error loading completed sessions:', err);
-      if (!peekSessionHistory(profile?.id)) {
+      if (version === requestVersion.current && !peekSessionHistory(requestedUserId ?? profile?.id)) {
         setHasError(true);
         setSessions([]);
       }
     } finally {
-      setLoading(false);
+      if (version === requestVersion.current) setLoading(false);
     }
   };
+
+  const loadMore = async () => {
+    if (loadingMore || !hasMore || !supabase) return;
+    const version = requestVersion.current;
+    setLoadingMore(true);
+    setLoadMoreError(false);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user.id) throw new Error('Session unavailable');
+      const nextPage = page + 1;
+      const older = await routinesRepository.getCompletedSessions(session.user.id, nextPage);
+      if (version !== requestVersion.current) return;
+      setSessions(current => {
+        const seen = new Set(current.map(item => item.id));
+        return [...current, ...older.slice(0, HISTORY_PAGE_SIZE).filter(item => !seen.has(item.id))];
+      });
+      setPage(nextPage);
+      setHasMore(older.length > HISTORY_PAGE_SIZE);
+    } catch (error) {
+      if (version === requestVersion.current) {
+        console.error('Error loading older sessions:', error);
+        setLoadMoreError(true);
+      }
+    } finally {
+      if (version === requestVersion.current) setLoadingMore(false);
+    }
+  };
+
+  useEffect(() => () => { requestVersion.current++; }, []);
 
   useEffect(() => {
     if (section === 'sessions') void loadSessions();
@@ -305,6 +366,19 @@ export const HistoryView = ({
               </div>
             );
           })}
+          {hasMore && (
+            <div className="flex flex-col items-center gap-2 pt-4">
+              <button
+                type="button"
+                onClick={() => void loadMore()}
+                disabled={loadingMore}
+                className="theme-hairline-border rounded-lg border px-5 py-3 text-sm font-bold text-on-surface-variant disabled:opacity-50"
+              >
+                {loadingMore ? t('history.loading') : t('history.loadMore')}
+              </button>
+              {loadMoreError && <p role="alert" className="text-xs text-secondary">{t('history.loadError')}</p>}
+            </div>
+          )}
         </div>
       )}
     </PageShell>
