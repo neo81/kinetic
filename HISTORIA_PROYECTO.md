@@ -1,5 +1,11 @@
 # Historia del Proyecto Kinetic
 
+## 2026-11-10 - Retorno al ejercicio activo
+
+- El flotante superior de sesion activa vuelve al ejercicio con series iniciadas en el dia activo o al primer pendiente; omite salteados y ejercicios con todas las series registradas.
+- Si no queda trabajo en ese dia, busca en los otros dias de la sesion y abre el dia elegido antes de desplazar la pantalla. Si todos terminaron, vuelve al encabezado del dia activo.
+- Se conserva el inicio de sesion, la confirmacion de series y la navegacion habitual a la rutina. Pruebas unitarias de seleccion y prueba movil con Supabase simulado para el scroll y el salto entre dias.
+
 ## 2026-11-10 - Carga inicial de pantallas
 
 - Historial, selector muscular, lista de rutinas y perfil pasan a carga diferida. Dashboard y login siguen disponibles en el paquete inicial; las pantallas de entrenamiento mantienen su carga diferida previa.

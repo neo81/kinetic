@@ -17,6 +17,7 @@ import {
 import { RoutineSyncPendingBadge } from '../components/RoutineSyncPendingBadge';
 import { PageShell } from '../components/layout/PageShell';
 import { buildSessionDayIds } from '../features/routines/sessionDays';
+import type { SessionReturnTarget } from '../features/routines/sessionReturnTarget';
 import type { ActiveSession, Exercise, Routine, View, RoutineDayExercise, UserProfile } from '../types';
 import { useLanguage } from '../i18n/LanguageContext';
 import type { TranslationKey } from '../i18n/translations';
@@ -989,6 +990,8 @@ export const RoutineDetailKineticView = ({
   openDayId,
   onOpenDayChange,
   activeSession,
+  sessionReturnTarget,
+  onSessionReturnHandled,
   restTimerPresets,
   onStartSession,
   onEndSession,
@@ -1012,6 +1015,8 @@ export const RoutineDetailKineticView = ({
   openDayId: string | null;
   onOpenDayChange: (dayId: string | null) => void;
   activeSession: ActiveSession | null;
+  sessionReturnTarget: SessionReturnTarget | null;
+  onSessionReturnHandled: () => void;
   restTimerPresets: number[];
   onStartSession: (routineId: string, routineName: string, routineDayIds: string | string[]) => Promise<void>;
   onEndSession: () => Promise<void>;
@@ -1044,6 +1049,7 @@ export const RoutineDetailKineticView = ({
   const [isSavingExerciseNote, setIsSavingExerciseNote] = useState(false);
   const lastOpenedSessionDayRef = useRef<string | null>(null);
   const daySectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const exerciseCardRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   // Estado para captura de set
   const [setCapturePending, setSetCapturePending] = useState<{ exerciseId: string; setNumber: number; reps: number | null; weight: number | null; targetType: 'fixed_reps' | 'failure'; isEditing?: boolean } | null>(null);
@@ -1085,6 +1091,28 @@ export const RoutineDetailKineticView = ({
       };
     }
   }, [activeSession?.id, activeSession?.activeRoutineDayId, activeSession?.routineId, routine?.id, onOpenDayChange]);
+
+  useEffect(() => {
+    if (!sessionReturnTarget || sessionReturnTarget.sessionId !== activeSession?.id || activeSession.routineId !== routine?.id) return;
+    if (openDayId !== sessionReturnTarget.dayId) {
+      onOpenDayChange(sessionReturnTarget.dayId);
+      return;
+    }
+
+    let secondFrame: number | null = null;
+    const firstFrame = window.requestAnimationFrame(() => {
+      secondFrame = window.requestAnimationFrame(() => {
+        const target = (sessionReturnTarget.exerciseId && exerciseCardRefs.current[sessionReturnTarget.exerciseId])
+          || daySectionRefs.current[sessionReturnTarget.dayId];
+        target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        onSessionReturnHandled();
+      });
+    });
+    return () => {
+      window.cancelAnimationFrame(firstFrame);
+      if (secondFrame !== null) window.cancelAnimationFrame(secondFrame);
+    };
+  }, [sessionReturnTarget, activeSession?.id, activeSession?.routineId, routine?.id, openDayId, onOpenDayChange, onSessionReturnHandled]);
 
   const handleSetCaptureClose = () => {
     setSetCapturePending(null);
@@ -1212,7 +1240,11 @@ export const RoutineDetailKineticView = ({
     const canEditNote = activeSession?.routineId === routine.id;
 
     return (
-      <div key={dayEx.id || dayEx.exercise.name} className={`transition-all duration-300 ${isCompleted ? 'opacity-60 scale-[0.99]' : 'opacity-100 scale-100'}`}>
+      <div
+        key={dayEx.id || dayEx.exercise.name}
+        ref={(element) => { exerciseCardRefs.current[dayEx.id] = element; }}
+        className={`scroll-mt-[calc(env(safe-area-inset-top)+7rem)] transition-all duration-300 ${isCompleted ? 'opacity-60 scale-[0.99]' : 'opacity-100 scale-100'}`}
+      >
         <div className="mb-2 flex items-start justify-between gap-3">
           <div className="flex min-w-0 flex-1 items-start gap-3">
             <div className="min-w-0 flex-1">

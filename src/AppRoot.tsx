@@ -1,5 +1,5 @@
 import { Play } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { remoteLogger } from './services/remoteLogger';
 import { AppRouter } from './app/AppRouter';
 import { useAppState } from './app/useAppState';
@@ -14,6 +14,7 @@ import { releaseNotesRepository } from './features/releaseNotes/repository';
 import { useLanguage } from './i18n/LanguageContext';
 import { SessionElapsedPill } from './components/SessionElapsedPill';
 import { PwaStatusPrompt } from './components/layout/PwaStatusPrompt';
+import { findSessionReturnTarget, type SessionReturnTarget } from './features/routines/sessionReturnTarget';
 
 export default function AppRoot() {
   const { t } = useLanguage();
@@ -25,6 +26,7 @@ export default function AppRoot() {
   const [releaseHistory, setReleaseHistory] = useState<AppRelease[]>([]);
   const [unreadReleases, setUnreadReleases] = useState<AppRelease[]>([]);
   const [releaseNotesLoaded, setReleaseNotesLoaded] = useState(false);
+  const [sessionReturnTarget, setSessionReturnTarget] = useState<SessionReturnTarget | null>(null);
 
   useEffect(() => {
     if (import.meta.env.VITE_ENABLE_REMOTE_LOGGER !== 'true') {
@@ -124,16 +126,22 @@ export default function AppRoot() {
   };
 
   const handleReturnToSession = () => {
-    if (app.activeSession?.routineId) {
-      if (app.currentRoutine?.id !== app.activeSession.routineId) {
-        const targetRoutine = app.routines.find(r => r.id === app.activeSession!.routineId);
-        if (targetRoutine) {
-          app.setCurrentRoutine(targetRoutine);
-        }
-      }
-      app.setView('routine-detail');
-    }
+    const session = app.activeSession;
+    if (!session?.routineId) return;
+
+    const routine = app.currentRoutine?.id === session.routineId
+      ? app.currentRoutine
+      : app.routines.find((item) => item.id === session.routineId);
+    if (routine && app.currentRoutine?.id !== routine.id) app.setCurrentRoutine(routine);
+
+    const target = routine ? findSessionReturnTarget(routine, session) : null;
+    const dayId = target?.dayId ?? session.activeRoutineDayId;
+    if (target && dayId !== session.activeRoutineDayId) app.switchSessionDay(dayId);
+    app.setOpenDayId(dayId);
+    setSessionReturnTarget(routine ? { sessionId: session.id, dayId, exerciseId: target?.exerciseId ?? null } : null);
+    app.setView('routine-detail');
   };
+  const handleSessionReturnHandled = useCallback(() => setSessionReturnTarget(null), []);
 
   return (
     <div className="app-shell min-h-screen bg-background text-on-background relative">
@@ -225,6 +233,8 @@ export default function AppRoot() {
         openDayId={app.openDayId}
         setOpenDayId={app.setOpenDayId}
         activeSession={app.activeSession}
+        sessionReturnTarget={sessionReturnTarget}
+        onSessionReturnHandled={handleSessionReturnHandled}
         restTimerPresets={app.restTimerPresets}
         startSession={app.startSession}
         endSession={app.endSession}

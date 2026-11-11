@@ -13,6 +13,8 @@ El cronometro manual mantiene su estado dentro de su propio componente: no vuelv
 - Historial, selector muscular, lista de rutinas y perfil se cargan al abrirlos por primera vez. Dashboard y login permanecen en la carga inicial. Durante una descarga de pantalla se conservan el encabezado y el footer, sin cambiar la navegacion.
 - Prueba aislada: `npx playwright test tests/e2e/startup-history-performance.spec.ts`. Simula latencia, una sesion activa y visitas repetidas a Historial/Progreso; no escribe datos en Supabase.
 
+Durante una sesion activa, el flotante superior vuelve al ejercicio en curso del dia activo o, si no hay uno empezado, al primer pendiente. Omite ejercicios salteados y completos. Si ese dia no tiene trabajo pendiente, sigue por los otros dias incluidos en la sesion; si todo esta terminado, abre el encabezado del dia activo. No cambia el registro de series.
+
 ## Ajuste de pesos al finalizar una sesion
 
 La comprobacion del estado remoto de una sesion conserva las series registradas durante la espera de red. Las respuestas antiguas no restauran sesiones canceladas/finalizadas ni reemplazan otra sesion; los errores de conexion no borran el progreso local.

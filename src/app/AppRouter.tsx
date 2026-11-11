@@ -4,6 +4,7 @@ import type { ResolvedTheme, ThemePreference } from '../theme/theme';
 import type { AppLanguage } from '../i18n/translations';
 import { useLanguage } from '../i18n/LanguageContext';
 import { PageShell } from '../components/layout/PageShell';
+import type { SessionReturnTarget } from '../features/routines/sessionReturnTarget';
 import { DashboardView } from '../views/DashboardView';
 import { KineticLoginView } from '../views/KineticLoginView';
 
@@ -98,6 +99,8 @@ type AppRouterProps = {
   openDayId: string | null;
   setOpenDayId: (dayId: string | null) => void;
   activeSession: ActiveSession | null;
+  sessionReturnTarget: SessionReturnTarget | null;
+  onSessionReturnHandled: () => void;
   restTimerPresets: number[];
   startSession: (routineId: string, routineName: string, routineDayId: string | string[]) => Promise<void>;
   endSession: () => Promise<void>;
@@ -149,6 +152,8 @@ export const AppRouter = ({
   openDayId,
   setOpenDayId,
   activeSession,
+  sessionReturnTarget,
+  onSessionReturnHandled,
   restTimerPresets,
   startSession,
   endSession,
@@ -274,6 +279,8 @@ export const AppRouter = ({
             routine={currentRoutine ?? routines[0] ?? null}
             profile={profile}
             activeSession={activeSession}
+            sessionReturnTarget={sessionReturnTarget}
+            onSessionReturnHandled={onSessionReturnHandled}
             restTimerPresets={restTimerPresets}
             onStartSession={startSession}
             onEndSession={endSession}
