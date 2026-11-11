@@ -9,7 +9,9 @@ El cronometro manual mantiene su estado dentro de su propio componente: no vuelv
 - El dashboard consulta solamente las sesiones de la semana actual y anterior, necesarias para sus estadisticas. El historial carga 20 sesiones por pagina y conserva las paginas abiertas en una cache en memoria por usuario (60 segundos). Al volver se muestran los datos disponibles y, si vencieron, se actualizan sin ocultarlos.
 - El boton "Cargar sesiones anteriores" permite recorrer el historial completo. Cada pagina conserva el detalle de sus ejercicios y series.
 - La cache se invalida al guardar una sesion, tambien desde la cola offline, y al salir de la cuenta. Los errores no se guardan como historiales vacios.
-- Prueba aislada: `npx playwright test tests/e2e/startup-history-performance.spec.ts`. Simula latencia y una sesion activa; no escribe datos en Supabase.
+- Progreso conserva sus informes y series por usuario, periodo y ejercicio en memoria durante 60 segundos. Al volver se muestran de inmediato; si vencieron, se actualizan sin ocultar el informe anterior. Se invalidan tras finalizar una sesion o cerrar la cuenta.
+- Historial, selector muscular, lista de rutinas y perfil se cargan al abrirlos por primera vez. Dashboard y login permanecen en la carga inicial. Durante una descarga de pantalla se conservan el encabezado y el footer, sin cambiar la navegacion.
+- Prueba aislada: `npx playwright test tests/e2e/startup-history-performance.spec.ts`. Simula latencia, una sesion activa y visitas repetidas a Historial/Progreso; no escribe datos en Supabase.
 
 ## Ajuste de pesos al finalizar una sesion
 

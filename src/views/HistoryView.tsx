@@ -201,7 +201,7 @@ export const HistoryView = ({
             <div className="h-12 w-12 animate-pulse rounded-full border-2 border-primary/30 border-t-primary" />
           </div>
         )}>
-          <ProgressView />
+          <ProgressView userId={profile?.id} />
         </Suspense>
       )}
 

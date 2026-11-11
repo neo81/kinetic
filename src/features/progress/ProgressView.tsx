@@ -16,6 +16,7 @@ import type {
 } from '../../types';
 import { getExerciseDisplayName } from '../../i18n/exerciseLocalization';
 import { progressRepository } from './repository';
+import { getCachedProgress, peekProgressCache, progressCacheKey } from './progressCache';
 import { ActivityHeatmap, RecordsPanel, RoutineDaysPanel, TrainingDistributionPanel } from './ProgressInsightsPanels';
 
 const ProgressExportDialog = lazy(() => import('./ProgressExportDialog').then((module) => ({
@@ -26,6 +27,11 @@ type DateRange = { from: Date; to: Date; bucket: ProgressBucket };
 type ChartDatum = { date: string; value: number };
 type ExerciseMetric = 'weight' | 'reps' | 'volume' | 'oneRepMax' | 'sets' | 'adherence';
 type ProgressSection = 'overview' | 'exercises' | 'routines' | 'records';
+type ProgressReport = {
+  overview: ProgressOverview;
+  insights: ProgressInsights;
+  distribution: ProgressTrainingDistribution;
+};
 
 const progressSectionTranslation: Record<ProgressSection, TranslationKey> = {
   overview: 'progress.section.overview',
@@ -461,7 +467,7 @@ const ExerciseSetProgressCharts = ({
   );
 };
 
-export const ProgressView = () => {
+export const ProgressView = ({ userId }: { userId?: string }) => {
   const { language, t } = useLanguage();
   const [period, setPeriod] = useState<ProgressPeriod>('30d');
   const initialFrom = useMemo(() => {
@@ -471,37 +477,53 @@ export const ProgressView = () => {
   }, []);
   const [customFrom, setCustomFrom] = useState(initialFrom);
   const [customTo, setCustomTo] = useState(() => toDateInputValue(new Date()));
-  const [overview, setOverview] = useState<ProgressOverview | null>(null);
-  const [insights, setInsights] = useState<ProgressInsights | null>(null);
-  const [distribution, setDistribution] = useState<ProgressTrainingDistribution | null>(null);
+  const range = useMemo(() => rangeForPeriod(period, customFrom, customTo), [period, customFrom, customTo]);
+  const timezone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC', []);
+  const reportKey = range ? progressCacheKey('report', range, timezone) : '';
+  const initialReport = useMemo(() => peekProgressCache<ProgressReport>(userId, reportKey), [userId, reportKey]);
+  const [overview, setOverview] = useState<ProgressOverview | null>(initialReport?.overview ?? null);
+  const [insights, setInsights] = useState<ProgressInsights | null>(initialReport?.insights ?? null);
+  const [distribution, setDistribution] = useState<ProgressTrainingDistribution | null>(initialReport?.distribution ?? null);
   const [progressSection, setProgressSection] = useState<ProgressSection>('overview');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initialReport);
   const [error, setError] = useState(false);
-  const [selectedExerciseId, setSelectedExerciseId] = useState('');
+  const [selectedExerciseId, setSelectedExerciseId] = useState(initialReport?.overview.exercises[0]?.id ?? '');
   const [exerciseMetric, setExerciseMetric] = useState<ExerciseMetric>('weight');
-  const [exerciseSeries, setExerciseSeries] = useState<ExerciseProgressPoint[]>([]);
+  const [exerciseSeries, setExerciseSeries] = useState<ExerciseProgressPoint[]>(() => range && initialReport?.overview.exercises[0]?.id
+    ? peekProgressCache<ExerciseProgressPoint[]>(userId, progressCacheKey('exercise', range, timezone, initialReport.overview.exercises[0].id)) ?? []
+    : []);
   const [exerciseSetSeries, setExerciseSetSeries] = useState<ExerciseSetProgressPoint[]>([]);
   const [exerciseLoading, setExerciseLoading] = useState(false);
   const [exerciseSetLoading, setExerciseSetLoading] = useState(false);
   const [exerciseExpanded, setExerciseExpanded] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const overviewRequestRef = useRef(0);
-  const range = useMemo(() => rangeForPeriod(period, customFrom, customTo), [period, customFrom, customTo]);
-  const timezone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC', []);
   const closeReport = useCallback(() => setReportOpen(false), []);
 
   const loadOverview = async () => {
     if (!range) return;
     const requestId = overviewRequestRef.current + 1;
     overviewRequestRef.current = requestId;
-    setLoading(true);
+    const cached = peekProgressCache<ProgressReport>(userId, reportKey);
+    if (cached) {
+      setOverview(cached.overview);
+      setInsights(cached.insights);
+      setDistribution(cached.distribution);
+      setSelectedExerciseId((current) => cached.overview.exercises.some((exercise) => exercise.id === current)
+        ? current
+        : cached.overview.exercises[0]?.id ?? '');
+    }
+    setLoading(!cached);
     setError(false);
     try {
-      const [data, insightData, distributionData] = await Promise.all([
-        progressRepository.getOverview({ ...range, timezone }),
-        progressRepository.getInsights({ from: range.from, to: range.to, timezone }),
-        progressRepository.getTrainingDistribution({ from: range.from, to: range.to, timezone }),
-      ]);
+      const { overview: data, insights: insightData, distribution: distributionData } = await getCachedProgress(userId, reportKey, async () => {
+        const [reportOverview, reportInsights, reportDistribution] = await Promise.all([
+          progressRepository.getOverview({ ...range, timezone }),
+          progressRepository.getInsights({ from: range.from, to: range.to, timezone }),
+          progressRepository.getTrainingDistribution({ from: range.from, to: range.to, timezone }),
+        ]);
+        return { overview: reportOverview, insights: reportInsights, distribution: reportDistribution };
+      });
       if (overviewRequestRef.current !== requestId) return;
       setOverview(data);
       setInsights(insightData);
@@ -512,10 +534,12 @@ export const ProgressView = () => {
     } catch (loadError) {
       if (overviewRequestRef.current !== requestId) return;
       console.error('Error loading progress report:', loadError);
-      setError(true);
-      setOverview(null);
-      setInsights(null);
-      setDistribution(null);
+      if (!cached) {
+        setError(true);
+        setOverview(null);
+        setInsights(null);
+        setDistribution(null);
+      }
     } finally {
       if (overviewRequestRef.current === requestId) setLoading(false);
     }
@@ -523,7 +547,7 @@ export const ProgressView = () => {
 
   useEffect(() => {
     loadOverview();
-  }, [range?.from.getTime(), range?.to.getTime(), range?.bucket, timezone]);
+  }, [userId, range?.from.getTime(), range?.to.getTime(), range?.bucket, timezone]);
 
   useEffect(() => {
     if (!selectedExerciseId || !range) {
@@ -531,20 +555,23 @@ export const ProgressView = () => {
       return;
     }
     let active = true;
-    setExerciseLoading(true);
-    progressRepository.getExerciseProgress({ exerciseId: selectedExerciseId, ...range, timezone })
+    const key = progressCacheKey('exercise', range, timezone, selectedExerciseId);
+    const cached = peekProgressCache<ExerciseProgressPoint[]>(userId, key);
+    if (cached) setExerciseSeries(cached);
+    setExerciseLoading(!cached);
+    getCachedProgress(userId, key, () => progressRepository.getExerciseProgress({ exerciseId: selectedExerciseId, ...range, timezone }))
       .then((data) => {
         if (active) setExerciseSeries(data);
       })
       .catch((loadError) => {
         console.error('Error loading exercise progress:', loadError);
-        if (active) setExerciseSeries([]);
+        if (active && !cached) setExerciseSeries([]);
       })
       .finally(() => {
         if (active) setExerciseLoading(false);
       });
     return () => { active = false; };
-  }, [selectedExerciseId, range?.from.getTime(), range?.to.getTime(), range?.bucket, timezone]);
+  }, [userId, selectedExerciseId, range?.from.getTime(), range?.to.getTime(), range?.bucket, timezone]);
 
   useEffect(() => {
     if (exerciseMetric !== 'sets') return;
@@ -553,20 +580,23 @@ export const ProgressView = () => {
       return;
     }
     let active = true;
-    setExerciseSetLoading(true);
-    progressRepository.getExerciseSetProgress({ exerciseId: selectedExerciseId, from: range.from, to: range.to })
+    const key = progressCacheKey('sets', range, timezone, selectedExerciseId);
+    const cached = peekProgressCache<ExerciseSetProgressPoint[]>(userId, key);
+    if (cached) setExerciseSetSeries(cached);
+    setExerciseSetLoading(!cached);
+    getCachedProgress(userId, key, () => progressRepository.getExerciseSetProgress({ exerciseId: selectedExerciseId, from: range.from, to: range.to }))
       .then((data) => {
         if (active) setExerciseSetSeries(data);
       })
       .catch((loadError) => {
         console.error('Error loading exercise set progress:', loadError);
-        if (active) setExerciseSetSeries([]);
+        if (active && !cached) setExerciseSetSeries([]);
       })
       .finally(() => {
         if (active) setExerciseSetLoading(false);
       });
     return () => { active = false; };
-  }, [exerciseMetric, selectedExerciseId, range?.from.getTime(), range?.to.getTime()]);
+  }, [userId, exerciseMetric, selectedExerciseId, range?.from.getTime(), range?.to.getTime(), timezone]);
 
   const selectedExercise = overview?.exercises.find((exercise) => exercise.id === selectedExerciseId);
   const summary: ProgressSummary = overview?.summary ?? {

@@ -3,12 +3,22 @@ import type { ActiveSession, Exercise, Routine, UserProfile, View } from '../typ
 import type { ResolvedTheme, ThemePreference } from '../theme/theme';
 import type { AppLanguage } from '../i18n/translations';
 import { useLanguage } from '../i18n/LanguageContext';
+import { PageShell } from '../components/layout/PageShell';
 import { DashboardView } from '../views/DashboardView';
-import { ExerciseSelectorKineticView } from '../views/ExerciseSelectorKineticView';
-import { HistoryView } from '../views/HistoryView';
 import { KineticLoginView } from '../views/KineticLoginView';
-import { RoutinesListView } from '../views/RoutinesListView';
-import { SettingsView } from '../views/SettingsView';
+
+const ExerciseSelectorKineticView = lazy(() =>
+  import('../views/ExerciseSelectorKineticView').then((module) => ({ default: module.ExerciseSelectorKineticView })),
+);
+const HistoryView = lazy(() =>
+  import('../views/HistoryView').then((module) => ({ default: module.HistoryView })),
+);
+const RoutinesListView = lazy(() =>
+  import('../views/RoutinesListView').then((module) => ({ default: module.RoutinesListView })),
+);
+const SettingsView = lazy(() =>
+  import('../views/SettingsView').then((module) => ({ default: module.SettingsView })),
+);
 
 const RoutineCreatorView = lazy(() =>
   import('../views/RoutineCreatorView').then((module) => ({ default: module.RoutineCreatorView })),
@@ -23,18 +33,24 @@ const RoutineDetailKineticView = lazy(() =>
   import('../views/RoutineDetailKineticView').then((module) => ({ default: module.RoutineDetailKineticView })),
 );
 
-const LazyViewFallback = () => {
+const LazyViewFallback = ({ view, setView, profile }: {
+  view: View;
+  setView: (view: View) => void;
+  profile: UserProfile | null;
+}) => {
   const { t } = useLanguage();
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-6 text-on-background" role="status" aria-live="polite">
-      <div className="flex flex-col items-center gap-4">
-        <div className="h-10 w-10 animate-pulse rounded-full border-2 border-primary/30 border-t-primary" aria-hidden="true" />
-        <span className="font-headline text-xs font-semibold uppercase tracking-[0.22em] text-on-surface-variant">
-          {t('common.loading')}
-        </span>
+    <PageShell activeView={view} setView={setView} profile={profile}>
+      <div className="flex min-h-[50dvh] items-center justify-center" role="status" aria-live="polite">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-10 w-10 animate-pulse rounded-full border-2 border-primary/30 border-t-primary" aria-hidden="true" />
+          <span className="font-headline text-xs font-semibold uppercase tracking-[0.22em] text-on-surface-variant">
+            {t('common.loading')}
+          </span>
+        </div>
       </div>
-    </div>
+    </PageShell>
   );
 };
 
@@ -175,19 +191,21 @@ export const AppRouter = ({
       );
     case 'routines-list':
       return (
-        <RoutinesListView
-          setView={setView}
-          routines={routines}
-          onNewRoutine={onNewRoutine}
-          setCurrentRoutine={setCurrentRoutine}
-          onDeleteRoutine={onDeleteRoutine}
-          onImportRoutine={onImportRoutine}
-          profile={profile}
-        />
+        <Suspense fallback={<LazyViewFallback view={view} setView={setView} profile={profile} />}>
+          <RoutinesListView
+            setView={setView}
+            routines={routines}
+            onNewRoutine={onNewRoutine}
+            setCurrentRoutine={setCurrentRoutine}
+            onDeleteRoutine={onDeleteRoutine}
+            onImportRoutine={onImportRoutine}
+            profile={profile}
+          />
+        </Suspense>
       );
     case 'routine-creator':
       return (
-        <Suspense fallback={<LazyViewFallback />}>
+        <Suspense fallback={<LazyViewFallback view={view} setView={setView} profile={profile} />}>
           <RoutineCreatorView
             setView={setView}
             onSave={onSaveRoutine}
@@ -214,18 +232,20 @@ export const AppRouter = ({
       );
     case 'exercise-selector':
       return (
-        <ExerciseSelectorKineticView
-          setView={setView}
-          onSelectMuscle={onSelectMuscle}
-          onSelectExercise={onSelectExercise}
-          selectedMuscle={selectedMuscle}
-          navigationSource={navigationSource}
-          profile={profile}
-        />
+        <Suspense fallback={<LazyViewFallback view={view} setView={setView} profile={profile} />}>
+          <ExerciseSelectorKineticView
+            setView={setView}
+            onSelectMuscle={onSelectMuscle}
+            onSelectExercise={onSelectExercise}
+            selectedMuscle={selectedMuscle}
+            navigationSource={navigationSource}
+            profile={profile}
+          />
+        </Suspense>
       );
     case 'exercise-list':
       return (
-        <Suspense fallback={<LazyViewFallback />}>
+        <Suspense fallback={<LazyViewFallback view={view} setView={setView} profile={profile} />}>
           <ExerciseListView
             setView={setView}
             muscle={selectedMuscle}
@@ -236,7 +256,7 @@ export const AppRouter = ({
       );
     case 'exercise-editor':
       return (
-        <Suspense fallback={<LazyViewFallback />}>
+        <Suspense fallback={<LazyViewFallback view={view} setView={setView} profile={profile} />}>
           <ExerciseEditorView
             setView={setView}
             exercise={selectedExercise}
@@ -248,7 +268,7 @@ export const AppRouter = ({
       );
     case 'routine-detail':
       return (
-        <Suspense fallback={<LazyViewFallback />}>
+        <Suspense fallback={<LazyViewFallback view={view} setView={setView} profile={profile} />}>
           <RoutineDetailKineticView
             setView={setView}
             routine={currentRoutine ?? routines[0] ?? null}
@@ -286,23 +306,33 @@ export const AppRouter = ({
         </Suspense>
       );
     case 'history':
-      return <HistoryView setView={setView} profile={profile} />;
+      return (
+        <Suspense fallback={<LazyViewFallback view={view} setView={setView} profile={profile} />}>
+          <HistoryView setView={setView} profile={profile} />
+        </Suspense>
+      );
     case 'progress':
-      return <HistoryView setView={setView} profile={profile} initialSection="progress" />;
+      return (
+        <Suspense fallback={<LazyViewFallback view={view} setView={setView} profile={profile} />}>
+          <HistoryView setView={setView} profile={profile} initialSection="progress" />
+        </Suspense>
+      );
     case 'settings':
       return (
-        <SettingsView
-          setView={setView}
-          profile={profile}
-          userEmail={userEmail}
-          onLogout={onLogout}
-          onSaveProfile={onSaveProfile}
-          themePreference={themePreference}
-          resolvedTheme={resolvedTheme}
-          onThemeChange={onThemeChange}
-          onLanguageChange={onLanguageChange}
-          onOpenReleaseNotes={onOpenReleaseNotes}
-        />
+        <Suspense fallback={<LazyViewFallback view={view} setView={setView} profile={profile} />}>
+          <SettingsView
+            setView={setView}
+            profile={profile}
+            userEmail={userEmail}
+            onLogout={onLogout}
+            onSaveProfile={onSaveProfile}
+            themePreference={themePreference}
+            resolvedTheme={resolvedTheme}
+            onThemeChange={onThemeChange}
+            onLanguageChange={onLanguageChange}
+            onOpenReleaseNotes={onOpenReleaseNotes}
+          />
+        </Suspense>
       );
     default:
       return null;

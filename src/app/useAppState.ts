@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase/client';
 import type { Database, Json } from '../lib/supabase/database.types';
 import { initialRoutines } from './initialData';
 import { clearSessionHistoryCache } from '../features/routines/sessionHistoryCache';
+import { clearProgressCache } from '../features/progress/progressCache';
 import { reconcileActiveSession } from './reconcileActiveSession';
 import { consumeRoutinesRepositoryNotice, routinesRepository } from '../features/routines/repository';
 import { RoutineRepositoryError } from '../features/routines/errors';
@@ -378,6 +379,7 @@ export const useAppState = () => {
           }
         } else {
           clearSessionHistoryCache();
+          clearProgressCache();
           setRoutines(initialRoutines);
           setProfile(null);
           setActiveSession(null);
@@ -507,6 +509,7 @@ export const useAppState = () => {
 
   const handleLogout = async () => {
     clearSessionHistoryCache();
+    clearProgressCache();
     if (supabase) {
       await supabase.auth.signOut({ scope: 'global' }).catch(console.error);
     }

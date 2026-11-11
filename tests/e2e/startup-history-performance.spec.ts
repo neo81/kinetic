@@ -2,9 +2,10 @@ import { expect, test } from '@playwright/test';
 
 test.use({ viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true });
 
-test('restored login and repeated history visits under controlled latency', async ({ page }) => {
+test('restored login and repeated history/progress visits under controlled latency', async ({ page }) => {
   const userId = '00000000-0000-4000-8000-000000000001';
   let historyRequests = 0;
+  const progressRequests: string[] = [];
   const historyRanges: string[] = [];
   let dashboardFiltered = false;
   const externalFonts: string[] = [];
@@ -15,6 +16,14 @@ test('restored login and repeated history visits under controlled latency', asyn
     const url = new URL(route.request().url());
     const table = url.pathname.split('/').at(-1);
     let body: unknown = [];
+    if (table?.startsWith('get_progress_') || table?.startsWith('get_exercise_')) {
+      progressRequests.push(table);
+      if (table === 'get_progress_overview') body = { exercises: [{ id: 'exercise-fixture', name: 'Performance Press' }] };
+      if (table === 'get_exercise_progress') body = { points: [] };
+      await new Promise(resolve => setTimeout(resolve, 500));
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
+      return;
+    }
     if (table === 'profiles') body = { id: userId, full_name: 'Performance fixture', unit_system: 'kg' };
     if (table === 'user_preferences') body = { user_id: userId, theme: 'dark', language: 'es' };
     if (table === 'routine_sessions' && url.searchParams.has('id')) {
@@ -121,5 +130,38 @@ test('restored login and repeated history visits under controlled latency', asyn
   expect(await page.getByRole('navigation').locator('svg').count()).toBeGreaterThanOrEqual(4);
   expect(await page.evaluate(() => (window as any).loginFlashed)).toBe(false);
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('kinetic.activeSession')!).performanceData.exercise[1])).toMatchObject({ captured: true, actualReps: 8, actualWeight: 20 });
+  await page.getByRole('button', { name: 'Progreso', exact: true }).click();
+  await expect(page.getByRole('navigation', { name: 'Secciones de progreso' })).toBeVisible();
+  await expect.poll(() => progressRequests.length).toBe(4);
+  const initialProgressRequests = progressRequests.length;
+  for (let i = 0; i < 3; i++) {
+    await page.getByRole('navigation').getByRole('button', { name: 'Panel', exact: true }).click();
+    await history.click();
+    await page.getByRole('button', { name: 'Progreso', exact: true }).click();
+    await expect(page.getByRole('navigation', { name: 'Secciones de progreso' })).toBeVisible();
+    await expect(page.getByText('Calculando progreso...')).toHaveCount(0);
+  }
+  expect(progressRequests).toHaveLength(initialProgressRequests);
+  let settingsChunkRequests = 0;
+  let releaseSettingsChunk!: () => void;
+  const settingsChunkGate = new Promise<void>(resolve => { releaseSettingsChunk = resolve; });
+  await page.route(/\/src\/views\/SettingsView\.tsx/, async route => {
+    settingsChunkRequests++;
+    await settingsChunkGate;
+    await route.continue();
+  });
+  await page.getByRole('navigation').getByRole('button', { name: 'Perfil', exact: true }).click();
+  await expect.poll(() => settingsChunkRequests).toBe(1);
+  await expect(page.getByRole('banner')).toBeVisible();
+  await expect(page.getByRole('navigation').getByRole('button', { name: 'Perfil', exact: true })).toBeVisible();
+  await expect(page.locator('main')).toBeVisible();
+  releaseSettingsChunk();
+  await expect(page.getByRole('button', { name: 'Editar perfil' })).toBeVisible();
+  await page.getByRole('navigation').getByRole('button', { name: 'Rutinas', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Mis rutinas' })).toBeVisible();
+  await page.getByRole('navigation').getByRole('button', { name: 'Motor', exact: true }).click();
+  await expect(page.getByText('Selector de precisión')).toBeVisible();
+  await history.click();
+  await expect(page.getByText(/Performance fixture history 0(?!\d)/)).toBeVisible();
   console.log(JSON.stringify({ initialMs, repeatHistoryMs: repeats, pageRanges: historyRanges, latency: '1500ms simulated history response' }));
 });

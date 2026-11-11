@@ -1,5 +1,19 @@
 # Historia del Proyecto Kinetic
 
+## 2026-11-10 - Carga inicial de pantallas
+
+- Historial, selector muscular, lista de rutinas y perfil pasan a carga diferida. Dashboard y login siguen disponibles en el paquete inicial; las pantallas de entrenamiento mantienen su carga diferida previa.
+- El indicador de primera carga conserva el encabezado y el footer. La navegacion desde el footer mantiene la pantalla anterior mientras llega el nuevo modulo.
+- El archivo principal de produccion baja de 273,56 KB a 192,31 KB sin comprimir (gzip: 73,51 a 55,27 KB). El contenido total de la PWA no se reduce: se evita cargar y ejecutar esas pantallas en la ruta inicial. El service worker puede precargarlas despues para uso sin conexion.
+- Prueba en Chromium movil con la descarga de Perfil detenida: contenido, encabezado y footer siguen visibles; despues abren Perfil, Rutinas, Motor e Historial. No se modifica Supabase ni el flujo de sesiones.
+
+## 2026-11-10 - Consultas repetidas de progreso
+
+- Los informes generales y las series por ejercicio se conservan durante 60 segundos en memoria, separados por usuario, rango, zona horaria y ejercicio. Las consultas simultaneas del mismo informe comparten una sola peticion.
+- Al volver a Progreso se muestran los datos disponibles sin espera; tras el vencimiento se actualizan en segundo plano. Una sesion finalizada, incluso desde la cola offline, y el cierre de cuenta invalidan la cache.
+- No se modifican los calculos, las funciones de Supabase ni la interfaz de entrenamiento.
+- Verificacion local: 154 pruebas unitarias, TypeScript y build aprobados. En Chromium movil con respuestas simuladas de 500 ms, cuatro consultas iniciales de Progreso y ninguna adicional tras tres salidas y regresos; sin pantalla de carga al volver.
+
 ## 2026-10-22 - Ventana del dashboard e historial paginado
 
 - El dashboard solicita solo las sesiones desde el domingo de la semana anterior. Las estadisticas mantienen la misma definicion de semanas, totales y comparaciones.
